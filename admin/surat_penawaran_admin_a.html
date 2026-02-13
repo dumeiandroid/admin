@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Penawaran Lidan</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        .loader { border-top-color: #4f46e5; animation: spinner 1s linear infinite; }
+        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .hidden { display: none; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen font-sans">
+
+    <div id="login-section" class="flex items-center justify-center h-screen px-4">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md border border-gray-100">
+            <h2 class="text-2xl font-black text-center text-gray-800 uppercase mb-6 tracking-tight">Admin Penawaran</h2>
+            <div class="space-y-4">
+                <input type="text" id="username" placeholder="Username Admin" class="w-full p-4 bg-gray-50 border rounded-xl outline-none focus:ring-2 focus:ring-indigo-500">
+                <input type="password" id="password" placeholder="Password Admin" class="w-full p-4 bg-gray-50 border rounded-xl outline-none focus:ring-2 focus:ring-indigo-500">
+                <button id="login-btn" onclick="login()" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold hover:bg-indigo-700 shadow-lg transition-all">LOGIN</button>
+                <p id="login-msg" class="text-center text-sm font-bold"></p>
+            </div>
+        </div>
+    </div>
+
+    <div id="admin-dashboard" class="hidden container mx-auto p-4 md:p-8">
+        <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+            <div>
+                <h1 class="text-2xl font-black text-gray-900 uppercase">Database Penawaran</h1>
+                <p class="text-xs text-gray-400 font-bold uppercase tracking-widest">Tabel: <span class="text-indigo-600">surat_penawaran</span></p>
+            </div>
+            <div class="flex gap-2 w-full md:w-auto">
+                <button onclick="openModal()" class="flex-1 md:flex-none bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold shadow-md hover:bg-indigo-700">Buat Surat Baru</button>
+                <button onclick="logout()" class="bg-red-50 text-red-600 px-6 py-3 rounded-xl font-bold border border-red-100 hover:bg-red-100">LOGOUT</button>
+            </div>
+        </div>
+
+        <div id="main-loader" class="bg-white rounded-3xl p-24 flex flex-col items-center justify-center">
+            <div class="loader rounded-full border-4 border-t-4 border-gray-100 h-12 w-12 mb-4"></div>
+            <p class="text-indigo-600 font-bold animate-pulse text-[10px] tracking-widest uppercase">Sinkronisasi Tabel...</p>
+        </div>
+
+        <div id="table-container" class="hidden overflow-hidden bg-white rounded-3xl shadow-xl border border-gray-100">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead class="bg-gray-50 border-b border-gray-100">
+                        <tr class="text-[11px] uppercase font-black text-gray-400 tracking-wider">
+                            <th class="p-6">Detail Penawaran</th>
+                            <th class="p-6">Penerima</th>
+                            <th class="p-6 text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body" class="divide-y divide-gray-100"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-form" class="hidden fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div class="p-6 border-b flex justify-between items-center bg-gray-50/50">
+                <h3 id="modal-title" class="text-xl font-black uppercase tracking-tight">Form Surat Penawaran</h3>
+                <button onclick="closeModal()" class="text-2xl text-gray-400 h-10 w-10 hover:bg-gray-100 rounded-full">&times;</button>
+            </div>
+            <form id="sign-form" class="p-8 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-6">
+                <input type="hidden" name="id_x" id="edit_id_x">
+                <div class="space-y-4">
+                    <label class="text-[10px] font-black uppercase text-indigo-500 tracking-widest">Informasi Penerima</label>
+                    <input type="text" name="x_03" id="field_x03" placeholder="Kepada Yth. (Jabatan)" required class="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:border-indigo-500 focus:bg-white">
+                    <input type="text" name="x_04" id="field_x04" placeholder="Instansi/Universitas" required class="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:border-indigo-500 focus:bg-white">
+                    <input type="text" name="x_06" id="field_x06" placeholder="Perihal" required class="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:border-indigo-500 focus:bg-white font-bold text-indigo-900">
+                    <textarea name="x_09" id="field_x09" placeholder="Keterangan Isi Surat..." class="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl h-24 outline-none focus:border-indigo-500 focus:bg-white"></textarea>
+                </div>
+                <div class="space-y-4">
+                    <label class="text-[10px] font-black uppercase text-gray-400 tracking-widest">Metadata Internal</label>
+                    <input type="text" name="x_05" id="field_x05" readonly class="w-full p-3 bg-indigo-50 border-none font-black text-indigo-700 rounded-xl" placeholder="No Surat">
+                    <input type="text" name="x_01" id="field_x01" placeholder="Nama Penandatangan" required class="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:border-indigo-500">
+                    <input type="text" name="x_02" id="field_x02" placeholder="Jabatan Penandatangan" required class="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:border-indigo-500">
+                    <div class="grid grid-cols-2 gap-3">
+                        <input type="text" name="x_07" id="field_x07" readonly class="p-3 bg-gray-100 border-none text-gray-500 rounded-xl text-xs font-bold">
+                        <input type="text" name="x_08" id="field_x08" placeholder="Lampiran" class="p-3 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:border-indigo-500 text-xs">
+                    </div>
+                </div>
+                <input type="hidden" name="x_10" id="field_x10">
+                <div class="md:col-span-2 flex justify-end gap-3 pt-6 border-t mt-4">
+                    <button type="button" onclick="closeModal()" class="px-8 py-3 font-bold text-gray-400 uppercase text-xs">Batal</button>
+                    <button type="submit" class="px-12 py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all uppercase text-xs tracking-widest">Simpan Penawaran</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-qr" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
+        <div class="bg-white p-10 rounded-[2.5rem] text-center max-w-sm w-full shadow-2xl">
+            <div id="qr-capture-area" class="bg-white p-6 inline-block border-[10px] border-gray-50 rounded-3xl mb-4">
+                <div id="qrcode-preview"></div>
+            </div>
+            <p id="qr-token-label" class="text-[9px] text-gray-400 font-mono mb-8 uppercase tracking-widest"></p>
+            <button onclick="downloadQR()" class="w-full bg-green-500 text-white py-4 rounded-xl font-black mb-3 shadow-lg shadow-green-100 uppercase text-xs tracking-widest">Download PNG</button>
+            <button onclick="closeQR()" class="text-gray-400 text-[10px] font-black uppercase tracking-widest">Tutup</button>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://lidan-co-id.pages.dev/api/contacts_filter_dinamis6';
+        const AUTH_KEY = 'admin'; 
+        const TABLE_NAME = 'surat_penawaran';
+        // TARGET URL DETAIL SESUAI INSTRUKSI
+        const DETAIL_BASE_URL = 'https://lidan.co.id/sign/surat_penawaran';
+        
+        let allData = [];
+        let isEditMode = false;
+
+        window.onload = () => {
+            if (sessionStorage.getItem('admin_session')) showDashboard();
+        };
+
+        async function login() {
+            const u = document.getElementById('username').value;
+            const p = document.getElementById('password').value;
+            const msg = document.getElementById('login-msg');
+
+            msg.innerText = "Verifikasi...";
+            try {
+                const res = await fetch(`${API_URL}?action=login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-Custom-Auth': AUTH_KEY, 'X-Role': 'admin' },
+                    body: JSON.stringify({ username: u, password: p })
+                });
+                const result = await res.json();
+                if (result.success) {
+                    sessionStorage.setItem('admin_session', 'true');
+                    showDashboard();
+                } else {
+                    msg.innerText = "Kredensial Salah!";
+                    msg.className = "text-red-500 text-center text-xs font-bold";
+                }
+            } catch (e) { msg.innerText = "Gagal koneksi"; }
+        }
+
+        function showDashboard() {
+            document.getElementById('login-section').classList.add('hidden');
+            document.getElementById('admin-dashboard').classList.remove('hidden');
+            loadData();
+        }
+
+        async function loadData() {
+            showMainLoader(true);
+            try {
+                const res = await fetch(`${API_URL}?table=${TABLE_NAME}`, { headers: { 'X-Custom-Auth': AUTH_KEY } });
+                const result = await res.json();
+                allData = result.data || [];
+                const tbody = document.getElementById('table-body');
+                tbody.innerHTML = '';
+                
+                allData.sort((a,b) => b.id_x - a.id_x).forEach(item => {
+                    // LINK DETAIL DINAMIS
+                    const fullLink = `${DETAIL_BASE_URL}?token=${item.x_10}`;
+                    
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-gray-50/50 transition-colors">
+                            <td class="p-6">
+                                <div class="text-[9px] text-indigo-500 font-black tracking-tighter mb-1 uppercase">${item.x_05}</div>
+                                <div class="font-bold text-gray-800 text-sm">${item.x_06}</div>
+                            </td>
+                            <td class="p-6">
+                                <div class="text-xs font-black text-gray-700 uppercase">${item.x_03}</div>
+                                <div class="text-[10px] text-gray-400 font-bold">${item.x_04}</div>
+                            </td>
+                            <td class="p-6 text-center">
+    <div class="flex gap-2 justify-center">
+        <button onclick="editData(${item.id_x})" class="bg-indigo-50 text-indigo-600 px-3 py-2 rounded-lg text-[9px] font-black uppercase">Edit</button>
+        <button onclick="openQR('${item.x_10}')" class="bg-green-50 text-green-600 px-3 py-2 rounded-lg text-[9px] font-black uppercase">QR</button>
+        <a href="https://cipta.my.id/sign/surat_penawaran_hard?token=${item.x_10}" target="_blank" class="bg-orange-50 text-orange-600 px-3 py-2 rounded-lg text-[9px] font-black uppercase hover:bg-orange-100 transition-all">Link1</a>
+        
+        <a href="${fullLink}" target="_blank" class="bg-gray-100 text-gray-400 px-3 py-2 rounded-lg text-[9px] font-black uppercase hover:bg-gray-200 hover:text-gray-600 transition-all">Link</a>
+    </div>
+</td>
+                        </tr>`;
+                });
+            } catch (e) { console.error(e); }
+            showMainLoader(false);
+        }
+
+        function openModal() {
+            isEditMode = false;
+            document.getElementById('sign-form').reset();
+            document.getElementById('edit_id_x').value = "";
+            document.getElementById('modal-title').innerText = "Buat Penawaran Baru";
+            document.getElementById('field_x05').value = generateNoSurat();
+            document.getElementById('field_x10').value = 'LIDAN-SP-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+            document.getElementById('field_x07').value = new Date().toLocaleDateString('id-ID', { day:'2-digit', month:'long', year:'numeric' });
+            document.getElementById('modal-form').classList.remove('hidden');
+        }
+
+        function editData(id) {
+            isEditMode = true;
+            const item = allData.find(d => d.id_x === id);
+            if(!item) return;
+            document.getElementById('modal-title').innerText = "Update Data Penawaran";
+            document.getElementById('edit_id_x').value = item.id_x;
+            document.getElementById('field_x01').value = item.x_01;
+            document.getElementById('field_x02').value = item.x_02;
+            document.getElementById('field_x03').value = item.x_03;
+            document.getElementById('field_x04').value = item.x_04;
+            document.getElementById('field_x05').value = item.x_05;
+            document.getElementById('field_x06').value = item.x_06;
+            document.getElementById('field_x07').value = item.x_07;
+            document.getElementById('field_x08').value = item.x_08;
+            document.getElementById('field_x09').value = item.x_09 || "";
+            document.getElementById('field_x10').value = item.x_10;
+            document.getElementById('modal-form').classList.remove('hidden');
+        }
+
+        document.getElementById('sign-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+            let finalUrl = `${API_URL}?table=${TABLE_NAME}`;
+            const method = isEditMode ? 'PUT' : 'POST';
+            if (isEditMode) finalUrl += `&id_x=${data.id_x}`;
+
+            try {
+                const res = await fetch(finalUrl, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json', 'X-Custom-Auth': AUTH_KEY },
+                    body: JSON.stringify(data)
+                });
+                if(res.ok) { alert('Data Tersimpan!'); closeModal(); loadData(); }
+            } catch (e) { alert('Gagal Simpan'); }
+        };
+
+        function generateNoSurat() {
+            const year = new Date().getFullYear();
+            return `${(allData.length + 1).toString().padStart(3, '0')}/LIDAN/SP/${year}`;
+        }
+
+        function openQR(token) {
+            document.getElementById('modal-qr').classList.remove('hidden');
+            document.getElementById('qrcode-preview').innerHTML = '';
+            document.getElementById('qr-token-label').innerText = 'ID: ' + token;
+            
+            // QR CODE MENGARAH KE URL DETAIL SESUAI INSTRUKSI
+            const officialLink = `${DETAIL_BASE_URL}?token=${token}`;
+            
+            new QRCode(document.getElementById("qrcode-preview"), {
+                text: officialLink,
+                width: 200, height: 200,
+                colorDark : "#1e1b4b", colorLight : "#ffffff",
+                correctLevel : 3
+            });
+        }
+
+        function logout() { sessionStorage.clear(); location.reload(); }
+        function closeModal() { document.getElementById('modal-form').classList.add('hidden'); }
+        function closeQR() { document.getElementById('modal-qr').classList.add('hidden'); }
+        function downloadQR() {
+            html2canvas(document.getElementById('qr-capture-area'), { scale: 3 }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `QR_SP_${document.getElementById('qr-token-label').innerText}.png`;
+                link.href = canvas.toDataURL(); link.click();
+            });
+        }
+        function showMainLoader(s) { 
+            document.getElementById('main-loader').style.display = s ? 'flex' : 'none'; 
+            document.getElementById('table-container').classList.toggle('hidden', s);
+        }
+    </script>
+</body>
+</html>

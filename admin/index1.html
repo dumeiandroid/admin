@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | Lidan Co</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg-gradient: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            --card-bg: rgba(255, 255, 255, 0.9);
+            --text-main: #1e293b;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-gradient);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-main);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            padding: 2rem;
+        }
+
+        /* Login Card */
+        #login-section {
+            background: var(--card-bg);
+            padding: 3rem;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            text-align: center;
+        }
+
+        h1 { margin-bottom: 2rem; font-weight: 700; color: #0f172a; }
+
+        .input-group { margin-bottom: 1.5rem; text-align: left; }
+        
+        label { display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.9rem; }
+
+        input {
+            width: 100%;
+            padding: 0.8rem 1rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: 0.3s;
+        }
+
+        input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+
+        button {
+            width: 100%;
+            padding: 0.8rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        button:hover { background: var(--primary-hover); transform: translateY(-1px); }
+
+        /* Dashboard Card */
+        #dashboard-section {
+            display: none;
+            background: var(--card-bg);
+            padding: 3rem;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .grid-menu {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .menu-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            text-decoration: none;
+            color: var(--text-main);
+            font-weight: 600;
+            border: 1px solid #e2e8f0;
+            transition: 0.3s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .menu-card:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+            transform: translateY(-5px);
+        }
+
+        .icon { font-size: 2rem; }
+
+        .logout-btn {
+            background: #ef4444;
+            margin-top: 2rem;
+            width: auto;
+            padding: 0.5rem 2rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="login-section">
+        <h1>Admin Portal</h1>
+        <div class="input-group">
+            <label>Username</label>
+            <input type="text" id="username" placeholder="Masukkan username">
+        </div>
+        <div class="input-group">
+            <label>Password</label>
+            <input type="password" id="password" placeholder="Masukkan password">
+        </div>
+        <button onclick="handleLogin()">Masuk Dashboard</button>
+        <p id="error-msg" style="color: #ef4444; margin-top: 1rem; display: none;"></p>
+    </div>
+
+    <div id="dashboard-section">
+        <h1>Selamat Datang, Admin</h1>
+        <p>Silahkan pilih modul yang ingin dikelola:</p>
+        
+        <div class="grid-menu">
+            <a href="invoice_admin.html" class="menu-card">
+                <span class="icon">📄</span>
+                <span>Invoice</span>
+            </a>
+            <a href="kwitansi_admin.html" class="menu-card">
+                <span class="icon">🧾</span>
+                <span>Kwitansi</span>
+            </a>
+            <a href="sign_admin.html" class="menu-card">
+                <span class="icon">✍️</span>
+                <span>Digital Sign</span>
+            </a>
+            <a href="surat_admin.html" class="menu-card">
+                <span class="icon">✉️</span>
+                <span>Surat</span>
+            </a>
+            <a href="surat_penawaran_admin.html" class="menu-card">
+                <span class="icon">💼</span>
+                <span>Penawaran</span>
+            </a>
+        </div>
+
+        <button class="logout-btn" onclick="logout()">Keluar</button>
+    </div>
+</div>
+
+<script>
+    const API_URL = 'https://lidan-co-id.pages.dev/api/contacts_filter_dinamis6';
+
+    async function handleLogin() {
+        const user = document.getElementById('username').value;
+        const pass = document.getElementById('password').value;
+        const errMsg = document.getElementById('error-msg');
+
+        try {
+            const response = await fetch(`${API_URL}?action=login`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Custom-Auth': 'admin', // Sesuai dengan config di API Anda
+                    'X-Role': 'admin'
+                },
+                body: JSON.stringify({
+                    username: user,
+                    password: pass
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                document.getElementById('login-section').style.display = 'none';
+                document.getElementById('dashboard-section').style.display = 'block';
+                localStorage.setItem('isAdminLoggedIn', 'true');
+            } else {
+                errMsg.style.display = 'block';
+                errMsg.innerText = result.message || 'Login Gagal';
+            }
+        } catch (error) {
+            console.error(error);
+            alert('Terjadi kesalahan koneksi API');
+        }
+    }
+
+    function logout() {
+        localStorage.removeItem('isAdminLoggedIn');
+        location.reload();
+    }
+
+    // Cek status login saat halaman dimuat
+    window.onload = () => {
+        if(localStorage.getItem('isAdminLoggedIn') === 'true') {
+            document.getElementById('login-section').style.display = 'none';
+            document.getElementById('dashboard-section').style.display = 'block';
+        }
+    }
+</script>
+
+</body>
+</html>

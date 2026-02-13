@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Voucher Lidan</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        .loader { border-top-color: #be185d; animation: spinner 1s linear infinite; }
+        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .hidden { display: none; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen font-sans">
+
+    <script>
+        const APP_CONFIG = {
+            "api": {
+                "baseUrl": "https://lidan-co-id.pages.dev/api/contacts_filter_dinamis6",
+                "authKey": "admin",
+                "tableName": "voucher" 
+            },
+            "urls": {
+                "detailBase": "https://lidan.co.id/sign/voucher.html",
+                "printBase": "https://cipta.my.id/sign/voucher_hard.html"
+            }
+        };
+    </script>
+
+    <div id="admin-dashboard" class="container mx-auto p-4 md:p-8">
+        <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 text-center md:text-left">
+            <div>
+                <h1 class="text-2xl font-black text-gray-900 uppercase">Manajemen Voucher</h1>
+                <p class="text-[10px] text-pink-600 font-bold uppercase tracking-widest">Lidan Psikologi Indonesia</p>
+            </div>
+            <div class="flex flex-wrap gap-2 justify-center">
+                <button onclick="openModal(false)" class="bg-pink-600 text-white px-6 py-3 rounded-xl font-bold shadow-md hover:bg-pink-700 transition uppercase text-xs">Voucher Satuan</button>
+                <button onclick="openModal(true)" class="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold shadow-md hover:bg-indigo-700 transition uppercase text-xs">Terbitkan Voucher Global</button>
+                <button onclick="location.reload()" class="bg-white text-gray-400 px-6 py-3 rounded-xl font-bold border hover:bg-gray-50 transition text-xs">REFRESH</button>
+            </div>
+        </div>
+
+        <div id="main-loader" class="bg-white rounded-3xl p-24 flex flex-col items-center justify-center shadow-sm">
+            <div class="loader rounded-full border-4 border-t-4 border-gray-100 h-12 w-12 mb-4"></div>
+            <p class="text-pink-600 font-bold animate-pulse text-[10px] tracking-widest uppercase">Syncing Database...</p>
+        </div>
+
+        <div id="table-container" class="hidden overflow-hidden bg-white rounded-3xl shadow-xl border border-gray-100">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead class="bg-gray-50 border-b border-gray-100">
+                        <tr class="text-[11px] uppercase font-black text-gray-400 tracking-wider">
+                            <th class="p-6">Voucher ID</th>
+                            <th class="p-6">Penerima (Individu/Grup)</th>
+                            <th class="p-6">Nilai</th>
+                            <th class="p-6">Status</th>
+                            <th class="p-6 text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body" class="divide-y divide-gray-100"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-form" class="hidden fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden">
+            <div class="p-6 border-b flex justify-between items-center bg-gray-50/50">
+                <h3 id="modal-title" class="text-xl font-black uppercase">Form Voucher</h3>
+                <button onclick="closeModal()" class="text-2xl text-gray-400">&times;</button>
+            </div>
+            <form id="sign-form" class="p-8 space-y-5">
+                <input type="hidden" id="edit_id_x">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-4">
+                        <label class="text-[10px] font-black text-pink-600 uppercase tracking-widest">Informasi Penerima</label>
+                        <input type="text" id="field_x01" placeholder="Nama Perorangan / Komunitas" required class="w-full p-4 bg-gray-50 border rounded-xl outline-none focus:border-pink-500">
+                        <textarea id="field_x07" placeholder="Keterangan Peruntukan" required class="w-full p-4 bg-gray-50 border rounded-xl outline-none focus:border-pink-500 h-24"></textarea>
+                    </div>
+                    <div class="space-y-4">
+                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Ketentuan & Nominal</label>
+                        <input type="number" id="field_x08" placeholder="Nilai Voucher (Rp)" required class="w-full p-4 bg-gray-50 border rounded-xl outline-none focus:border-pink-500">
+                        
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="text-[8px] font-bold text-gray-400 uppercase">Exp. Date</label>
+                                <input type="date" id="field_x06" required class="w-full p-3 bg-gray-50 border rounded-xl text-sm">
+                            </div>
+                            <div id="bulk-container">
+                                <label class="text-[8px] font-bold text-indigo-600 uppercase">Jumlah Data</label>
+                                <input type="number" id="field_bulk_qty" value="1" min="1" class="w-full p-3 bg-indigo-50 border-indigo-200 border rounded-xl font-black text-indigo-700">
+                            </div>
+                        </div>
+
+                        <select id="field_x13" class="w-full p-4 bg-gray-50 border rounded-xl font-bold text-sm">
+                            <option value="AVAILABLE">AVAILABLE</option>
+                            <option value="CLAIMED">CLAIMED</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-3 pt-6 border-t">
+                    <button type="button" onclick="closeModal()" class="text-xs font-bold text-gray-400 uppercase">Batal</button>
+                    <button type="submit" id="btn-submit" class="px-10 py-4 bg-pink-600 text-white rounded-2xl font-black uppercase text-xs shadow-lg transition-transform active:scale-95">Proses Data</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-qr" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
+        <div class="bg-white p-10 rounded-[2.5rem] text-center max-w-sm w-full">
+            <div id="qr-capture-area" class="bg-white p-6 inline-block border-[10px] border-gray-50 rounded-3xl mb-4">
+                <div id="qrcode-preview"></div>
+            </div>
+            <p id="qr-token-label" class="text-[9px] text-gray-400 font-mono mb-8 uppercase tracking-widest"></p>
+            <button onclick="closeQR()" class="w-full bg-pink-600 text-white py-4 rounded-xl font-black uppercase text-xs">Tutup</button>
+        </div>
+    </div>
+
+    <script>
+        let allData = [];
+        let isBulkMode = false;
+
+        async function loadData() {
+            showMainLoader(true);
+            try {
+                const res = await fetch(`${APP_CONFIG.api.baseUrl}?table=${APP_CONFIG.api.tableName}`, { 
+                    headers: { 'X-Custom-Auth': APP_CONFIG.api.authKey } 
+                });
+                const result = await res.json();
+                allData = result.data || [];
+                renderTable();
+            } catch (e) { alert('Gagal memuat data'); }
+            showMainLoader(false);
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = '';
+            allData.sort((a,b) => b.id_x - a.id_x).forEach(item => {
+                const statusCls = item.x_13 === 'AVAILABLE' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400';
+                tbody.innerHTML += `
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="p-6">
+                            <div class="text-[10px] font-black text-pink-600">${item.x_04}</div>
+                            <div class="text-[9px] text-red-500 font-bold">Hingga: ${item.x_06}</div>
+                        </td>
+                        <td class="p-6 uppercase font-black text-sm text-gray-700">
+                            ${item.x_01}
+                            <div class="text-[9px] font-normal text-gray-400 lowercase italic">${item.x_07}</div>
+                        </td>
+                        <td class="p-6 font-black text-gray-900">Rp ${parseInt(item.x_08).toLocaleString('id-ID')}</td>
+                        <td class="p-6"><span class="${statusCls} px-3 py-1 rounded-lg text-[9px] font-black">${item.x_13}</span></td>
+                        <td class="p-6 text-center">
+                            <div class="flex gap-2 justify-center">
+                                <button onclick="editData(${item.id_x})" class="bg-indigo-50 text-indigo-600 px-3 py-2 rounded-lg text-[9px] font-black uppercase">EDIT</button>
+                                <button onclick="openQR('${item.x_12}')" class="bg-green-50 text-green-600 px-3 py-2 rounded-lg text-[9px] font-black uppercase">QR</button>
+                                <a href="${APP_CONFIG.urls.printBase}?token=${item.x_12}" target="_blank" class="bg-orange-50 text-orange-600 px-3 py-2 rounded-lg text-[9px] font-black uppercase">CETAK</a>
+                                <a href="${APP_CONFIG.urls.detailBase}?token=${item.x_12}" target="_blank" class="bg-gray-100 text-gray-400 px-3 py-2 rounded-lg text-[9px] font-black uppercase">LINK</a>
+                            </div>
+                        </td>
+                    </tr>`;
+            });
+        }
+
+        function openModal(isBulk = false) {
+            isBulkMode = isBulk;
+            document.getElementById('sign-form').reset();
+            document.getElementById('edit_id_x').value = "";
+            document.getElementById('modal-title').innerText = isBulk ? "Terbitkan Voucher Global (Bulk)" : "Terbitkan Voucher Satuan";
+            document.getElementById('bulk-container').style.display = isBulk ? 'block' : 'none';
+            document.getElementById('btn-submit').className = isBulk ? "px-10 py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase text-xs shadow-lg" : "px-10 py-4 bg-pink-600 text-white rounded-2xl font-black uppercase text-xs shadow-lg";
+            document.getElementById('modal-form').classList.remove('hidden');
+        }
+
+        document.getElementById('sign-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const qty = isBulkMode ? parseInt(document.getElementById('field_bulk_qty').value) : 1;
+            const editId = document.getElementById('edit_id_x').value;
+            
+            showMainLoader(true);
+            
+            // Loop sesuai jumlah yang diinginkan
+            for(let i=0; i < qty; i++) {
+                const timestamp = Date.now() + i;
+                const randomStr = Math.random().toString(36).substr(2, 5).toUpperCase();
+                
+                const payload = {
+                    x_01: document.getElementById('field_x01').value,
+                    x_04: `VCH-${timestamp.toString().slice(-6)}-${randomStr}`, // ID unik otomatis
+                    x_06: document.getElementById('field_x06').value,
+                    x_07: document.getElementById('field_x07').value,
+                    x_08: document.getElementById('field_x08').value,
+                    x_12: 'TKN-' + Math.random().toString(36).substr(2, 10).toUpperCase(), // Token unik otomatis
+                    x_13: document.getElementById('field_x13').value,
+                    x_05: new Date().toISOString().split('T')[0]
+                };
+
+                const method = editId && !isBulkMode ? 'PUT' : 'POST';
+                const url = editId && !isBulkMode ? `${APP_CONFIG.api.baseUrl}?table=${APP_CONFIG.api.tableName}&id_x=${editId}` : `${APP_CONFIG.api.baseUrl}?table=${APP_CONFIG.api.tableName}`;
+
+                await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json', 'X-Custom-Auth': APP_CONFIG.api.authKey },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (editId) break; // Jika edit, hanya satu kali loop
+            }
+            
+            closeModal();
+            loadData();
+        };
+
+        function editData(id) {
+            const item = allData.find(d => d.id_x === id);
+            if(!item) return;
+            openModal(false);
+            document.getElementById('modal-title').innerText = "Edit Voucher";
+            document.getElementById('edit_id_x').value = item.id_x;
+            document.getElementById('field_x01').value = item.x_01;
+            document.getElementById('field_x07').value = item.x_07;
+            document.getElementById('field_x08').value = item.x_08;
+            document.getElementById('field_x06').value = item.x_06;
+            document.getElementById('field_x13').value = item.x_13;
+        }
+
+        function openQR(token) {
+            document.getElementById('modal-qr').classList.remove('hidden');
+            document.getElementById('qrcode-preview').innerHTML = '';
+            document.getElementById('qr-token-label').innerText = 'TOKEN: ' + token;
+            new QRCode(document.getElementById("qrcode-preview"), {
+                text: `${APP_CONFIG.urls.detailBase}?token=${token}`,
+                width: 200, height: 200, colorDark : "#be185d"
+            });
+        }
+
+        function closeModal() { document.getElementById('modal-form').classList.add('hidden'); }
+        function closeQR() { document.getElementById('modal-qr').classList.add('hidden'); }
+        function showMainLoader(s) { 
+            document.getElementById('main-loader').style.display = s ? 'flex' : 'none'; 
+            document.getElementById('table-container').classList.toggle('hidden', s);
+        }
+        loadData();
+    </script>
+</body>
+</html>

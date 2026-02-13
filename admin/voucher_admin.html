@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Voucher Lidan</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        .loader { border-top-color: #4f46e5; animation: spinner 1s linear infinite; }
+        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .hidden { display: none; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen font-sans">
+
+    <script>
+        const APP_CONFIG = {
+            "api": {
+                "baseUrl": "https://lidan-co-id.pages.dev/api/contacts_filter_dinamis6",
+                "authKey": "admin",
+                "tableName": "voucher" // Target tabel voucher
+            },
+            "urls": {
+                "detailBase": "https://lidan.co.id/sign/voucher.html",
+                "printBase": "https://cipta.my.id/sign/voucher_hard.html"
+            },
+            "ui": {
+                "title": "Voucher Manager Lidan",
+                "tableHeading": "Database Voucher Aktif",
+                "noPrefix": "VCH"
+            }
+        };
+    </script>
+
+    <div id="login-section" class="flex items-center justify-center h-screen px-4">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md border border-gray-100">
+            <h2 class="text-2xl font-black text-center text-gray-800 uppercase mb-6 tracking-tight">Voucher Admin</h2>
+            <div class="space-y-4">
+                <input type="text" id="username" placeholder="Username" class="w-full p-4 bg-gray-50 border rounded-xl outline-none focus:ring-2 focus:ring-pink-500">
+                <input type="password" id="password" placeholder="Password" class="w-full p-4 bg-gray-50 border rounded-xl outline-none focus:ring-2 focus:ring-pink-500">
+                <button onclick="login()" class="w-full bg-pink-600 text-white py-4 rounded-xl font-bold hover:bg-pink-700 shadow-lg transition-all uppercase">Login</button>
+                <p id="login-msg" class="text-center text-sm font-bold"></p>
+            </div>
+        </div>
+    </div>
+
+    <div id="admin-dashboard" class="hidden container mx-auto p-4 md:p-8">
+        <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+            <div>
+                <h1 class="text-2xl font-black text-gray-900 uppercase">Manajemen Voucher</h1>
+                <p class="text-xs text-gray-400 font-bold uppercase tracking-widest">Tabel: <span class="text-pink-600">voucher</span></p>
+            </div>
+            <div class="flex gap-2 w-full md:w-auto">
+                <button onclick="openModal()" class="flex-1 md:flex-none bg-pink-600 text-white px-6 py-3 rounded-xl font-bold shadow-md hover:bg-pink-700">Terbitkan Voucher</button>
+                <button onclick="logout()" class="bg-red-50 text-red-600 px-6 py-3 rounded-xl font-bold border border-red-100 hover:bg-red-100 text-xs">LOGOUT</button>
+            </div>
+        </div>
+
+        <div id="main-loader" class="bg-white rounded-3xl p-24 flex flex-col items-center justify-center">
+            <div class="loader rounded-full border-4 border-t-4 border-gray-100 h-12 w-12 mb-4"></div>
+            <p class="text-pink-600 font-bold animate-pulse text-[10px] tracking-widest uppercase">Sinkronisasi Database...</p>
+        </div>
+
+        <div id="table-container" class="hidden overflow-hidden bg-white rounded-3xl shadow-xl border border-gray-100">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead class="bg-gray-50 border-b border-gray-100">
+                        <tr class="text-[11px] uppercase font-black text-gray-400 tracking-wider">
+                            <th class="p-6">Kode & Masa Berlaku</th>
+                            <th class="p-6">Penerima</th>
+                            <th class="p-6">Nilai Voucher</th>
+                            <th class="p-6">Status</th>
+                            <th class="p-6 text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body" class="divide-y divide-gray-100"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-form" class="hidden fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div class="p-6 border-b flex justify-between items-center bg-gray-50/50">
+                <h3 id="modal-title" class="text-xl font-black uppercase tracking-tight">Form Penerbitan Voucher</h3>
+                <button onclick="closeModal()" class="text-2xl text-gray-400 h-10 w-10 hover:bg-gray-100 rounded-full">&times;</button>
+            </div>
+            <form id="sign-form" class="p-8 overflow-y-auto space-y-6">
+                <input type="hidden" name="id_x" id="edit_id_x">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-4">
+                        <label class="text-[10px] font-black uppercase text-pink-500 tracking-widest">Data Penerima</label>
+                        <input type="text" name="x_01" id="field_x01" placeholder="Nama Lengkap Penerima" required class="w-full p-4 bg-gray-50 border rounded-xl outline-none focus:border-pink-500">
+                        <input type="text" name="x_03" id="field_x03" placeholder="Nomor HP / Email" class="w-full p-4 bg-gray-50 border rounded-xl outline-none focus:border-pink-500">
+                        <textarea name="x_07" id="field_x07" placeholder="Peruntukan (Contoh: Tes Minat Bakat)" required class="w-full p-4 bg-gray-50 border rounded-xl outline-none focus:border-pink-500 h-24"></textarea>
+                    </div>
+                    <div class="space-y-4">
+                        <label class="text-[10px] font-black uppercase text-gray-400 tracking-widest">Sistem Voucher</label>
+                        <input type="text" name="x_04" id="field_x04" readonly class="w-full p-3 bg-pink-50 border-none font-black text-pink-700 rounded-xl" placeholder="Kode Voucher">
+                        <input type="number" name="x_08" id="field_x08" placeholder="Nominal Value (Rp)" required class="w-full p-4 bg-gray-50 border rounded-xl outline-none focus:border-pink-500">
+                        <div class="space-y-1">
+                            <label class="text-[8px] font-bold text-gray-400 uppercase">Masa Berlaku Hingga</label>
+                            <input type="date" name="x_06" id="field_x06" required class="w-full p-4 bg-gray-50 border rounded-xl outline-none focus:border-pink-500">
+                        </div>
+                        <select name="x_13" id="field_x13" class="w-full p-4 bg-gray-50 border rounded-xl outline-none focus:border-pink-500 font-bold">
+                            <option value="AVAILABLE">AVAILABLE - Bisa Digunakan</option>
+                            <option value="CLAIMED">CLAIMED - Sudah Digunakan</option>
+                            <option value="EXPIRED">EXPIRED - Kadaluarsa</option>
+                        </select>
+                    </div>
+                </div>
+
+                <input type="hidden" name="x_05" id="field_x05"> <input type="hidden" name="x_12" id="field_x12"> <div class="flex justify-end gap-3 pt-6 border-t">
+                    <button type="button" onclick="closeModal()" class="px-8 py-3 font-bold text-gray-400 uppercase text-xs">Batal</button>
+                    <button type="submit" class="px-12 py-4 bg-pink-600 text-white rounded-2xl font-black shadow-lg hover:bg-pink-700 transition-all uppercase text-xs tracking-widest">Simpan Voucher</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-qr" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
+        <div class="bg-white p-10 rounded-[2.5rem] text-center max-w-sm w-full shadow-2xl">
+            <div id="qr-capture-area" class="bg-white p-6 inline-block border-[10px] border-gray-50 rounded-3xl mb-4">
+                <div id="qrcode-preview"></div>
+            </div>
+            <p id="qr-token-label" class="text-[9px] text-gray-400 font-mono mb-8 uppercase tracking-widest"></p>
+            <button onclick="downloadQR()" class="w-full bg-green-500 text-white py-4 rounded-xl font-black mb-3 shadow-lg uppercase text-xs">Download Image</button>
+            <button onclick="closeQR()" class="text-gray-400 text-[10px] font-black uppercase tracking-widest">Tutup</button>
+        </div>
+    </div>
+
+    <script>
+        let allData = [];
+        let isEditMode = false;
+
+        window.onload = () => { if (sessionStorage.getItem('admin_session')) showDashboard(); };
+
+        async function login() {
+            const u = document.getElementById('username').value;
+            const p = document.getElementById('password').value;
+            const msg = document.getElementById('login-msg');
+            msg.innerText = "Verifikasi...";
+            try {
+                const res = await fetch(`${APP_CONFIG.api.baseUrl}?action=login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-Custom-Auth': APP_CONFIG.api.authKey, 'X-Role': 'admin' },
+                    body: JSON.stringify({ username: u, password: p })
+                });
+                const result = await res.json();
+                if (result.success) {
+                    sessionStorage.setItem('admin_session', 'true');
+                    showDashboard();
+                } else { msg.innerText = "Gagal!"; }
+            } catch (e) { msg.innerText = "Koneksi Error"; }
+        }
+
+        function showDashboard() {
+            document.getElementById('login-section').classList.add('hidden');
+            document.getElementById('admin-dashboard').classList.remove('hidden');
+            loadData();
+        }
+
+        async function loadData() {
+            showMainLoader(true);
+            try {
+                const res = await fetch(`${APP_CONFIG.api.baseUrl}?table=${APP_CONFIG.api.tableName}`, { 
+                    headers: { 'X-Custom-Auth': APP_CONFIG.api.authKey } 
+                });
+                const result = await res.json();
+                allData = result.data || [];
+                renderTable();
+            } catch (e) { console.error(e); }
+            showMainLoader(false);
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = '';
+            allData.sort((a,b) => b.id_x - a.id_x).forEach(item => {
+                let statusColor = 'bg-green-50 text-green-600';
+                if(item.x_13 === 'CLAIMED') statusColor = 'bg-gray-100 text-gray-400';
+                if(item.x_13 === 'EXPIRED') statusColor = 'bg-red-50 text-red-600';
+                
+                tbody.innerHTML += `
+                    <tr class="hover:bg-gray-50/50 transition-colors">
+                        <td class="p-6">
+                            <div class="text-[9px] text-pink-500 font-black tracking-tighter mb-1 uppercase">${item.x_04}</div>
+                            <div class="text-[10px] text-red-500 font-bold italic">Exp: ${item.x_06}</div>
+                        </td>
+                        <td class="p-6">
+                            <div class="text-sm font-black text-gray-700 uppercase">${item.x_01}</div>
+                            <div class="text-[10px] text-gray-400">${item.x_07}</div>
+                        </td>
+                        <td class="p-6">
+                            <div class="font-black text-lg text-pink-600">Rp ${parseInt(item.x_08).toLocaleString('id-ID')}</div>
+                        </td>
+                        <td class="p-6">
+                            <span class="${statusColor} px-3 py-1 rounded-lg text-[9px] font-black uppercase">${item.x_13}</span>
+                        </td>
+                        <td class="p-6 text-center">
+                            <div class="flex gap-2 justify-center">
+                                <button onclick="editData(${item.id_x})" class="bg-indigo-50 text-indigo-600 px-3 py-2 rounded-lg text-[9px] font-black">EDIT</button>
+                                <button onclick="openQR('${item.x_12}')" class="bg-green-50 text-green-600 px-3 py-2 rounded-lg text-[9px] font-black">QR</button>
+                                <a href="${APP_CONFIG.urls.printBase}?token=${item.x_12}" target="_blank" class="bg-orange-50 text-orange-600 px-3 py-2 rounded-lg text-[9px] font-black">CETAK</a>
+                            </div>
+                        </td>
+                    </tr>`;
+            });
+        }
+
+        function openModal() {
+            isEditMode = false;
+            document.getElementById('sign-form').reset();
+            document.getElementById('edit_id_x').value = "";
+            document.getElementById('modal-title').innerText = "Terbitkan Voucher Baru";
+            document.getElementById('field_x04').value = `${APP_CONFIG.ui.noPrefix}-${Date.now().toString().slice(-6)}`;
+            document.getElementById('field_x05').value = new Date().toISOString().split('T')[0];
+            document.getElementById('field_x12').value = 'VCH-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+            document.getElementById('modal-form').classList.remove('hidden');
+        }
+
+        function editData(id) {
+            isEditMode = true;
+            const item = allData.find(d => d.id_x === id);
+            if(!item) return;
+            document.getElementById('modal-title').innerText = "Update Data Voucher";
+            document.getElementById('edit_id_x').value = item.id_x;
+            document.getElementById('field_x01').value = item.x_01;
+            document.getElementById('field_x03').value = item.x_03;
+            document.getElementById('field_x04').value = item.x_04;
+            document.getElementById('field_x05').value = item.x_05;
+            document.getElementById('field_x06').value = item.x_06;
+            document.getElementById('field_x07').value = item.x_07;
+            document.getElementById('field_x08').value = item.x_08;
+            document.getElementById('field_x12').value = item.x_12;
+            document.getElementById('field_x13').value = item.x_13;
+            document.getElementById('modal-form').classList.remove('hidden');
+        }
+
+        document.getElementById('sign-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+            let finalUrl = `${APP_CONFIG.api.baseUrl}?table=${APP_CONFIG.api.tableName}`;
+            if (isEditMode) finalUrl += `&id_x=${data.id_x}`;
+
+            try {
+                const res = await fetch(finalUrl, {
+                    method: isEditMode ? 'PUT' : 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-Custom-Auth': APP_CONFIG.api.authKey },
+                    body: JSON.stringify(data)
+                });
+                if(res.ok) { closeModal(); loadData(); }
+            } catch (e) { alert('Gagal Simpan'); }
+        };
+
+        function openQR(token) {
+            document.getElementById('modal-qr').classList.remove('hidden');
+            document.getElementById('qrcode-preview').innerHTML = '';
+            document.getElementById('qr-token-label').innerText = 'ID: ' + token;
+            new QRCode(document.getElementById("qrcode-preview"), {
+                text: `${APP_CONFIG.urls.detailBase}?token=${token}`,
+                width: 200, height: 200, colorDark : "#be185d"
+            });
+        }
+
+        function logout() { sessionStorage.clear(); location.reload(); }
+        function closeModal() { document.getElementById('modal-form').classList.add('hidden'); }
+        function closeQR() { document.getElementById('modal-qr').classList.add('hidden'); }
+        function downloadQR() {
+            html2canvas(document.getElementById('qr-capture-area'), { scale: 3 }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `VOUCHER_QR_${document.getElementById('qr-token-label').innerText}.png`;
+                link.href = canvas.toDataURL(); link.click();
+            });
+        }
+        function showMainLoader(s) { 
+            document.getElementById('main-loader').style.display = s ? 'flex' : 'none'; 
+            document.getElementById('table-container').classList.toggle('hidden', s);
+        }
+    </script>
+</body>
+</html>

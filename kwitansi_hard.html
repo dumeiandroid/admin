@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kwitansi Resmi - Lidan</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Times+New+Roman&display=swap');
+        
+        body { background-color: #f3f4f6; font-family: 'Times New Roman', Times, serif; }
+        
+        .paper {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 20mm 25mm 25mm 25mm; 
+            margin: 20px auto;
+            background: white;
+            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        .line-header { border-bottom: 3px solid #BF1A54; margin-top: 5px; }
+        .line-header-thin { border-bottom: 1px solid #BF1A54; margin-top: 2px; }
+
+        @media print {
+            body { background: none; padding: 0; }
+            .paper { margin: 0; box-shadow: none; width: 100%; }
+            .no-print { display: none; }
+        }
+
+        .content-text { line-height: 1.8; text-align: justify; font-size: 12pt; }
+        .qr-area { width: 100px; height: 100px; }
+        
+        .kwitansi-box {
+            border: 3px solid #BF1A54;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 30px 0;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="no-print fixed top-5 right-5 flex gap-2">
+        <button onclick="window.print()" class="bg-gray-600 text-white px-6 py-2 rounded-full font-bold shadow-lg hover:bg-gray-700 transition">Cetak / Print</button>
+        <button onclick="downloadPDF()" class="bg-indigo-600 text-white px-6 py-2 rounded-full font-bold shadow-lg hover:bg-indigo-700 transition">Download PDF (A4)</button>
+    </div>
+
+    <div class="paper" id="invoice-content">
+        
+        <div class="flex items-center gap-4 mb-0">
+            <img src="https://lidan.co.id/gambar/logo-baru.png" alt="Logo Lidan" class="w-24 h-auto object-contain">
+            <div class="flex-1 text-center">
+                <h1 style="color: #BF1A54;" class="text-3xl font-bold uppercase tracking-widest">
+                    PT Lidan Indah Abadi
+                </h1>
+                <p class="text-sm">Jl. Imam Bonjol No. 9, Regus Forum Nine Lt.9, Medan, Sumatera Utara</p>
+                <p class="text-sm italic text-gray-600">Email: info@lidan.co.id | Website: lidan.co.id | Whatsapp: 0851 5960 1400</p>
+            </div>
+        </div>
+        
+        <div class="line-header" style="background-color: #BF1A54; height: 3px; margin-top: 10px;"></div>
+        <div class="line-header-thin" style="background-color: #BF1A54; height: 1px; margin-top: 2px;"></div>
+
+        <div id="loading" class="text-center py-20">
+            <p class="animate-pulse font-bold text-gray-400">Menyusun Dokumen...</p>
+        </div>
+
+        <div id="kwitansi-isi" class="hidden mt-6">
+            <div class="text-center mb-6">
+                <h2 class="text-3xl font-black uppercase tracking-wider" style="color: #BF1A54;">KWITANSI</h2>
+                <p id="nomor-kwitansi" class="text-sm text-gray-600 mt-1 font-bold"></p>
+            </div>
+
+            <div class="kwitansi-box">
+                <div class="grid grid-cols-3 gap-4 mb-6">
+                    <div>
+                        <p class="text-sm text-gray-500 font-bold">Jenis Transaksi:</p>
+                        <p id="jenis" class="text-lg font-black uppercase mt-1"></p>
+                    </div>
+                    <div class="col-span-2">
+                        <p class="text-sm text-gray-500 font-bold">Tanggal:</p>
+                        <p id="tanggal" class="text-lg font-bold mt-1"></p>
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <table class="w-full text-left" style="line-height: 2;">
+                        <tr>
+                            <td class="w-40 font-bold">Telah Terima Dari</td>
+                            <td>: <span id="pihak-dari" class="font-black uppercase"></span></td>
+                        </tr>
+                        <tr>
+                            <td class="font-bold">Uang Sejumlah</td>
+                            <td>: <span id="nominal-angka" class="font-black text-xl" style="color: #BF1A54;"></span></td>
+                        </tr>
+                        <tr>
+                            <td class="font-bold align-top">Terbilang</td>
+                            <td>: <span id="terbilang" class="italic font-semibold"></span></td>
+                        </tr>
+                        <tr>
+                            <td class="font-bold align-top">Untuk Keperluan</td>
+                            <td>: <span id="keperluan" class="font-semibold"></span></td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div id="catatan-section" class="mb-6 p-4 bg-yellow-50 rounded-lg border-2 border-yellow-200">
+                    <p class="text-sm font-bold text-yellow-700 mb-1">Catatan:</p>
+                    <p id="catatan" class="text-sm italic text-gray-700"></p>
+                </div>
+
+                <div class="flex justify-between items-end mt-10">
+                    <div class="flex items-center">
+                        <div id="qrcode" class="qr-area p-2 border-2 border-gray-300 rounded-lg shadow-sm"></div>
+                        <div class="ml-3 text-[8pt] text-gray-400">
+                            <p class="font-bold">Digital Verification</p>
+                            <p id="token-display" class="font-mono text-[7pt]"></p>
+                        </div>
+                    </div>
+
+                    <div class="text-center">
+                        <p class="mb-1">Medan, <span id="tanggal-ttd"></span></p>
+                        <p class="font-bold mb-16">PT Lidan Indah Abadi</p>
+                        <p id="nama-penerbit" class="font-bold underline uppercase text-lg"></p>
+                        <p id="jabatan-penerbit" class="text-sm italic"></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 pt-4 border-t text-center text-[9pt] text-gray-400 italic">
+                <p>Kwitansi ini sah dan diterbitkan secara elektronik melalui sistem verifikasi Lidan.</p>
+                <p class="mt-1">Untuk verifikasi keaslian dokumen, scan QR Code atau kunjungi: lidan.co.id/sign/kwitansi</p>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const API_URL = 'https://lidan-co-id.pages.dev/api/contacts_filter_dinamis6';
+        const TABLE_TARGET = 'kwitansi';
+        const AUTH_KEY = 'admin';
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+
+        async function fetchKwitansi() {
+            if(!token) {
+                document.getElementById('loading').innerHTML = "<span class='text-red-500'>Error: Token Tidak Ditemukan.</span>";
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_URL}?table=${TABLE_TARGET}&x_10_eq=${token}`, {
+                    headers: { 'X-Custom-Auth': AUTH_KEY }
+                });
+                const result = await res.json();
+
+                if(result.success && result.data.length > 0) {
+                    renderKwitansi(result.data[0]);
+                } else {
+                    document.getElementById('loading').innerHTML = "<span class='text-red-500'>Error: Data Kwitansi Tidak Valid.</span>";
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function renderKwitansi(data) {
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('kwitansi-isi').classList.remove('hidden');
+
+            document.getElementById('nomor-kwitansi').innerText = data.x_05 || '-';
+            document.getElementById('jenis').innerText = data.x_01 || '-';
+            
+            // Set warna berdasarkan jenis
+            const jenisEl = document.getElementById('jenis');
+            if(data.x_01 === 'PEMASUKAN') {
+                jenisEl.style.color = '#059669'; // green
+            } else {
+                jenisEl.style.color = '#DC2626'; // red
+            }
+            
+            document.getElementById('tanggal').innerText = data.x_06 || '';
+            document.getElementById('tanggal-ttd').innerText = data.x_06 || '';
+            document.getElementById('pihak-dari').innerText = data.x_02 || '-';
+            
+            const nominal = parseInt(data.x_04) || 0;
+            document.getElementById('nominal-angka').innerText = 'Rp ' + nominal.toLocaleString('id-ID');
+            document.getElementById('terbilang').innerText = terbilang(nominal) + ' Rupiah';
+            
+            document.getElementById('keperluan').innerText = data.x_03 || '-';
+            document.getElementById('nama-penerbit').innerText = data.x_07 || '-';
+            document.getElementById('jabatan-penerbit').innerText = data.x_08 || '-';
+            document.getElementById('token-display').innerText = data.x_10;
+
+            if(data.x_09) {
+                document.getElementById('catatan').innerText = data.x_09;
+            } else {
+                document.getElementById('catatan-section').classList.add('hidden');
+            }
+
+            const verificationUrl = `https://lidan.co.id/sign/kwitansi?token=${data.x_10}`;
+            
+            new QRCode(document.getElementById("qrcode"), {
+                text: verificationUrl,
+                width: 100,
+                height: 100,
+                colorDark : "#000000",
+                colorLight : "#ffffff",
+                correctLevel : 3
+            });
+        }
+
+        function terbilang(angka) {
+            const bilangan = ['', 'Satu', 'Dua', 'Tiga', 'Empat', 'Lima', 'Enam', 'Tujuh', 'Delapan', 'Sembilan', 'Sepuluh', 'Sebelas'];
+            
+            if (angka < 12) return bilangan[angka];
+            if (angka < 20) return terbilang(angka - 10) + ' Belas';
+            if (angka < 100) return terbilang(Math.floor(angka / 10)) + ' Puluh ' + terbilang(angka % 10);
+            if (angka < 200) return 'Seratus ' + terbilang(angka - 100);
+            if (angka < 1000) return terbilang(Math.floor(angka / 100)) + ' Ratus ' + terbilang(angka % 100);
+            if (angka < 2000) return 'Seribu ' + terbilang(angka - 1000);
+            if (angka < 1000000) return terbilang(Math.floor(angka / 1000)) + ' Ribu ' + terbilang(angka % 1000);
+            if (angka < 1000000000) return terbilang(Math.floor(angka / 1000000)) + ' Juta ' + terbilang(angka % 1000000);
+            if (angka < 1000000000000) return terbilang(Math.floor(angka / 1000000000)) + ' Miliar ' + terbilang(angka % 1000000000);
+            
+            return angka.toString();
+        }
+
+        function downloadPDF() {
+            const element = document.getElementById('invoice-content');
+            const nomorKwitansi = document.getElementById('nomor-kwitansi').innerText.replace(/\//g, '_');
+            
+            const opt = {
+                margin: 0,
+                filename: `Kwitansi_${nomorKwitansi}.pdf`,
+                image: { type: 'jpeg', quality: 1 },
+                html2canvas: { scale: 4, useCORS: true },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            html2pdf().set(opt).from(element).save();
+        }
+
+        fetchKwitansi();
+    </script>
+</body>
+</html>

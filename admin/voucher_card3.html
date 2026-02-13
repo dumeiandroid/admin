@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cetak Kartu Akses QR - Lidan</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        
+        body { font-family: 'Inter', sans-serif; background: #f3f4f6; }
+        
+        /* Layout Presisi A4 Portrait */
+        .a4-container {
+            width: 210mm;
+            height: 297mm;
+            padding: 10mm;
+            margin: 20px auto;
+            background: white;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(5, 1fr);
+            gap: 4mm;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+
+        .card {
+            border: 1px solid #e5e7eb;
+            border-radius: 15px;
+            padding: 18px 14px;
+            display: flex;
+            flex-direction: column;
+            align-items: center; 
+            justify-content: space-between;
+            text-align: center;
+            background: #fff;
+            position: relative;
+            overflow: visible;
+        }
+
+        .card.clean-version {
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .card * {
+            line-height: 1.5;
+        }
+
+        .qr-placeholder {
+            width: 110px;
+            height: 110px;
+            margin: 6px 0;
+        }
+
+        .voucher-title {
+            font-size: 7px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #6b7280;
+            padding: 2px 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            width: 100%;
+        }
+
+        .voucher-desc {
+            font-size: 10px;
+            font-weight: 900;
+            text-transform: uppercase;
+            color: #1f2937;
+            margin-top: 2px;
+            margin-bottom: 0;
+            padding: 3px 2px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            width: 100%;
+            line-height: 1.6;
+        }
+
+        .price-section {
+            margin-top: 4px;
+            padding-top: 6px;
+            border-top: 1px solid #f3f4f6;
+            width: 100%;
+            background: rgba(236, 72, 153, 0.05);
+            border-radius: 0 0 12px 12px;
+            padding-bottom: 6px;
+        }
+
+        .price-text {
+            font-size: 11px;
+            font-weight: 900;
+            color: #be185d;
+            padding: 2px 0;
+        }
+
+        .scan-text {
+            font-size: 6px;
+            color: #9ca3af;
+            font-style: italic;
+            margin-top: 3px;
+            font-weight: 700;
+            padding: 1px 0;
+        }
+
+        @media print {
+            body { background: none; padding: 0; }
+            .no-print { display: none; }
+            .a4-container { margin: 0; box-shadow: none; border: none; }
+            .card { border: 1px solid #ddd; } 
+        }
+    </style>
+</head>
+<body>
+
+    <div class="no-print sticky top-0 bg-white/95 backdrop-blur-md p-5 border-b z-50 shadow-sm">
+        <div class="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            <div>
+                <h1 class="text-xl font-black text-pink-600 uppercase italic">QR Gateway Generator</h1>
+                <p class="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Target: cipta.my.id/sign/voucher_hard.html</p>
+            </div>
+            
+            <div class="flex items-end gap-3">
+                <div class="flex flex-col">
+                    <label class="text-[8px] font-black text-gray-400 uppercase mb-1">Rentang ID Voucher</label>
+                    <div class="flex gap-1">
+                        <input type="number" id="id-start" placeholder="Mulai" class="w-24 p-2 border rounded-xl text-sm font-bold outline-none focus:border-pink-500">
+                        <input type="number" id="id-end" placeholder="Sampai" class="w-24 p-2 border rounded-xl text-sm font-bold outline-none focus:border-pink-500">
+                    </div>
+                </div>
+                <div class="flex flex-col">
+                    <label class="text-[8px] font-black text-gray-400 uppercase mb-1">Versi Cetak</label>
+                    <select id="card-version" class="p-2 border rounded-xl text-sm font-bold outline-none focus:border-pink-500">
+                        <option value="full">Lengkap (dengan harga)</option>
+                        <option value="clean">Bersih (tanpa harga)</option>
+                    </select>
+                </div>
+                <button onclick="generateCards()" class="bg-pink-600 text-white px-6 py-2.5 rounded-xl font-bold text-xs uppercase hover:bg-pink-700 shadow-md">Tampilkan</button>
+                <button onclick="downloadHVS()" class="bg-indigo-600 text-white px-6 py-2.5 rounded-xl font-bold text-xs uppercase hover:bg-indigo-700 shadow-md">Download HVS (JPG)</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="hvs-page" class="a4-container">
+        <div class="col-span-3 flex flex-col items-center justify-center h-[260mm] text-gray-200">
+            <p class="font-black text-xl uppercase tracking-[0.2em]">Input Range ID Voucher</p>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://lidan-co-id.pages.dev/api/contacts_filter_dinamis6';
+        const TARGET_URL = 'https://cipta.my.id/sign/voucher_hard.html';
+
+        async function generateCards() {
+            const start = parseInt(document.getElementById('id-start').value);
+            const end = parseInt(document.getElementById('id-end').value);
+            const version = document.getElementById('card-version').value;
+            const container = document.getElementById('hvs-page');
+
+            if(!start || !end) return alert("Harap isi range ID!");
+
+            container.innerHTML = '<div class="col-span-3 flex items-center justify-center h-full font-black text-gray-300 animate-pulse text-2xl uppercase">Loading Data...</div>';
+
+            try {
+                const res = await fetch(`${API_URL}?table=voucher`, {
+                    headers: { 'X-Custom-Auth': 'admin' }
+                });
+                const result = await res.json();
+                
+                let data = result.data.filter(item => 
+                    item.id_x >= start && item.id_x <= end
+                ).sort((a,b) => a.id_x - b.id_x).slice(0, 15);
+
+                container.innerHTML = ''; 
+
+                if(data.length === 0) {
+                    container.innerHTML = '<div class="col-span-3 text-center p-20 text-red-400 font-bold uppercase">Data tidak ditemukan!</div>';
+                    return;
+                }
+
+                data.forEach((item, index) => {
+                    const card = document.createElement('div');
+                    card.className = version === 'clean' ? 'card clean-version' : 'card';
+                    
+                    if(version === 'clean') {
+                        // Versi Bersih - tanpa harga
+                        card.innerHTML = `
+                            <img src="https://lidan.co.id/gambar/logo-baru.png" style="width: 32px; margin-bottom: 4px;">
+                            
+                            <h3 style="font-size: 9px; font-weight: 900; color: #db2777; text-transform: uppercase; letter-spacing: 0.1em; padding: 2px 0;">Voucher Digital</h3>
+                            
+                            <div class="qr-placeholder" id="qr-${index}"></div>
+                            
+                            <div style="width: 100%; padding: 0 6px;">
+                                <p class="voucher-desc">${item.x_07 || 'Benefit Layanan'}</p>
+                                <p class="voucher-title">${item.x_01}</p>
+                            </div>
+                        `;
+                    } else {
+                        // Versi Lengkap - dengan harga
+                        card.innerHTML = `
+                            <img src="https://lidan.co.id/gambar/logo-baru.png" style="width: 32px; margin-bottom: 4px;">
+                            
+                            <h3 style="font-size: 9px; font-weight: 900; color: #db2777; text-transform: uppercase; letter-spacing: 0.1em; padding: 2px 0;">Voucher Digital</h3>
+                            
+                            <div class="qr-placeholder" id="qr-${index}"></div>
+                            
+                            <div style="width: 100%; padding: 0 6px;">
+                                <p class="voucher-desc">${item.x_07 || 'Benefit Layanan'}</p>
+                                <p class="voucher-title">${item.x_01}</p>
+                            </div>
+
+                            <div class="price-section">
+                                <p class="price-text">Rp ${parseInt(item.x_08).toLocaleString('id-ID')}</p>
+                                <p class="scan-text">Scan untuk Download PDF</p>
+                            </div>
+                        `;
+                    }
+                    
+                    container.appendChild(card);
+
+                    // Tunggu elemen ter-render
+                    setTimeout(() => {
+                        new QRCode(document.getElementById(`qr-${index}`), {
+                            text: `${TARGET_URL}?token=${item.token || item.x_12}`,
+                            width: 110,
+                            height: 110,
+                            colorDark : "#000000",
+                            colorLight : "#ffffff",
+                            correctLevel : QRCode.CorrectLevel.M
+                        });
+                    }, 100);
+                });
+
+                // Isi sisa grid agar tetap rapi 15 kotak
+                for(let i = data.length; i < 15; i++) {
+                    const empty = document.createElement('div');
+                    empty.className = 'card border-dashed border-gray-100 opacity-10';
+                    container.appendChild(empty);
+                }
+
+            } catch (e) { alert("Error: " + e.message); }
+        }
+
+        function downloadHVS() {
+            const page = document.getElementById('hvs-page');
+            const start = document.getElementById('id-start').value;
+            const end = document.getElementById('id-end').value;
+
+            // Pastikan semua QR sudah ter-render
+            setTimeout(() => {
+                html2canvas(page, { 
+                    scale: 3,
+                    useCORS: true,
+                    allowTaint: true,
+                    backgroundColor: "#ffffff",
+                    logging: false,
+                    windowWidth: page.scrollWidth,
+                    windowHeight: page.scrollHeight,
+                    scrollY: -window.scrollY,
+                    scrollX: -window.scrollX
+                }).then(canvas => {
+                    const link = document.createElement('a');
+                    link.download = `HVS_CETAK_ID_${start}_${end}.jpg`;
+                    link.href = canvas.toDataURL("image/jpeg", 0.98);
+                    link.click();
+                });
+            }, 500);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="app-title">Admin - Kwitansi Lidan</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        .loader { border-top-color: #4f46e5; animation: spinner 1s linear infinite; }
+        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .hidden { display: none; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen font-sans">
+
+    <script>
+        // --- KONFIGURASI JSON TERPUSAT ---
+        const APP_CONFIG = {
+            "api": {
+                "baseUrl": "https://lidan-co-id.pages.dev/api/contacts_filter_dinamis6",
+                "authKey": "admin",
+                "tableName": "kwitansi"
+            },
+            "urls": {
+                "detailBase": "https://lidan.co.id/sign/kwitansi.html",
+                "printBase": "https://cipta.my.id/sign/kwitansi_hard"
+            },
+            "ui": {
+                "title": "Admin Kwitansi Lidan",
+                "tableHeading": "Database Kwitansi",
+                "noKwitansiFormat": "KW/LIDAN"
+            },
+            "tableColumns": [
+                { "key": "x_01", "label": "Jenis", "type": "select", "options": ["PEMASUKAN", "PENGELUARAN"], "inTable": true, "inForm": true },
+                { "key": "x_02", "label": "Pihak Terkait", "type": "text", "inTable": true, "inForm": true, "isBold": true },
+                { "key": "x_03", "label": "Keperluan", "type": "text", "inTable": true, "inForm": true },
+                { "key": "x_04", "label": "Nominal (Rp)", "type": "number", "inTable": true, "inForm": true, "isBold": true },
+                { "key": "x_05", "label": "No Kwitansi", "type": "text", "inTable": true, "inForm": true, "readonly": true },
+                { "key": "x_06", "label": "Tanggal", "type": "text", "inTable": false, "inForm": true, "readonly": true },
+                { "key": "x_07", "label": "Penerbit", "type": "text", "inTable": false, "inForm": true },
+                { "key": "x_08", "label": "Jabatan", "type": "text", "inTable": false, "inForm": true },
+                { "key": "x_09", "label": "Catatan", "type": "textarea", "inTable": false, "inForm": true },
+                { "key": "x_10", "label": "Token", "type": "hidden", "inTable": false, "inForm": true }
+            ]
+        };
+    </script>
+
+    <div id="login-section" class="flex items-center justify-center h-screen px-4">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md border border-gray-100">
+            <h2 id="login-header" class="text-2xl font-black text-center text-gray-800 uppercase mb-6 tracking-tight"></h2>
+            <div class="space-y-4">
+                <input type="text" id="username" placeholder="Username" class="w-full p-4 bg-gray-50 border rounded-xl outline-none focus:ring-2 focus:ring-indigo-500">
+                <input type="password" id="password" placeholder="Password" class="w-full p-4 bg-gray-50 border rounded-xl outline-none focus:ring-2 focus:ring-indigo-500">
+                <button onclick="login()" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold hover:bg-indigo-700 shadow-lg uppercase transition-all">Login</button>
+                <p id="login-msg" class="text-center text-sm font-bold"></p>
+            </div>
+        </div>
+    </div>
+
+    <div id="admin-dashboard" class="hidden container mx-auto p-4 md:p-8">
+        <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+            <div>
+                <h1 id="ui-table-heading" class="text-2xl font-black text-gray-900 uppercase"></h1>
+                <p class="text-xs text-gray-400 font-bold uppercase tracking-widest">Tabel: <span class="text-indigo-600" id="db-label"></span></p>
+            </div>
+            <div class="flex gap-2 w-full md:w-auto">
+                <button onclick="openModal()" class="flex-1 md:flex-none bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold shadow-md hover:bg-indigo-700">Buat Kwitansi</button>
+                <button onclick="logout()" class="bg-red-50 text-red-600 px-6 py-3 rounded-xl font-bold border border-red-100 hover:bg-red-100 text-xs">LOGOUT</button>
+            </div>
+        </div>
+
+        <div id="main-loader" class="bg-white rounded-3xl p-24 flex flex-col items-center justify-center">
+            <div class="loader rounded-full border-4 border-t-4 border-gray-100 h-12 w-12 mb-4"></div>
+            <p class="text-indigo-600 font-bold animate-pulse text-[10px] tracking-widest uppercase text-center">Menghubungkan Database...</p>
+        </div>
+
+        <div id="table-container" class="hidden overflow-hidden bg-white rounded-3xl shadow-xl border border-gray-100">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead class="bg-gray-50 border-b border-gray-100">
+                        <tr id="table-head-row" class="text-[11px] uppercase font-black text-gray-400 tracking-wider"></tr>
+                    </thead>
+                    <tbody id="table-body" class="divide-y divide-gray-100"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-form" class="hidden fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div class="p-6 border-b flex justify-between items-center bg-gray-50/50">
+                <h3 id="modal-title" class="text-xl font-black uppercase tracking-tight">Form Kwitansi</h3>
+                <button onclick="closeModal()" class="text-2xl text-gray-400 h-10 w-10 hover:bg-gray-100 rounded-full">&times;</button>
+            </div>
+            <form id="dynamic-form" class="p-8 overflow-y-auto">
+                <input type="hidden" name="id_x" id="edit_id_x">
+                <div id="form-fields-container" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+                <div class="flex justify-end gap-3 pt-6 border-t mt-6">
+                    <button type="button" onclick="closeModal()" class="px-8 py-3 font-bold text-gray-400 uppercase text-[10px]">Batal</button>
+                    <button type="submit" class="px-12 py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-lg hover:bg-indigo-700 transition-all uppercase text-[10px]">Simpan Kwitansi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-qr" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[100]">
+        <div class="bg-white p-10 rounded-[2.5rem] text-center max-w-sm w-full shadow-2xl">
+            <div id="qr-capture-area" class="bg-white p-6 inline-block border-[10px] border-gray-50 rounded-3xl mb-4">
+                <div id="qrcode-preview"></div>
+            </div>
+            <p id="qr-token-label" class="text-[9px] text-gray-400 font-mono mb-8 uppercase tracking-widest"></p>
+            <button onclick="downloadQR()" class="w-full bg-green-500 text-white py-4 rounded-xl font-black mb-3 shadow-lg uppercase text-xs">Download PNG</button>
+            <button onclick="closeQR()" class="text-gray-400 text-[10px] font-black uppercase tracking-widest">Tutup</button>
+        </div>
+    </div>
+
+    <script>
+        let allData = [];
+        let isEditMode = false;
+
+        window.onload = () => {
+            document.getElementById('app-title').innerText = APP_CONFIG.ui.title;
+            document.getElementById('login-header').innerText = APP_CONFIG.ui.title;
+            document.getElementById('ui-table-heading').innerText = APP_CONFIG.ui.tableHeading;
+            document.getElementById('db-label').innerText = APP_CONFIG.api.tableName;
+            
+            buildTableHeader();
+            buildFormFields();
+            
+            if (sessionStorage.getItem('admin_session')) showDashboard();
+        };
+
+        function buildTableHeader() {
+            const headRow = document.getElementById('table-head-row');
+            let html = '';
+            APP_CONFIG.tableColumns.filter(c => c.inTable).forEach(col => {
+                html += `<th class="p-6">${col.label}</th>`;
+            });
+            html += `<th class="p-6 text-center">Aksi</th>`;
+            headRow.innerHTML = html;
+        }
+
+        function buildFormFields() {
+            const container = document.getElementById('form-fields-container');
+            let html = '';
+            APP_CONFIG.tableColumns.filter(c => c.inForm).forEach(col => {
+                const readonly = col.readonly ? 'readonly class="bg-indigo-50 p-4 border rounded-xl outline-none text-indigo-700 font-bold cursor-not-allowed"' : 'class="bg-gray-50 p-4 border border-gray-100 rounded-xl outline-none focus:border-indigo-500 focus:bg-white"';
+                const gridSpan = col.type === 'textarea' ? 'md:col-span-2' : '';
+                
+                if(col.type === 'hidden') {
+                    html += `<input type="hidden" name="${col.key}" id="field_${col.key}">`;
+                } else {
+                    html += `<div class="${gridSpan} flex flex-col space-y-1">
+                                <label class="text-[9px] font-black uppercase text-gray-400 tracking-widest">${col.label}</label>`;
+                    if(col.type === 'select') {
+                        html += `<select name="${col.key}" id="field_${col.key}" class="bg-gray-50 p-4 border border-gray-100 rounded-xl outline-none focus:border-indigo-500 font-bold">
+                                    <option value="">-- Pilih --</option>
+                                    ${col.options.map(opt => `<option value="${opt}">${opt}</option>`).join('')}
+                                 </select>`;
+                    } else if(col.type === 'textarea') {
+                        html += `<textarea name="${col.key}" id="field_${col.key}" placeholder="${col.label}" class="bg-gray-50 p-4 border border-gray-100 rounded-xl outline-none focus:border-indigo-500 h-24"></textarea>`;
+                    } else {
+                        html += `<input type="${col.type}" name="${col.key}" id="field_${col.key}" placeholder="${col.label}" ${readonly}>`;
+                    }
+                    html += `</div>`;
+                }
+            });
+            container.innerHTML = html;
+        }
+
+        async function login() {
+            const u = document.getElementById('username').value;
+            const p = document.getElementById('password').value;
+            const msg = document.getElementById('login-msg');
+            msg.innerText = "Verifikasi...";
+            try {
+                const res = await fetch(`${APP_CONFIG.api.baseUrl}?action=login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-Custom-Auth': APP_CONFIG.api.authKey, 'X-Role': 'admin' },
+                    body: JSON.stringify({ username: u, password: p })
+                });
+                const result = await res.json();
+                if (result.success) {
+                    sessionStorage.setItem('admin_session', 'true');
+                    showDashboard();
+                } else { msg.innerText = "Login Gagal"; }
+            } catch (e) { msg.innerText = "Error API"; }
+        }
+
+        function showDashboard() {
+            document.getElementById('login-section').classList.add('hidden');
+            document.getElementById('admin-dashboard').classList.remove('hidden');
+            loadData();
+        }
+
+        async function loadData() {
+            showMainLoader(true);
+            try {
+                const res = await fetch(`${APP_CONFIG.api.baseUrl}?table=${APP_CONFIG.api.tableName}`, { 
+                    headers: { 'X-Custom-Auth': APP_CONFIG.api.authKey } 
+                });
+                const result = await res.json();
+                allData = result.data || [];
+                renderTable();
+            } catch (e) { console.error(e); }
+            showMainLoader(false);
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = '';
+            allData.sort((a,b) => b.id_x - a.id_x).forEach(item => {
+                let rowHtml = '<tr class="hover:bg-gray-50/50 transition-colors">';
+                APP_CONFIG.tableColumns.filter(c => c.inTable).forEach(col => {
+                    let val = item[col.key] || '-';
+                    if(col.key === 'x_04') val = 'Rp ' + parseInt(val).toLocaleString('id-ID');
+                    
+                    const colorClass = (item.x_01 === 'PEMASUKAN' && col.key === 'x_04') ? 'text-green-600' : 
+                                       (item.x_01 === 'PENGELUARAN' && col.key === 'x_04') ? 'text-red-600' : 'text-gray-500';
+                    const boldClass = col.isBold ? 'font-black text-gray-800' : '';
+                    
+                    rowHtml += `<td class="p-6 text-xs ${boldClass} ${colorClass}">${val}</td>`;
+                });
+                
+                const token = item.x_10;
+                rowHtml += `
+                    <td class="p-6 text-center">
+                        <div class="flex gap-2 justify-center">
+                            <button onclick="editData(${item.id_x})" class="bg-indigo-50 text-indigo-600 px-3 py-2 rounded-lg text-[9px] font-black uppercase hover:bg-indigo-100">Edit</button>
+                            <button onclick="openQR('${token}')" class="bg-green-50 text-green-600 px-3 py-2 rounded-lg text-[9px] font-black uppercase hover:bg-green-100">QR</button>
+                            <a href="${APP_CONFIG.urls.printBase}?token=${token}" target="_blank" class="bg-orange-50 text-orange-600 px-3 py-2 rounded-lg text-[9px] font-black uppercase hover:bg-orange-100">Cetak</a>
+                            <a href="${APP_CONFIG.urls.detailBase}?token=${token}" target="_blank" class="bg-gray-100 text-gray-400 px-3 py-2 rounded-lg text-[9px] font-black uppercase hover:bg-gray-200">Link</a>
+                        </div>
+                    </td></tr>`;
+                tbody.innerHTML += rowHtml;
+            });
+        }
+
+        function openModal() {
+            isEditMode = false;
+            document.getElementById('dynamic-form').reset();
+            document.getElementById('edit_id_x').value = "";
+            document.getElementById('modal-title').innerText = "Buat Kwitansi Baru";
+            
+            const fieldNo = document.getElementById('field_x_05');
+            const fieldDate = document.getElementById('field_x_06');
+            const fieldToken = document.getElementById('field_x_10');
+            
+            if(fieldNo) fieldNo.value = generateNo();
+            if(fieldDate) fieldDate.value = new Date().toLocaleDateString('id-ID', { day:'2-digit', month:'long', year:'numeric' });
+            if(fieldToken) fieldToken.value = 'LIDAN-KW-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+            
+            document.getElementById('modal-form').classList.remove('hidden');
+        }
+
+        function editData(id) {
+            isEditMode = true;
+            const item = allData.find(d => d.id_x === id);
+            if(!item) return;
+            document.getElementById('modal-title').innerText = "Update Kwitansi";
+            document.getElementById('edit_id_x').value = item.id_x;
+            APP_CONFIG.tableColumns.forEach(col => {
+                const el = document.getElementById(`field_${col.key}`);
+                if(el) el.value = item[col.key] || "";
+            });
+            document.getElementById('modal-form').classList.remove('hidden');
+        }
+
+        document.getElementById('dynamic-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+            let finalUrl = `${APP_CONFIG.api.baseUrl}?table=${APP_CONFIG.api.tableName}`;
+            const method = isEditMode ? 'PUT' : 'POST';
+            if (isEditMode) finalUrl += `&id_x=${data.id_x}`;
+
+            try {
+                const res = await fetch(finalUrl, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json', 'X-Custom-Auth': APP_CONFIG.api.authKey },
+                    body: JSON.stringify(data)
+                });
+                if(res.ok) { closeModal(); loadData(); }
+            } catch (e) { alert('Gagal Simpan'); }
+        };
+
+        function generateNo() {
+            const year = new Date().getFullYear();
+            return `${(allData.length + 1).toString().padStart(4, '0')}/${APP_CONFIG.ui.noKwitansiFormat}/${year}`;
+        }
+
+        function openQR(token) {
+            document.getElementById('modal-qr').classList.remove('hidden');
+            document.getElementById('qrcode-preview').innerHTML = '';
+            document.getElementById('qr-token-label').innerText = 'ID: ' + token;
+            new QRCode(document.getElementById("qrcode-preview"), {
+                text: `${APP_CONFIG.urls.detailBase}?token=${token}`,
+                width: 200, height: 200, colorDark : "#1e1b4b"
+            });
+        }
+
+        function logout() { sessionStorage.clear(); location.reload(); }
+        function closeModal() { document.getElementById('modal-form').classList.add('hidden'); }
+        function closeQR() { document.getElementById('modal-qr').classList.add('hidden'); }
+        function showMainLoader(s) { 
+            document.getElementById('main-loader').style.display = s ? 'flex' : 'none'; 
+            document.getElementById('table-container').classList.toggle('hidden', s);
+        }
+        function downloadQR() {
+            html2canvas(document.getElementById('qr-capture-area'), { scale: 3 }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `QR_${document.getElementById('qr-token-label').innerText}.png`;
+                link.href = canvas.toDataURL(); link.click();
+            });
+        }
+    </script>
+</body>
+</html>

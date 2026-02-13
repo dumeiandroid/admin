@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Surat Penawaran Resmi - Lidan</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Times+New+Roman&display=swap');
+        
+        body { background-color: #f3f4f6; font-family: 'Times New Roman', Times, serif; }
+        
+        /* Format Kertas A4 */
+        .paper {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 10mm 25mm 25mm 25mm; 
+            margin: 20px auto;
+            background: white;
+            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+            position: relative;
+            page-break-after: always;
+        }
+
+        .paper:last-child {
+            page-break-after: auto;
+        }
+
+        .line-header { border-bottom: 3px solid #BF1A54; margin-top: 5px; }
+        .line-header-thin { border-bottom: 1px solid #BF1A54; margin-top: 2px; }
+
+        @media print {
+            body { background: none; padding: 0; }
+            .paper { margin: 0; box-shadow: none; width: 100%; }
+            .no-print { display: none; }
+        }
+
+        .content-text { line-height: 1.6; text-align: justify; font-size: 12pt; }
+        .qr-area { width: 120px; height: 120px; }
+        
+        /* Pastikan tombol selalu di depan */
+        .btn-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="no-print btn-container flex gap-2">
+        <button onclick="window.print()" class="bg-gray-600 text-white px-6 py-2 rounded-full font-bold shadow-lg hover:bg-gray-700 transition">Cetak / Print</button>
+        <button onclick="downloadPDF()" class="bg-indigo-600 text-white px-6 py-2 rounded-full font-bold shadow-lg hover:bg-indigo-700 transition">Download PDF (A4)</button>
+    </div>
+
+    <div id="multi-page-content">
+        <!-- HALAMAN 1 -->
+        <div class="paper page-1" id="page-1">
+            
+            <div class="flex items-center gap-4 mb-0">
+                <img src="https://lidan.co.id/gambar/logo-baru.png" alt="Logo Lidan" class="w-24 h-auto object-contain">
+                <div class="flex-1 text-center">
+                    <h1 style="color: #BF1A54;" class="text-3xl font-bold uppercase tracking-widest">
+      PT Lidan Indah Abadi
+    </h1>
+                    <p class="text-sm">Jl. Imam Bonjol No. 9, Regus Forum Nine Lt.9 , Medan, Sumatera Utara</p>
+                    <p class="text-sm italic text-gray-600">Email: info@lidan.co.id | Website: lidan.co.id| Whatsapp: 0851 5960 1400</p>
+                </div>
+            </div>
+            
+            <div class="line-header" style="background-color: #BF1A54; height: 3px; margin-top: 10px;"></div>
+            <div class="line-header-thin" style="background-color: #BF1A54; height: 1px; margin-top: 2px;"></div>
+
+            <div id="loading" class="text-center py-20">
+                <p class="animate-pulse font-bold text-gray-400">Menyusun Dokumen...</p>
+            </div>
+
+            <div id="surat-isi-1" class="hidden mt-4">
+                <div class="flex justify-between mb-8">
+                    <div class="space-y-1">
+                        <table>
+                            <tr><td class="w-24">Nomor</td><td>: <span id="nomor-1" class="font-bold"></span></td></tr>
+                            <tr><td>Lampiran</td><td>: <span id="lampiran-1"></span></td></tr>
+                            <tr><td>Perihal</td><td>: <span id="perihal-1" class="font-bold underline"></span></td></tr>
+                        </table>
+                    </div>
+                    <div id="tanggal-1" class="text-right"></div>
+                </div>
+
+                <div class="mb-10">
+                    <p>Kepada Yth,</p>
+                    <p id="penerima-1" class="font-bold uppercase mt-1"></p>
+                    <p id="instansi-1" class="font-bold"></p>
+                    <p>Di Tempat</p>
+                </div>
+
+                <div class="content-text space-y-4">
+                    <p>Dengan hormat,</p>
+                    
+                    <p>
+                        Sehubungan dengan adanya kebutuhan pengembangan sumber daya manusia dan peningkatan efektivitas kerja, 
+                        kami dari <strong>PT Lidan Indah Abadi</strong> bermaksud mengajukan penawaran kerjasama terkait 
+                        <span id="perihal-body-1" class="italic"></span>.
+                    </p>
+                    
+                    <p>
+                        Sebagai perusahaan yang bergerak di bidang penyediaan jasa profesional, kami memiliki pengalaman 
+                        dan kompetensi yang telah terbukti dalam melayani berbagai institusi dan perusahaan terkemuka.
+                    </p>
+
+                    <p>
+                        Program yang kami tawarkan dirancang secara komprehensif dengan mengacu pada standar industri terkini 
+                        dan disesuaikan dengan kebutuhan spesifik organisasi Bapak/Ibu.
+                    </p>
+
+                    <p>
+                        Tim profesional kami terdiri dari tenaga ahli bersertifikat dan berpengalaman yang siap memberikan 
+                        layanan terbaik dengan pendekatan yang aplikatif dan terukur.
+                    </p>
+                </div>
+
+
+            </div>
+
+        </div>
+
+        <!-- HALAMAN 2 -->
+        <div class="paper page-2" id="page-2">
+            
+            <div class="flex items-center gap-4 mb-0">
+                <img src="https://lidan.co.id/gambar/logo-baru.png" alt="Logo Lidan" class="w-24 h-auto object-contain">
+                <div class="flex-1 text-center">
+                    <h1 style="color: #BF1A54;" class="text-3xl font-bold uppercase tracking-widest">
+      PT Lidan Indah Abadi
+    </h1>
+                    <p class="text-sm">Jl. Imam Bonjol No. 9, Regus Forum Nine Lt.9 , Medan, Sumatera Utara</p>
+                    <p class="text-sm italic text-gray-600">Email: info@lidan.co.id | Website: lidan.co.id| Whatsapp: 0851 5960 1400</p>
+                </div>
+            </div>
+            
+            <div class="line-header" style="background-color: #BF1A54; height: 3px; margin-top: 10px;"></div>
+            <div class="line-header-thin" style="background-color: #BF1A54; height: 1px; margin-top: 2px;"></div>
+
+            <div id="surat-isi-2" class="hidden mt-4">
+                <div class="content-text space-y-4">
+                    <p>
+                        Besar harapan kami agar penawaran ini dapat memberikan kontribusi positif bagi instansi Bapak/Ibu. 
+                        Detail teknis dan biaya terkait penawaran ini kami lampirkan bersama dengan surat ini.
+                    </p>
+
+                    <p>Demikian surat penawaran ini kami sampaikan. Atas perhatian dan kerjasama Bapak/Ibu, kami ucapkan terima kasih.</p>
+                </div>
+
+                <div class="mt-16 flex justify-end">
+                    <div class="text-center">
+                        <p>Hormat kami,</p>
+                        <p class="font-bold">PT Lidan Indah Abadi</p>
+                        
+                        <div class="flex justify-center my-4">
+                            <div id="qrcode-2" class="qr-area p-2 border border-gray-100 shadow-sm"></div>
+                        </div>
+
+                        <p id="nama-penanda-2" class="font-bold underline uppercase"></p>
+                        <p id="jabatan-penanda-2" class="text-sm italic"></p>
+                        <p class="text-[8pt] text-gray-400 mt-2">Verified Digital Signature</p>
+                    </div>
+                </div>
+
+                <div class="absolute bottom-10 left-10 right-10 flex justify-between items-end border-t pt-2 text-[9pt] text-gray-400 italic">
+                    <p>Surat ini sah dan diterbitkan secara elektronik melalui sistem verifikasi Lidan.</p>
+                    <p id="token-footer-2"></p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://lidan-co-id.pages.dev/api/contacts_filter_dinamis6';
+        const TABLE_TARGET = 'surat_penawaran';
+        const AUTH_KEY = 'admin';
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+
+        async function fetchSurat() {
+            if(!token) {
+                document.getElementById('loading').innerHTML = "<span class='text-red-500'>Error: Token Tidak Ditemukan.</span>";
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_URL}?table=${TABLE_TARGET}&x_10_eq=${token}`, {
+                    headers: { 'X-Custom-Auth': AUTH_KEY }
+                });
+                const result = await res.json();
+
+                if(result.success && result.data.length > 0) {
+                    renderSurat(result.data[0]);
+                } else {
+                    document.getElementById('loading').innerHTML = "<span class='text-red-500'>Error: Data Surat Tidak Valid.</span>";
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function renderSurat(data) {
+            document.getElementById('loading').classList.add('hidden');
+            
+            // Render untuk kedua halaman
+            document.getElementById('surat-isi-1').classList.remove('hidden');
+            document.getElementById('surat-isi-2').classList.remove('hidden');
+            
+            // Data untuk halaman 1 (semua informasi surat)
+            document.getElementById('nomor-1').innerText = data.x_05 || '-';
+            document.getElementById('lampiran-1').innerText = data.x_08 || '-';
+            document.getElementById('perihal-1').innerText = data.x_06 || '-';
+            document.getElementById('perihal-body-1').innerText = data.x_06 || '-';
+            document.getElementById('tanggal-1').innerText = data.x_07 || '';
+            document.getElementById('penerima-1').innerText = data.x_03 || '-';
+            document.getElementById('instansi-1').innerText = data.x_04 || '-';
+            
+            // Data untuk halaman 2 (hanya tanda tangan dan footer)
+            document.getElementById('nama-penanda-2').innerText = data.x_01 || '-';
+            document.getElementById('jabatan-penanda-2').innerText = data.x_02 || '-';
+            document.getElementById('token-footer-2').innerText = 'ID: ' + data.x_10;
+
+            const verificationUrl = `https://lidan.co.id/sign/surat_penawaran?token=${data.x_10}`;
+            
+            new QRCode(document.getElementById('qrcode-2'), {
+                text: verificationUrl,
+                width: 120,
+                height: 120,
+                colorDark : "#000000",
+                colorLight : "#ffffff",
+                correctLevel : 3
+            });
+        }
+
+        async function downloadPDF() {
+            const nomorSurat = document.getElementById('nomor-1').innerText.replace(/\//g, '_');
+            
+            try {
+                // Import jsPDF
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                
+                // Ambil kedua halaman
+                const page1 = document.getElementById('page-1');
+                const page2 = document.getElementById('page-2');
+                
+                // Render halaman 1
+                const canvas1 = await html2canvas(page1, {
+                    scale: 3,
+                    useCORS: true,
+                    logging: false,
+                    scrollY: 0,
+                    scrollX: 0,
+                    windowWidth: page1.scrollWidth,
+                    windowHeight: page1.scrollHeight
+                });
+                
+                const imgData1 = canvas1.toDataURL('image/jpeg', 1.0);
+                const imgWidth = 210;
+                const imgHeight = (canvas1.height * imgWidth) / canvas1.width;
+                
+                pdf.addImage(imgData1, 'JPEG', 0, 0, imgWidth, imgHeight);
+                
+                // Tambah halaman baru untuk halaman 2
+                pdf.addPage();
+                
+                // Render halaman 2
+                const canvas2 = await html2canvas(page2, {
+                    scale: 3,
+                    useCORS: true,
+                    logging: false,
+                    scrollY: 0,
+                    scrollX: 0,
+                    windowWidth: page2.scrollWidth,
+                    windowHeight: page2.scrollHeight
+                });
+                
+                const imgData2 = canvas2.toDataURL('image/jpeg', 1.0);
+                pdf.addImage(imgData2, 'JPEG', 0, 0, imgWidth, imgHeight);
+                
+                // Save PDF
+                pdf.save(`Surat_Penawaran_${nomorSurat}_2Halaman.pdf`);
+                
+            } catch(error) {
+                console.error('Error generating PDF:', error);
+                alert('Gagal membuat PDF. Silakan coba lagi.');
+            }
+        }
+
+        fetchSurat();
+    </script>
+</body>
+</html>

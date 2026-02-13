@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voucher Resmi - Lidan</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.1/html-to-image.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap');
+        
+        body { background-color: #f3f4f6; font-family: 'Montserrat', sans-serif; margin: 0; padding: 0; }
+        
+        .voucher-container {
+            width: 100%;
+            max-width: 850px;
+            margin: 20px auto;
+            padding: 15px;
+        }
+
+        /* Area ini yang akan ditarik jadi PNG */
+        #voucher-content {
+            background: linear-gradient(135deg, #BF1A54 0%, #800e35 100%);
+            border-radius: 40px; /* Lengkungan sudut */
+            color: white;
+            display: flex;
+            flex-wrap: wrap;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+
+        .left-side { flex: 1.5; min-width: 300px; padding: 40px; position: relative; }
+        .right-side { 
+            flex: 1; 
+            min-width: 250px;
+            background: rgba(0,0,0,0.15); 
+            backdrop-filter: blur(10px);
+            padding: 40px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center;
+            border-left: 3px dashed rgba(255,255,255,0.2);
+        }
+
+        .qr-bg { background: white; padding: 12px; border-radius: 20px; }
+
+        @media (max-width: 640px) {
+            .right-side { border-left: none; border-top: 3px dashed rgba(255,255,255,0.2); width: 100%; }
+            #voucher-content { border-radius: 25px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="no-print sticky top-0 bg-white/90 backdrop-blur-md p-4 flex justify-center gap-3 z-50 shadow-md">
+        <button onclick="downloadPNG()" class="bg-pink-600 text-white px-8 py-3 rounded-full font-black shadow-lg hover:bg-pink-700 transition active:scale-95 flex items-center gap-2">
+            <span>Download Voucher</span>
+        </button>
+    </div>
+
+    <div class="voucher-container">
+        <div id="voucher-content">
+            <div class="left-side">
+                <div class="flex items-center gap-4 mb-10">
+                    <img src="https://lidan.co.id/gambar/logo-baru.png" alt="Logo" class="w-20 h-auto">
+                    <div>
+                        <h3 class="font-black text-xl leading-tight tracking-tight">LIDAN</h3>
+                        <p class="text-[8px] tracking-[0.4em] uppercase opacity-80">Psikologi Indonesia</p>
+                    </div>
+                </div>
+
+                <h4 class="text-xs uppercase tracking-[0.5em] mb-2 font-bold opacity-60">Official Voucher</h4>
+                <h1 id="vch-title" class="text-3xl md:text-5xl font-black mb-8 uppercase leading-none">Menyusun Data...</h1>
+                
+                <div class="space-y-6">
+                    <div>
+                        <p class="text-[10px] uppercase font-bold opacity-50 mb-1">Diberikan Kepada:</p>
+                        <p id="vch-name" class="text-2xl md:text-3xl font-bold italic tracking-wide">-</p>
+                    </div>
+                    <div class="flex gap-10 border-t border-white/20 pt-5">
+                        <div>
+                            <p class="text-[10px] uppercase font-bold opacity-50">Masa Berlaku:</p>
+                            <p id="vch-exp" class="font-black text-yellow-300 text-lg">-</p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] uppercase font-bold opacity-50">ID Voucher:</p>
+                            <p id="vch-code" class="font-mono text-white font-bold text-lg">-</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="right-side">
+                <div class="text-center mb-6">
+                    <p class="text-xs uppercase font-bold mb-1 opacity-70">Nilai Manfaat:</p>
+                    <div id="vch-value" class="text-4xl font-black text-yellow-400">Rp 0</div>
+                </div>
+                <div class="qr-bg shadow-2xl">
+                    <div id="qrcode"></div>
+                </div>
+                <p class="text-[9px] mt-6 text-center opacity-60 font-medium leading-relaxed">
+                    Scan QR Code untuk verifikasi<br>keaslian dokumen ini secara sistem.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-[850px] mx-auto px-4 pb-20">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white p-8 rounded-[2rem] shadow-sm border border-gray-200">
+                <h2 class="text-2xl font-black text-gray-800 mb-4">Layanan Psikologi</h2>
+                <p class="text-gray-600 mb-6 leading-relaxed">Untuk konsultasi mengenai jenis tes atau layanan yang sesuai dengan kebutuhan Anda, silakan hubungi admin kami.</p>
+                <a href="https://wa.me/6285159601400?text=Halo%20Admin%20Lidan%2C%20saya%20ingin%20tanya%20layanan%20psikologi%20untuk%20voucher%20saya." 
+                   class="bg-[#25D366] hover:bg-[#128C7E] text-white flex items-center justify-center gap-2 py-4 rounded-2xl font-bold transition-all">
+                   Hubungi via WhatsApp
+                </a>
+            </div>
+
+            <div class="bg-gray-800 p-8 rounded-[2rem] text-white shadow-xl">
+                <h2 class="text-xl font-bold mb-4 flex items-center gap-2 text-yellow-400">
+                    Syarat & Ketentuan
+                </h2>
+                <ul class="space-y-3 text-sm opacity-90">
+                    <li class="flex gap-3"><span>1.</span><span>Voucher tidak dapat diuangkan atau dipindahtangankan.</span></li>
+                    <li class="flex gap-3"><span>2.</span><span>Hanya berlaku untuk satu kali pemakaian layanan.</span></li>
+                    <li class="flex gap-3"><span>3.</span><span>Jika biaya layanan lebih rendah dari nilai voucher, sisa saldo akan hangus.</span></li>
+                    <li class="flex gap-3"><span>4.</span><span>Wajib konfirmasi jadwal minimal H-2 sebelum kunjungan.</span></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://lidan-co-id.pages.dev/api/contacts_filter_dinamis6';
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+
+        async function fetchVoucher() {
+            if(!token) return;
+            try {
+                const res = await fetch(`${API_URL}?table=voucher&x_12_eq=${token}`, {
+                    headers: { 'X-Custom-Auth': 'admin' }
+                });
+                const result = await res.json();
+                if(result.success && result.data.length > 0) render(result.data[0]);
+            } catch (e) { console.error(e); }
+        }
+
+        function render(data) {
+            document.getElementById('vch-title').innerText = data.x_07 || 'Tes Psikologi';
+            document.getElementById('vch-name').innerText = data.x_01 || '-';
+            document.getElementById('vch-exp').innerText = data.x_06 || '-';
+            document.getElementById('vch-code').innerText = data.x_04 || '-';
+            document.getElementById('vch-value').innerText = 'Rp ' + parseInt(data.x_08).toLocaleString('id-ID');
+
+            document.getElementById("qrcode").innerHTML = "";
+            new QRCode(document.getElementById("qrcode"), {
+                text: `https://lidan.co.id/sign/voucher.html?token=${data.x_12}`,
+                width: 140, height: 140, colorDark : "#800e35"
+            });
+        }
+
+        function downloadPNG() {
+            const node = document.getElementById('voucher-content');
+            
+            // Mengatur filter untuk memastikan background halaman (abu-abu) tidak terbawa
+            // Menggunakan toPng agar mendukung transparansi di sudut rounded
+            htmlToImage.toPng(node, { 
+                cacheBust: true,
+                backgroundColor: null, // Penting: diset null agar transparan
+                style: {
+                    borderRadius: '40px' // Memastikan lengkungan ikut saat render
+                }
+            })
+            .then(function (dataUrl) {
+                const link = document.createElement('a');
+                link.download = `Voucher_Lidan_${document.getElementById('vch-code').innerText}.png`;
+                link.href = dataUrl;
+                link.click();
+            })
+            .catch(function (error) {
+                console.error('oops, something went wrong!', error);
+            });
+        }
+
+        fetchVoucher();
+    </script>
+</body>
+</html>

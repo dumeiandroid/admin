@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Voucher Resmi - Lidan</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap');
+        
+        body { background-color: #f3f4f6; font-family: 'Montserrat', sans-serif; }
+        
+        .paper {
+            width: 210mm;
+            min-height: 95mm; 
+            margin: 50px auto;
+            background: linear-gradient(135deg, #BF1A54 0%, #800e35 100%);
+            border-radius: 30px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            position: relative;
+            overflow: hidden;
+            color: white;
+            display: flex;
+        }
+
+        .paper::before {
+            content: ""; position: absolute; top: -100px; left: -100px;
+            width: 300px; height: 300px; background: rgba(255,255,255,0.05);
+            border-radius: 50%;
+        }
+
+        .left-side { flex: 1.5; padding: 40px; position: relative; z-index: 2; }
+        .right-side { 
+            flex: 1; 
+            background: rgba(0,0,0,0.15); 
+            backdrop-filter: blur(5px);
+            padding: 40px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center;
+            border-left: 3px dashed rgba(255,255,255,0.2);
+        }
+
+        .qr-bg { background: white; padding: 12px; border-radius: 20px; box-shadow: 0 10px 15px rgba(0,0,0,0.2); }
+
+        @media print {
+            body { background: none; }
+            .no-print { display: none; }
+            .paper { margin: 0; box-shadow: none; border-radius: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="no-print fixed top-5 right-5 flex gap-2 z-50">
+        <button onclick="downloadPDF()" class="bg-white text-pink-600 px-8 py-3 rounded-full font-black shadow-xl hover:scale-105 transition">Download Voucher (PDF)</button>
+    </div>
+
+    <div class="paper" id="voucher-content">
+        <div class="left-side">
+            <div class="flex items-center gap-3 mb-8">
+                <img src="https://lidan.co.id/gambar/logo-baru.png" alt="Logo Lidan" class="w-24 h-auto object-contain">
+                <!-- <img src="https://lidan.co.id/gambar/logo-baru.png" class="w-16 brightness-0 invert"> -->
+                <div>
+                    <h3 class="font-black text-xl leading-tight">LIDAN</h3>
+                    <p class="text-[8px] tracking-[0.3em] uppercase opacity-70">Psikologi Indonesia</p>
+                </div>
+            </div>
+
+            <h4 class="text-xs uppercase tracking-[0.4em] mb-1 font-bold opacity-60">Official Voucher</h4>
+            <h1 id="vch-title" class="text-4xl font-black mb-6 uppercase tracking-tight">Menyusun Data...</h1>
+            
+            <div class="space-y-4">
+                <div>
+                    <p class="text-[9px] uppercase font-bold opacity-50 mb-1">Diberikan Kepada:</p>
+                    <p id="vch-name" class="text-2xl font-bold italic tracking-wide"></p>
+                </div>
+                <div class="flex gap-10 border-t border-white/20 pt-4">
+                    <div>
+                        <p class="text-[9px] uppercase font-bold opacity-50">Masa Berlaku:</p>
+                        <p id="vch-exp" class="font-black text-yellow-300"></p>
+                    </div>
+                    <div>
+                        <p class="text-[9px] uppercase font-bold opacity-50">ID Voucher:</p>
+                        <p id="vch-code" class="font-mono text-white/80 font-bold"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="right-side">
+            <div class="text-center mb-6">
+                <p class="text-[10px] uppercase font-bold mb-1 opacity-70">Nilai Manfaat:</p>
+                <div id="vch-value" class="text-3xl font-black text-yellow-400"></div>
+            </div>
+            <div class="qr-bg">
+                <div id="qrcode"></div>
+            </div>
+            <p class="text-[7px] mt-4 text-center opacity-50 leading-relaxed">
+                Scan QR Code untuk verifikasi keaslian voucher.<br>Voucher ini sah dan diterbitkan secara elektronik.
+            </p>
+        </div>
+    </div>
+<div class="no-print max-w-[210mm] mx-auto mt-10 p-8 bg-white rounded-3xl shadow-lg mb-20">
+        <div class="grid md:grid-cols-2 gap-10">
+            
+            <div class="space-y-4">
+                <h2 class="text-2xl font-black text-gray-800">Layanan Psikologi</h2>
+                <p class="text-gray-600 leading-relaxed">
+                    Ingin mengetahui lebih lanjut mengenai layanan psikologi yang tersedia di <strong>Lidan Psikologi Indonesia</strong>? Konsultasikan kebutuhan Anda dengan admin kami.
+                </p>
+                <a href="https://wa.me/6285159601400?text=Halo%20Admin%20Lidan%2C%20saya%20ingin%20bertanya%20mengenai%20layanan%20psikologi%20yang%20tersedia." 
+                   target="_blank" 
+                   class="inline-flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-full font-bold transition-all transform hover:scale-105">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.246 2.248 3.484 5.236 3.484 8.417 0 6.556-5.338 11.892-11.893 11.892-1.997-.001-3.951-.5-5.688-1.448l-6.309 1.652zM6.504 18.81l.348.206c1.462.868 3.149 1.326 4.873 1.327 5.103 0 9.255-4.152 9.257-9.255.001-2.476-.962-4.803-2.712-6.554-1.75-1.75-4.076-2.712-6.553-2.712-5.103 0-9.256 4.153-9.257 9.255 0 1.763.499 3.48 1.446 4.96l.232.364-1.084 3.957 4.049-1.062z"/></svg>
+                    Hubungi Admin (WhatsApp)
+                </a>
+            </div>
+
+            <div class="bg-gray-50 p-6 rounded-2xl border border-gray-100">
+                <h2 class="text-xl font-black text-gray-800 mb-4 flex items-center gap-2">
+                    <span class="bg-pink-600 w-2 h-6 rounded-full"></span>
+                    Syarat & Ketentuan Penggunaan
+                </h2>
+                <ul class="space-y-3 text-sm text-gray-600">
+                    <li class="flex gap-2">
+                        <span class="text-pink-600 font-bold">•</span>
+                        Voucher tidak dapat ditukar dengan uang tunai (non-refundable).
+                    </li>
+                    <li class="flex gap-2">
+                        <span class="text-pink-600 font-bold">•</span>
+                        Voucher hanya berlaku untuk 1 (satu) kali transaksi/penggunaan.
+                    </li>
+                    <li class="flex gap-2">
+                        <span class="text-pink-600 font-bold">•</span>
+                        Jika nilai layanan lebih rendah dari nilai voucher, sisa saldo tidak dapat diuangkan atau disimpan.
+                    </li>
+                    <li class="flex gap-2">
+                        <span class="text-pink-600 font-bold">•</span>
+                        Voucher wajib ditunjukkan/diverifikasi saat pendaftaran layanan.
+                    </li>
+                    <li class="flex gap-2">
+                        <span class="text-pink-600 font-bold">•</span>
+                        Penggunaan voucher harus dilakukan sebelum masa berlaku yang tertera berakhir.
+                    </li>
+                    <li class="flex gap-2">
+                        <span class="text-pink-600 font-bold">•</span>
+                        Lidan Psikologi berhak menolak voucher jika terindikasi adanya kecurangan atau manipulasi data.
+                    </li>
+                </ul>
+            </div>
+
+        </div>
+    </div>
+    <script>
+        const API_URL = 'https://lidan-co-id.pages.dev/api/contacts_filter_dinamis6';
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+
+        async function fetchVoucher() {
+            if(!token) return;
+            try {
+                const res = await fetch(`${API_URL}?table=voucher&x_12_eq=${token}`, {
+                    headers: { 'X-Custom-Auth': 'admin' }
+                });
+                const result = await res.json();
+                if(result.success && result.data.length > 0) render(result.data[0]);
+            } catch (e) { console.error(e); }
+        }
+
+        function render(data) {
+            document.getElementById('vch-title').innerText = data.x_07 || 'Tes Psikologi';
+            document.getElementById('vch-name').innerText = data.x_01 || '-';
+            document.getElementById('vch-exp').innerText = data.x_06 || '-';
+            document.getElementById('vch-code').innerText = data.x_04 || '-';
+            document.getElementById('vch-value').innerText = 'Rp ' + parseInt(data.x_08).toLocaleString('id-ID');
+
+            new QRCode(document.getElementById("qrcode"), {
+                text: `https://lidan.co.id/sign/voucher.html?token=${data.x_12}`,
+                width: 100, height: 100, colorDark : "#800e35"
+            });
+        }
+
+        function downloadPDF() {
+            const element = document.getElementById('voucher-content');
+            html2pdf().set({
+                margin: 10,
+                filename: 'Lidan_Voucher.pdf',
+                image: { type: 'jpeg', quality: 1 },
+                html2canvas: { scale: 3 },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+            }).from(element).save();
+        }
+        fetchVoucher();
+    </script>
+</body>
+</html>
