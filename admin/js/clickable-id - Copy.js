@@ -1,7 +1,8 @@
 /**
  * clickable-id.js
- * Membuat kolom ID pada tabel menjadi link yang dapat diklik:
- *  - Kolom ID → https://psikogram.lidan.co.id/?id_x=<nilai>&x_01=<nilai X_01>
+ * Membuat kolom ID dan X_01 pada tabel menjadi link yang dapat diklik:
+ *  - Kolom ID  → https://psikogram.lidan.co.id/?id_x=<nilai>
+ *  - Kolom X_01 → https://psikogram.lidan.co.id/?x_01=<nilai>
  *
  * Cara pakai: <script src="js/clickable-id.js"></script>
  * (letakkan sebelum </body>)
@@ -44,31 +45,34 @@
         return link;
     }
 
+    /**
+     * Proses satu cell: jadikan link jika belum diproses
+     */
+    function processCell(cell, paramName) {
+        if (!cell || cell.dataset.linked === 'true') return;
+        const value = cell.textContent.trim();
+        if (!value) return;
+
+        const url = BASE_URL + '?' + paramName + '=' + encodeURIComponent(value);
+        cell.textContent = '';
+        cell.appendChild(createLink(url, value));
+        cell.dataset.linked = 'true';
+    }
+
     function makeColumnsClickable() {
         const tables = document.querySelectorAll('table');
 
         tables.forEach(table => {
             // Deteksi index kolom ID dan X_01 dari header
-            const idIndex  = getColumnIndex(table, 'ID');
-            const x01Index = getColumnIndex(table, 'X_01');
+            const idIndex   = getColumnIndex(table, 'ID');
+            const x01Index  = getColumnIndex(table, 'X_01');
 
             const rows = table.querySelectorAll('tbody tr');
             rows.forEach(row => {
                 const cells = row.querySelectorAll('td');
-                if (idIndex < 0 || cells[idIndex].dataset.linked === 'true') return;
 
-                const idValue  = cells[idIndex]  ? cells[idIndex].textContent.trim()  : '';
-                const x01Value = x01Index >= 0 && cells[x01Index] ? cells[x01Index].textContent.trim() : '';
-
-                if (!idValue) return;
-
-                // Bangun URL: id_x wajib, x_01 ditambahkan jika kolom tersedia
-                let url = BASE_URL + '?id_x=' + encodeURIComponent(idValue);
-                if (x01Value) url += '&x_01=' + encodeURIComponent(x01Value);
-
-                cells[idIndex].textContent = '';
-                cells[idIndex].appendChild(createLink(url, idValue));
-                cells[idIndex].dataset.linked = 'true';
+                if (idIndex >= 0)  processCell(cells[idIndex],  'id_x');
+                if (x01Index >= 0) processCell(cells[x01Index], 'x_01');
             });
         });
     }
