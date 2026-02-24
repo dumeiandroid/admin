@@ -506,11 +506,63 @@
         #sidebar::-webkit-scrollbar { width: 4px; }
         #sidebar::-webkit-scrollbar-track { background: transparent; }
         #sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+        /* catatan buttons */
+        .cn-nav-btn {
+            flex-shrink:0; width:16px; height:16px; border-radius:50%;
+            background:rgba(99,102,241,.15); color:#818cf8;
+            border:1px solid rgba(99,102,241,.3); font-size:10px;
+            font-weight:700; cursor:pointer; font-style:italic;
+            display:inline-flex; align-items:center; justify-content:center;
+            margin-right:4px; opacity:0; transition:opacity .15s;
+        }
+        span:hover > .cn-nav-btn { opacity:1; }
+        .cn-card-btn {
+            position:absolute; top:4px; right:4px;
+            width:18px; height:18px; border-radius:50%;
+            background:rgba(99,102,241,.15); color:#818cf8;
+            border:1px solid rgba(99,102,241,.3); font-size:10px;
+            font-weight:700; cursor:pointer; font-style:italic;
+            display:inline-flex; align-items:center; justify-content:center;
+            opacity:0; transition:opacity .15s; z-index:2;
+        }
+        .app-card:hover .cn-card-btn { opacity:1; }
+        /* catatan popup */
+        #cn-overlay {
+            display:none; position:fixed; inset:0;
+            background:rgba(0,0,0,.5); z-index:9999;
+            align-items:center; justify-content:center; padding:20px;
+        }
+        #cn-overlay.open { display:flex; }
+        #cn-box {
+            background:#1e2130; border:1px solid #2a2f3f; border-radius:12px;
+            padding:24px; max-width:460px; width:100%;
+            box-shadow:0 20px 60px rgba(0,0,0,.5);
+            font-family:'Sora',sans-serif;
+        }
+        #cn-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px; }
+        #cn-judul { font-size:15px; font-weight:700; color:#e8eaf0; line-height:1.3; flex:1; }
+        #cn-close { background:none; border:none; color:#6b7280; font-size:22px; cursor:pointer; padding:0; }
+        #cn-close:hover { color:#e8eaf0; }
+        #cn-isi { font-size:13px; color:#9ca3af; line-height:1.75; white-space:pre-wrap; }
+        #cn-isi strong { color:#e8eaf0; }
+        #cn-footer { margin-top:12px; font-size:11px; color:#4b5563; font-family:monospace; }
     </style>
 </head>
 <body>
 
 <!-- ─── LOGIN ─── -->
+<!-- Catatan Popup -->
+<div id="cn-overlay" onclick="if(event.target===this)cnTutup()">
+    <div id="cn-box">
+        <div id="cn-header">
+            <div id="cn-judul"></div>
+            <button id="cn-close" onclick="cnTutup()">&#x2715;</button>
+        </div>
+        <div id="cn-isi"></div>
+        <div id="cn-footer"></div>
+    </div>
+</div>
+
 <div id="login-overlay">
     <div class="login-card">
         <div class="login-logo">lidan<span>.co</span></div>
@@ -579,7 +631,7 @@ const navStructure = [
             {
                 type: 'group', icon: '📊', label: 'Overview',
                 children: [
-                    { type: 'link', icon: '🏠', label: 'Dashboard', href: '#home' },
+                    { type: 'link', icon: '🏠', label: 'Dashboard', href: '#home', cn: 'dashboard' },
                 ]
             }
         ]
@@ -590,22 +642,22 @@ const navStructure = [
             {
                 type: 'group', icon: '🧠', label: 'Platform Psikotest',
                 children: [
-                    { type: 'link', icon: '🔬', label: 'Psikotest Admin', href: 'https://admin.lidan.co.id/admin/psikotest', external: true },
-                    { type: 'link', icon: '🌐', label: 'Psikotest.co.id', href: 'https://psikotest.lidan.co.id/', external: true },
-                    { type: 'link', icon: '🌐', label: 'Psikotest.my.id', href: 'https://psikotest.my.id/', external: true },
+                    { type: 'link', icon: '🔬', label: 'Psikotest Admin', href: 'https://admin.lidan.co.id/admin/psikotest', external: true, cn: 'psikotest_admin_web' },
+                    { type: 'link', icon: '🌐', label: 'Psikotest.co.id', href: 'https://psikotest.lidan.co.id/', external: true, cn: 'psikotest_co_id' },
+                    { type: 'link', icon: '🌐', label: 'Psikotest.my.id', href: 'https://psikotest.my.id/', external: true, cn: 'psikotest_my_id' },
                     {
                         type: 'subgroup', icon: '📦', label: 'Transfer Data',
                         children: [
-                            { type: 'link', icon: '↕️', label: 'Transfer SQL', href: 'https://lidanpsikologi.my.id/cloud', external: true },
-                            { type: 'link', icon: '↕️', label: 'Transfer Psikotest.my.id', href: 'https://psikotest.my.id/transfer', external: true },
-                            { type: 'link', icon: '↕️', label: 'Transfer Lidanpsikologi', href: 'https://lidanpsikologi.my.id/transfer', external: true },
+                            { type: 'link', icon: '↕️', label: 'Transfer SQL', href: 'https://lidanpsikologi.my.id/cloud', external: true, cn: 'transfer_sql' },
+                            { type: 'link', icon: '↕️', label: 'Transfer Psikotest.my.id', href: 'https://psikotest.my.id/transfer', external: true, cn: 'transfer_psikotestmyid' },
+                            { type: 'link', icon: '↕️', label: 'Transfer Lidanpsikologi', href: 'https://lidanpsikologi.my.id/transfer', external: true, cn: 'transfer_lidanpsikologi' },
                         ]
                     },
                     {
                         type: 'subgroup', icon: '🎫', label: 'Voucher',
                         children: [
-                            { type: 'link', icon: '🎟️', label: 'Voucher LidanPsikologi', href: 'https://pkl.lidan.co.id/', external: true },
-                            { type: 'link', icon: '🎟️', label: 'Voucher Psikotest', href: 'https://lidanpsikologi.my.id/test/admin/voucher.php', external: true },
+                            { type: 'link', icon: '🎟️', label: 'Voucher LidanPsikologi', href: 'https://pkl.lidan.co.id/', external: true, cn: 'voucher_lidan' },
+                            { type: 'link', icon: '🎟️', label: 'Voucher Psikotest', href: 'https://lidanpsikologi.my.id/test/admin/voucher.php', external: true, cn: 'voucher_psikotest' },
                         ]
                     }
                 ]
@@ -613,45 +665,9 @@ const navStructure = [
             {
                 type: 'group', icon: '📈', label: 'Hasil & Laporan',
                 children: [
-                    { type: 'link', icon: '📋', label: 'Psikogram', href: 'https://psikogram.lidan.co.id', external: true },
-                    { type: 'link', icon: '🆔', label: 'Who am I', href: 'https://test.lidan.co.id/', external: true },
-                    { type: 'link', icon: '🎓', label: 'IQ Sertifikat', href: 'https://iq.lidan.co.id/', external: true },
-                ]
-            }
-        ]
-    },
-    {
-        category: "Psikotest",
-        items: [
-            {
-                type: 'group', icon: '🧠', label: 'Platform Psikotest',
-                children: [
-                    { type: 'link', icon: '🔬', label: 'Psikotest Admin', href: 'https://admin.lidan.co.id/admin/psikotest', external: true },
-                    { type: 'link', icon: '🌐', label: 'Psikotest.co.id', href: 'https://psikotest.lidan.co.id/', external: true },
-                    { type: 'link', icon: '🌐', label: 'Psikotest.my.id', href: 'https://psikotest.my.id/', external: true },
-                    {
-                        type: 'subgroup', icon: '📦', label: 'Transfer Data',
-                        children: [
-                            { type: 'link', icon: '↕️', label: 'Transfer SQL', href: 'https://lidanpsikologi.my.id/cloud', external: true },
-                            { type: 'link', icon: '↕️', label: 'Transfer Psikotest.my.id', href: 'https://psikotest.my.id/transfer', external: true },
-                            { type: 'link', icon: '↕️', label: 'Transfer Lidanpsikologi', href: 'https://lidanpsikologi.my.id/transfer', external: true },
-                        ]
-                    },
-                    {
-                        type: 'subgroup', icon: '🎫', label: 'Voucher',
-                        children: [
-                            { type: 'link', icon: '🎟️', label: 'Voucher LidanPsikologi', href: 'https://pkl.lidan.co.id/', external: true },
-                            { type: 'link', icon: '🎟️', label: 'Voucher Psikotest', href: 'https://lidanpsikologi.my.id/test/admin/voucher.php', external: true },
-                        ]
-                    }
-                ]
-            },
-            {
-                type: 'group', icon: '📈', label: 'Hasil & Laporan',
-                children: [
-                    { type: 'link', icon: '📋', label: 'Psikogram', href: 'https://psikogram.lidan.co.id', external: true },
-                    { type: 'link', icon: '🆔', label: 'Who am I', href: 'https://test.lidan.co.id/', external: true },
-                    { type: 'link', icon: '🎓', label: 'IQ Sertifikat', href: 'https://iq.lidan.co.id/', external: true },
+                    { type: 'link', icon: '📋', label: 'Psikogram', href: 'https://psikogram.lidan.co.id', external: true, cn: 'psikogram_web' },
+                    { type: 'link', icon: '🆔', label: 'Who am I', href: 'https://test.lidan.co.id/', external: true, cn: 'whoami_web' },
+                    { type: 'link', icon: '🎓', label: 'IQ Sertifikat', href: 'https://iq.lidan.co.id/', external: true, cn: 'iq_sertifikat' },
                 ]
             }
         ]
@@ -662,16 +678,16 @@ const navStructure = [
             {
                 type: 'group', icon: '💰', label: 'Keuangan',
                 children: [
-                    { type: 'link', icon: '🧾', label: 'Invoice', href: 'https://invoice.lidan.co.id/', external: true },
-                    { type: 'link', icon: '🧾', label: 'Kwitansi', href: 'https://kwitansi.lidan.co.id/', external: true },
-                    { type: 'link', icon: '💼', label: 'Penawaran', href: 'https://penawaran.lidan.co.id/', external: true },
+                    { type: 'link', icon: '🧾', label: 'Invoice', href: 'https://invoice.lidan.co.id/', external: true, cn: 'invoice_web' },
+                    { type: 'link', icon: '🧾', label: 'Kwitansi', href: 'https://kwitansi.lidan.co.id/', external: true, cn: 'kwitansi_web' },
+                    { type: 'link', icon: '💼', label: 'Penawaran', href: 'https://penawaran.lidan.co.id/', external: true, cn: 'penawaran_web' },
                 ]
             },
             {
                 type: 'group', icon: '📄', label: 'Dokumen',
                 children: [
-                    { type: 'link', icon: '✉️', label: 'Surat', href: 'https://surat.lidan.co.id/', external: true },
-                    { type: 'link', icon: '🔗', label: 'QR Code', href: 'https://qr.lidan.co.id/', external: true },
+                    { type: 'link', icon: '✉️', label: 'Surat', href: 'https://surat.lidan.co.id/', external: true, cn: 'surat_web' },
+                    { type: 'link', icon: '🔗', label: 'QR Code', href: 'https://qr.lidan.co.id/', external: true, cn: 'qr_web' },
                 ]
             }
         ]
@@ -682,8 +698,8 @@ const navStructure = [
             {
                 type: 'group', icon: '🎓', label: 'PKL',
                 children: [
-                    { type: 'link', icon: '👨‍💼', label: 'PKL Admin', href: 'https://pkl.lidan.co.id/admin', external: true },
-                    { type: 'link', icon: '🎫', label: 'PKL Voucher', href: 'https://psikotest.my.id/test/admin/voucher.php', external: true },
+                    { type: 'link', icon: '👨‍💼', label: 'PKL Admin', href: 'https://pkl.lidan.co.id/admin', external: true, cn: 'pkl_admin' },
+                    { type: 'link', icon: '🎫', label: 'PKL Voucher', href: 'https://psikotest.my.id/test/admin/voucher.php', external: true, cn: 'pkl_voucher' },
                 ]
             }
         ]
@@ -694,7 +710,7 @@ const navStructure = [
             {
                 type: 'group', icon: '⚙️', label: 'Data & Storage',
                 children: [
-                    { type: 'link', icon: '💾', label: 'LocalStorage Admin', href: 'https://admin.lidan.co.id/admin/local', external: true },
+                    { type: 'link', icon: '💾', label: 'LocalStorage Admin', href: 'https://admin.lidan.co.id/admin/local', external: true, cn: 'localstorage_admin' },
                 ]
             },
             {
@@ -717,78 +733,58 @@ const pageData = {
         title: 'Dashboard',
         subtitle: 'Selamat datang di Admin Portal Lidan Co',
         sections: [
-        {
-                heading: 'Alur Psikotest',
-                cards: [
-                    { icon: '🔬', label: 'Psikotest Admin', href: 'https://admin.lidan.co.id/admin/psikotest' },
-                    { icon: '🌐', label: 'Psikotest.co.id', href: 'https://psikotest.lidan.co.id/' },
-                    { icon: '📋', label: 'Psikogram Mentah', href: 'https://psikogram.lidan.co.id' },
-                    { icon: '☁️', label: 'Transfer Hasil', href: 'https://psikogram.lidan.co.id/psikogram_db/index_transfer' },
-                    { icon: '🌐', label: 'Rekap Hasil Akhir', href: 'https://psikogram.lidan.co.id/psikogram_db/index_rekap' },
-                    { icon: '📋', label: 'Psikogram Edit & Final', href: 'https://psikogram.lidan.co.id/psikogram_db/index_final' },
-                    { icon: '🆔', label: 'Analisa Hasil Kelompok', href: 'https://psikogram.lidan.co.id/psikogram_db/index_analisa' },
-                ]
-            },
-        {
-                heading: 'PKL',
-                cards: [
-                    { icon: '🔬', label: 'Create User', href: 'https://cipta.my.id/multi' },
-                    { icon: '🌐', label: 'Dashboard PKL', href: 'https://pkl.lidan.co.id/' },
-                    { icon: '📋', label: 'Dashboard Admin', href: 'https://pkl.lidan.co.id/admin' },
-                ]
-            },
             {
                 heading: 'Psikotest',
                 cards: [
-                    { icon: '🔬', label: 'Psikotest Admin', href: 'https://admin.lidan.co.id/admin/psikotest' },
-                    { icon: '🌐', label: 'Psikotest.co.id', href: 'https://psikotest.lidan.co.id/' },
-                    { icon: '🌐', label: 'Psikotest.my.id', href: 'https://psikotest.my.id/' },
-                    { icon: '📋', label: 'Psikogram', href: 'https://psikogram.lidan.co.id' },
-                    { icon: '🆔', label: 'Who am I', href: 'https://test.lidan.co.id/' },
-                    { icon: '🎓', label: 'IQ Sertifikat', href: 'https://iq.lidan.co.id/' },
+                    { icon: '🔬', label: 'Psikotest Admin', href: 'https://admin.lidan.co.id/admin/psikotest', cn: 'psikotest_admin_web' },
+                    { icon: '🌐', label: 'Psikotest.co.id', href: 'https://psikotest.lidan.co.id/', cn: 'psikotest_co_id' },
+                    { icon: '🌐', label: 'Psikotest.my.id', href: 'https://psikotest.my.id/', cn: 'psikotest_my_id' },
+                    { icon: '📋', label: 'Psikogram', href: 'https://psikogram.lidan.co.id', cn: 'psikogram_web' },
+                    { icon: '🆔', label: 'Who am I', href: 'https://test.lidan.co.id/', cn: 'whoami_web' },
+                    { icon: '🎓', label: 'IQ Sertifikat', href: 'https://iq.lidan.co.id/', cn: 'iq_sertifikat' },
                 ]
             },{
                 heading: 'Psikotest Final',
                 cards: [
-                    { icon: '🔬', label: 'Psikotest Admin', href: 'https://admin.lidan.co.id/admin/psikotest' },
-                    { icon: '🌐', label: 'Psikotest.co.id', href: 'https://psikotest.lidan.co.id/' },
-                    { icon: '🌐', label: 'Psikotest.my.id', href: 'https://psikotest.my.id/' },
-                    { icon: '📋', label: 'Psikogram', href: 'https://psikogram.lidan.co.id' },
-                    { icon: '🆔', label: 'Who am I', href: 'https://test.lidan.co.id/' },
-                    { icon: '🎓', label: 'IQ Sertifikat', href: 'https://iq.lidan.co.id/' },
+                    { icon: '🔬', label: 'Psikotest Admin', href: 'https://admin.lidan.co.id/admin/psikotest', cn: 'psikotest_admin_web' },
+                    { icon: '🌐', label: 'Psikotest.co.id', href: 'https://psikotest.lidan.co.id/', cn: 'psikotest_co_id' },
+                    { icon: '🌐', label: 'Psikotest.my.id', href: 'https://psikotest.my.id/', cn: 'psikotest_my_id' },
+                    { icon: '📋', label: 'Psikogram', href: 'https://psikogram.lidan.co.id', cn: 'psikogram_web' },
+                    { icon: '🆔', label: 'Who am I', href: 'https://test.lidan.co.id/', cn: 'whoami_web' },
+                    { icon: '🎓', label: 'IQ Sertifikat', href: 'https://iq.lidan.co.id/', cn: 'iq_sertifikat' },
                 ]
             },
             {
                 heading: 'Transfer Data',
                 cards: [
-                    { icon: '☁️', label: 'Transfer SQL', href: 'https://lidanpsikologi.my.id/cloud' },
-                    { icon: '↕️', label: 'Transfer Psikotest.my.id', href: 'https://psikotest.my.id/transfer' },
-                    { icon: '↕️', label: 'Transfer Lidanpsikologi', href: 'https://lidanpsikologi.my.id/transfer' },
+                    { icon: '☁️', label: 'Transfer SQL', href: 'https://lidanpsikologi.my.id/cloud', cn: 'transfer_sql' },
+                    { icon: '↕️', label: 'Transfer Psikotest.my.id', href: 'https://psikotest.my.id/transfer', cn: 'transfer_psikotestmyid' },
+                    { icon: '↕️', label: 'Transfer Lidanpsikologi', href: 'https://lidanpsikologi.my.id/transfer', cn: 'transfer_lidanpsikologi' },
                 ]
             },
             {
                 heading: 'Keuangan & Dokumen',
                 cards: [
-                    { icon: '🧾', label: 'Invoice', href: 'https://invoice.lidan.co.id/' },
-                    { icon: '🧾', label: 'Kwitansi', href: 'https://kwitansi.lidan.co.id/' },
-                    { icon: '💼', label: 'Penawaran', href: 'https://penawaran.lidan.co.id/' },
-                    { icon: '✉️', label: 'Surat', href: 'https://surat.lidan.co.id/' },
-                    { icon: '🔗', label: 'QR Code', href: 'https://qr.lidan.co.id/' },
+                    { icon: '🧾', label: 'Invoice', href: 'https://invoice.lidan.co.id/', cn: 'invoice_web' },
+                    { icon: '🧾', label: 'Kwitansi', href: 'https://kwitansi.lidan.co.id/', cn: 'kwitansi_web' },
+                    { icon: '💼', label: 'Penawaran', href: 'https://penawaran.lidan.co.id/', cn: 'penawaran_web' },
+                    { icon: '✉️', label: 'Surat', href: 'https://surat.lidan.co.id/', cn: 'surat_web' },
+                    { icon: '🔗', label: 'QR Code', href: 'https://qr.lidan.co.id/', cn: 'qr_web' },
                 ]
             },
             {
                 heading: 'Voucher & PKL',
                 cards: [
-                    { icon: '🎟️', label: 'Voucher LidanPsikologi', href: 'https://pkl.lidan.co.id/' },
-                    { icon: '🎟️', label: 'Voucher Psikotest', href: 'https://lidanpsikologi.my.id/test/admin/voucher.php' },
-                    { icon: '🎫', label: 'PKL Voucher', href: 'https://psikotest.my.id/test/admin/voucher.php' },
-                    { icon: '👨‍💼', label: 'PKL Admin', href: 'https://pkl.lidan.co.id/admin' },
+                    { icon: '🎟️', label: 'Voucher LidanPsikologi', href: 'https://pkl.lidan.co.id/', cn: 'voucher_lidan' },
+                    { icon: '🎟️', label: 'Voucher Psikotest', href: 'https://lidanpsikologi.my.id/test/admin/voucher.php', cn: 'voucher_psikotest' },
+                    { icon: '🎫', label: 'PKL Voucher', href: 'https://psikotest.my.id/test/admin/voucher.php', cn: 'pkl_voucher' },
+                    { icon: '👨‍💼', label: 'PKL Admin', href: 'https://pkl.lidan.co.id/admin', cn: 'pkl_admin' },
                 ]
             },
             {
                 heading: 'Sistem',
                 cards: [
-                    { icon: '💾', label: 'LocalStorage Admin', href: 'https://admin.lidan.co.id/admin/local' },
+                    { icon: '💾', label: 'LocalStorage Admin', href: 'https://admin.lidan.co.id/admin/local', cn: 'localstorage_admin' },
                 ]
             },
             {
@@ -886,10 +882,13 @@ function renderGroup(item) {
 function renderLink(item, isSub = false) {
     const cls = isSub ? 'nav-sublink' : 'nav-link';
     const target = item.external ? 'target="_blank" rel="noopener"' : '';
-    return `<a href="${item.href}" class="${cls}" ${target}>
-        <span class="link-icon">${item.icon}</span>
-        <span>${item.label}</span>
-    </a>`;
+    const btn = item.cn ? `<button class="cn-nav-btn" onclick="event.preventDefault();event.stopPropagation();cnBuka('${item.cn}')" title="Catatan">i</button>` : '';
+    return `<span style="display:flex;align-items:center;">
+        <a href="${item.href}" class="${cls}" ${target} style="flex:1;min-width:0;">
+            <span class="link-icon">${item.icon}</span>
+            <span>${item.label}</span>
+        </a>${btn}
+    </span>`;
 }
 
 /* ═══════════════════════════════════
@@ -911,7 +910,8 @@ function renderPage(pageId) {
         section.cards.forEach(card => {
             const cls = card.placeholder ? 'app-card placeholder' : 'app-card';
             const target = card.placeholder ? '' : 'target="_blank" rel="noopener"';
-            html += `<a href="${card.href}" class="${cls}" ${target}>
+            const btn = card.cn ? `<button class="cn-card-btn" onclick="event.preventDefault();event.stopPropagation();cnBuka('${card.cn}')" title="Catatan">i</button>` : '';
+            html += `<a href="${card.href}" class="${cls}" ${target} style="position:relative;">${btn}
                 <span class="card-icon">${card.icon}</span>
                 <span class="card-label">${card.label}</span>
             </a>`;
@@ -996,6 +996,50 @@ function logout() {
     localStorage.removeItem('isAdminLoggedIn');
     location.reload();
 }
+
+
+/* ═══════════════════════════════════
+   CATATAN DATA
+═══════════════════════════════════ */
+const CATATAN = {
+  "dashboard": { judul: "Dashboard", isi: "Halaman utama Admin Portal Lidan Co.\nMenunjukkan shortcut ke semua aplikasi per kategori.\n**Kategori:** Psikotest, Transfer Data, Keuangan, Dokumen, Voucher, PKL, Sistem" },
+  "psikotest_admin_web": { judul: "Psikotest Admin", isi: "Panel admin pengelolaan psikotest.\n**URL:** admin.lidan.co.id/admin/psikotest\n**Fungsi:** manajemen peserta, token, dan hasil tes" },
+  "psikotest_co_id": { judul: "Psikotest.co.id", isi: "Platform psikotest utama.\n**URL:** psikotest.lidan.co.id\n**Fungsi:** peserta mengerjakan tes psikologi secara online" },
+  "psikotest_my_id": { judul: "Psikotest.my.id", isi: "Platform psikotest alternatif.\n**URL:** psikotest.my.id\n**Fungsi:** peserta mengerjakan tes psikologi secara online" },
+  "transfer_sql": { judul: "Transfer SQL", isi: "Transfer data SQL antar database.\n**URL:** lidanpsikologi.my.id/cloud\n**Fungsi:** sinkronisasi atau migrasi data" },
+  "transfer_psikotestmyid": { judul: "Transfer Psikotest.my.id", isi: "Transfer hasil tes dari psikotest.my.id.\n**URL:** psikotest.my.id/transfer\n**Fungsi:** pindahkan data hasil tes ke database tujuan" },
+  "transfer_lidanpsikologi": { judul: "Transfer LidanPsikologi", isi: "Transfer hasil tes dari lidanpsikologi.my.id.\n**URL:** lidanpsikologi.my.id/transfer\n**Fungsi:** pindahkan data hasil tes ke database tujuan" },
+  "psikogram_web": { judul: "Psikogram", isi: "Laporan psikogram hasil tes peserta.\n**URL:** psikogram.lidan.co.id\n**Fungsi:** tampilkan hasil analisis psikologi lengkap" },
+  "whoami_web": { judul: "Who am I", isi: "Tes kepribadian Who am I.\n**URL:** test.lidan.co.id\n**Fungsi:** peserta mengetahui tipe kepribadiannya" },
+  "iq_sertifikat": { judul: "IQ Sertifikat", isi: "Cetak sertifikat hasil tes IQ.\n**URL:** iq.lidan.co.id\n**Fungsi:** hasilkan sertifikat resmi hasil tes IQ" },
+  "invoice_web": { judul: "Invoice", isi: "Aplikasi pembuatan invoice.\n**URL:** invoice.lidan.co.id\n**Fungsi:** buat, cetak, kelola invoice klien" },
+  "kwitansi_web": { judul: "Kwitansi", isi: "Aplikasi kwitansi pembayaran.\n**URL:** kwitansi.lidan.co.id\n**Fungsi:** buat dan cetak kwitansi tanda terima" },
+  "penawaran_web": { judul: "Surat Penawaran", isi: "Aplikasi surat penawaran.\n**URL:** penawaran.lidan.co.id\n**Fungsi:** buat dan cetak dokumen penawaran klien" },
+  "surat_web": { judul: "Surat", isi: "Aplikasi surat resmi.\n**URL:** surat.lidan.co.id\n**Fungsi:** buat dan cetak berbagai jenis surat resmi" },
+  "qr_web": { judul: "QR Code Generator", isi: "Generator QR Code.\n**URL:** qr.lidan.co.id\n**Fungsi:** buat QR code dari URL atau teks apapun" },
+  "voucher_lidan": { judul: "Voucher LidanPsikologi", isi: "Voucher akses psikotest LidanPsikologi.\n**URL:** pkl.lidan.co.id\n**Fungsi:** generate dan kelola kode voucher" },
+  "voucher_psikotest": { judul: "Voucher Psikotest", isi: "Voucher akses psikotest.\n**URL:** lidanpsikologi.my.id/test/admin/voucher.php\n**Fungsi:** generate dan kelola kode voucher" },
+  "pkl_admin": { judul: "PKL Admin", isi: "Panel admin PKL.\n**URL:** pkl.lidan.co.id/admin\n**Fungsi:** kelola peserta PKL, absensi, laporan" },
+  "pkl_voucher": { judul: "PKL Voucher", isi: "Voucher psikotest untuk peserta PKL.\n**URL:** psikotest.my.id/test/admin/voucher.php\n**Fungsi:** generate voucher akses untuk peserta PKL" },
+  "localstorage_admin": { judul: "LocalStorage Admin", isi: "Manajemen data LocalStorage browser.\n**URL:** admin.lidan.co.id/admin/local\n**Fungsi:** lihat, edit, hapus data localStorage" },
+};
+
+function cnBuka(key) {
+    const d = CATATAN[key];
+    document.getElementById('cn-judul').textContent = d ? (d.judul || key) : 'Catatan tidak ditemukan';
+    const isi = d ? (d.isi || '') : 'Key "' + key + '" tidak ada di CATATAN.';
+    document.getElementById('cn-isi').innerHTML = isi
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+        .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+    document.getElementById('cn-footer').textContent = 'key: "' + key + '"';
+    document.getElementById('cn-overlay').classList.add('open');
+}
+function cnTutup() {
+    document.getElementById('cn-overlay').classList.remove('open');
+}
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') cnTutup();
+});
 
 window.onload = () => {
     if (localStorage.getItem('isAdminLoggedIn') === 'true') {
