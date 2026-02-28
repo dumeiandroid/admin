@@ -154,25 +154,11 @@
             text-align: center;
             font-weight: 600;
             color: #667eea;
-            white-space: nowrap;
         }
-        .col-x01 { max-width: 120px; min-width: 80px; white-space: nowrap; }
+        .col-x01 { max-width: 120px; min-width: 80px; }
         .col-x02 { max-width: 160px; min-width: 100px; }
-        .col-x05 { max-width: 260px; min-width: 140px; }
-        .col-x06, .col-x07 { max-width: 260px; min-width: 120px; }
-
-        /* Nilai skor bold berwarna biru */
-        .formatted-value b {
-            color: #667eea;
-            font-weight: 700;
-        }
-        /* Key label di x_05 */
-        .formatted-value {
-            font-size: 12px;
-            line-height: 1.7;
-            word-break: break-word;
-            white-space: normal;
-        }
+        .col-x05 { max-width: 140px; min-width: 100px; }
+        .col-x06, .col-x07 { max-width: 200px; min-width: 100px; }
         
         /* Truncate */
         .truncate {
@@ -574,7 +560,7 @@
                     id="inputTableName" 
                     class="table-name-input" 
                     value="nilai1_json" 
-                    placeholder="Contoh: nilai1, nilai2, nilaiA..."
+                    placeholder="Contoh: nilai1_json, nilai2, nilaiA..."
                     autocomplete="off"
                     spellcheck="false"
                 >
@@ -614,7 +600,7 @@
         <div class="modal-box">
             <button class="modal-close" id="btnModalClose">×</button>
             <h2>🔑 Tambah Token</h2>
-            <p class="sub">Generate token acak (huruf+angka) unik ke API tabel <strong id="modalTableNameLabel">nilai1</strong>.</p>
+            <p class="sub">Generate token acak (huruf+angka) unik ke API tabel <strong id="modalTableNameLabel">nilai1_json</strong>.</p>
             <label for="inputJumlahToken">Jumlah token yang akan dibuat:</label>
             <input type="number" id="inputJumlahToken" min="1" max="500" value="1" placeholder="Contoh: 10" inputmode="numeric">
             <div class="modal-actions">
@@ -649,30 +635,13 @@
             if (e.target === this) closeBottomSheet();
         });
         
-        /* ── x_05: JSON → "key:nilai, key:nilai" ── */
-        function formatX05(text) {
+        function formatPipeValues(text) {
             if (!text) return '';
-            try {
-                const obj = JSON.parse(text);
-                return Object.entries(obj)
-                    .filter(([k, v]) => v !== '' && v !== null && v !== undefined)
-                    .map(([k, v]) => `${k}:${v}`)
-                    .join(', ');
-            } catch(e) { return String(text); }
-        }
-
-        /* ── x_06 / x_07: JSON → "key, key, key" (nilai diabaikan) ── */
-        function formatJsonKeys(text) {
-            if (!text) return '';
-            try {
-                const obj = JSON.parse(text);
-                const keys = Object.keys(obj)
-                    .filter(k => {
-                        const v = obj[k];
-                        return v !== '' && v !== null && v !== undefined;
-                    });
-                return keys.join(', ');
-            } catch(e) { return String(text); }
+            const parts = text.split('|');
+            return parts
+                .map((part, index) => part.trim() ? `v${index + 1}` : null)
+                .filter(v => v !== null)
+                .join(' ');
         }
         
         function hashData(data) { return JSON.stringify(data); }
@@ -720,27 +689,14 @@
             
             document.getElementById('recordCount').textContent = `${data.length} records`;
             
-            const formattedData = data.map(row => {
-                const x05html  = formatX05(row.x_05);
-                const x06html  = formatJsonKeys(row.x_06);
-                const x06full  = x06html;
-                const x07html  = formatJsonKeys(row.x_07);
-                const x07full  = x07html;
-                return {
-                    id_x: row.id_x || '',
-                    x_01: truncateText(row.x_01),
-                    x_02: truncateText(row.x_02),
-                    x_05: x05html
-                        ? `<span class="formatted-value">${x05html}</span>`
-                        : '',
-                    x_06: x06html
-                        ? `<span class="formatted-value">${x06html}</span>`
-                        : '',
-                    x_07: x07html
-                        ? `<span class="formatted-value">${x07html}</span>`
-                        : ''
-                };
-            });
+            const formattedData = data.map(row => ({
+                id_x: row.id_x || '',
+                x_01: truncateText(row.x_01),
+                x_02: truncateText(row.x_02),
+                x_05: truncateText(row.x_05),
+                x_06: `<span class="formatted-value truncate" data-full="${formatPipeValues(row.x_06)}">${formatPipeValues(row.x_06)}</span>`,
+                x_07: `<span class="formatted-value truncate" data-full="${formatPipeValues(row.x_07)}">${formatPipeValues(row.x_07)}</span>`
+            }));
             
             if (dataTable !== null) {
                 dataTable.clear();
@@ -755,15 +711,15 @@
         function initializeTable(data) {
             const tableContainer = document.getElementById('tableContainer');
             tableContainer.innerHTML = `
-                <table id="dataTable" class="display" style="width:100%">
+                <table id="dataTable" class="display nowrap" style="width:100%">
                     <thead>
                         <tr>
                             <th class="col-id">ID</th>
-                            <th class="col-x01">Token</th>
-                            <th class="col-x02">Biodata</th>
-                            <th class="col-x05">Skor (x_05)</th>
-                            <th class="col-x06">RMIB (x_06)</th>
-                            <th class="col-x07">EPPS (x_07)</th>
+                            <th class="col-x01">X_01</th>
+                            <th class="col-x02">X_02</th>
+                            <th class="col-x05">X_05</th>
+                            <th class="col-x06">X_06</th>
+                            <th class="col-x07">X_07</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
@@ -774,11 +730,11 @@
                 data: data,
                 columns: [
                     { data: 'id_x' },
-                    { data: 'x_01', render: d => d },
-                    { data: 'x_02', render: d => d },
-                    { data: 'x_05', render: d => d },
-                    { data: 'x_06', render: d => d },
-                    { data: 'x_07', render: d => d }
+                    { data: 'x_01' },
+                    { data: 'x_02' },
+                    { data: 'x_05' },
+                    { data: 'x_06' },
+                    { data: 'x_07' }
                 ],
                 pageLength: 25,
                 lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "Semua"]],
@@ -805,9 +761,9 @@
                     { className: 'col-id', targets: 0 },
                     { className: 'col-x01', targets: 1 },
                     { className: 'col-x02', targets: 2 },
-                    { className: 'col-x05', targets: 3, orderable: false },
-                    { className: 'col-x06', targets: 4, orderable: false },
-                    { className: 'col-x07', targets: 5, orderable: false }
+                    { className: 'col-x05', targets: 3 },
+                    { className: 'col-x06', targets: 4 },
+                    { className: 'col-x07', targets: 5 }
                 ]
             });
         }
@@ -994,6 +950,6 @@
         setInterval(updateTable, REFRESH_INTERVAL);
     </script>
 <script src="https://login.lidan.co.id/login_admin.js"></script>
-<script src="js/clickable-id.js"></script>    
+<script src="js/clickable-id-json.js"></script>    
 </body>
 </html>
