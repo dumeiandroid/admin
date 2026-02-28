@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Tabel - Auto Refresh</title>
+    
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
+    
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    
+    <!-- DataTables JS (tanpa Responsive plugin) -->
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 6px;
+            min-height: 100vh;
+            min-height: 100dvh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 14px 8px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        /* ── Header ── */
+        h1 {
+            color: #333;
+            margin-bottom: 12px;
+            font-size: clamp(18px, 5vw, 28px);
+            text-align: center;
+            line-height: 1.3;
+        }
+        
+        /* ── Info Bar ── */
+        .info-bar {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 14px;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            grid-column: 1 / -1;
+        }
+        
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            flex-shrink: 0;
+            border-radius: 50%;
+            background: #28a745;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .last-update {
+            color: #666;
+            font-size: 12px;
+        }
+        
+        .record-count {
+            color: #667eea;
+            font-weight: bold;
+            font-size: 14px;
+            text-align: right;
+        }
+
+        /* ── Tombol Tambah Token ── */
+        .btn-tambah {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 3px 10px rgba(40,167,69,.3);
+            transition: opacity .2s, transform .1s;
+            margin-bottom: 14px;
+            width: 100%;
+            justify-content: center;
+            min-height: 44px;
+        }
+        .btn-tambah:hover  { opacity: .88; }
+        .btn-tambah:active { transform: scale(.97); }
+
+        /* ── DataTables Custom Styling ── */
+        table.dataTable {
+            width: 100% !important;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        
+        table.dataTable thead th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 10px 8px;
+            font-weight: 600;
+            border: none;
+            white-space: nowrap;
+            font-size: 13px;
+        }
+        
+        table.dataTable tbody td {
+            padding: 9px 8px;
+            border-bottom: 1px solid #eee;
+            vertical-align: middle;
+            font-size: 13px;
+        }
+        
+        table.dataTable tbody tr:hover {
+            background-color: #f0f2ff;
+        }
+        
+        table.dataTable tbody tr:nth-child(even) {
+            background-color: #fafafa;
+        }
+        
+        /* Kolom */
+        .col-id { 
+            max-width: 60px;
+            min-width: 40px;
+            text-align: center;
+            font-weight: 600;
+            color: #667eea;
+            white-space: nowrap;
+        }
+        .col-x01 { max-width: 120px; min-width: 80px; white-space: nowrap; }
+        .col-x02 { max-width: 160px; min-width: 100px; }
+        .col-x05 { max-width: 260px; min-width: 140px; }
+        .col-x06, .col-x07 { max-width: 260px; min-width: 120px; }
+
+        /* Nilai skor bold berwarna biru */
+        .formatted-value b {
+            color: #667eea;
+            font-weight: 700;
+        }
+        /* Key label di x_05 */
+        .formatted-value {
+            font-size: 12px;
+            line-height: 1.7;
+            word-break: break-word;
+            white-space: normal;
+        }
+        
+        /* Truncate */
+        .truncate {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: block;
+            cursor: pointer;
+        }
+        .truncate:hover { color: #667eea; }
+
+        /* Tooltip (desktop only) */
+        .tooltip {
+            position: fixed;
+            background: #333;
+            color: white;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            max-width: 320px;
+            word-wrap: break-word;
+            z-index: 9999;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            pointer-events: none;
+            display: none;
+        }
+
+        /* Bottom Sheet (mobile) */
+        .bottom-sheet-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.4);
+            z-index: 9998;
+        }
+        .bottom-sheet-overlay.open { display: block; }
+        .bottom-sheet {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background: white;
+            border-radius: 20px 20px 0 0;
+            padding: 20px;
+            z-index: 9999;
+            max-height: 60vh;
+            overflow-y: auto;
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+        }
+        .bottom-sheet.open { transform: translateY(0); }
+        .bottom-sheet-handle {
+            width: 40px; height: 4px;
+            background: #ddd; border-radius: 2px;
+            margin: 0 auto 16px;
+        }
+        .bottom-sheet-label {
+            font-size: 11px; color: #999; text-transform: uppercase;
+            letter-spacing: 0.5px; margin-bottom: 6px;
+        }
+        .bottom-sheet-content {
+            font-size: 15px; color: #333; line-height: 1.5;
+            word-break: break-word;
+        }
+        
+        /* Formatted value */
+        .formatted-value {
+            font-family: 'Courier New', monospace;
+            color: #495057;
+            letter-spacing: 0.5px;
+        }
+        
+        /* ── Table scroll: KUNCI agar semua kolom tampil & bisa digeser ── */
+        .dataTables_scrollBody,
+        #tableContainer .dataTables_wrapper {
+            /* biarkan wrapper tidak overflow tersendiri */
+        }
+
+        /* Wrapper untuk scroll horizontal */
+        .table-scroll-hint {
+            font-size: 11px;
+            color: #999;
+            text-align: right;
+            margin-bottom: 4px;
+            display: none;
+        }
+        @media (max-width: 639px) {
+            .table-scroll-hint { display: block; }
+        }
+
+        /* Paksa tabel scroll horizontal, JANGAN sembunyikan kolom */
+        div.dataTables_wrapper div.dataTables_scroll,
+        .dataTables_wrapper > .dataTables_scroll {
+            overflow-x: auto !important;
+        }
+
+        /* Override DataTables responsive hide - paksa semua kolom tampil */
+        table.dataTable.collapsed tbody td.child { display: table-cell; }
+        table.dataTable td.dataTables_empty { text-align: center; }
+
+        /* Minimal width agar tabel tidak gepeng */
+        table#dataTable {
+            min-width: 560px !important;
+        }
+
+        /* DataTables controls */
+        .dataTables_wrapper .dataTables_length,
+        .dataTables_wrapper .dataTables_filter {
+            margin-bottom: 10px;
+            padding: 0 2px;
+        }
+
+        .dataTables_wrapper .dataTables_length select,
+        .dataTables_wrapper .dataTables_filter input {
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 6px 10px;
+            font-size: 14px;
+            min-height: 36px;
+        }
+        .dataTables_wrapper .dataTables_filter input {
+            margin-left: 6px;
+        }
+        .dataTables_wrapper .dataTables_filter input:focus,
+        .dataTables_wrapper .dataTables_length select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .dataTables_wrapper .dataTables_paginate .paginate_button {
+            padding: 7px 13px;
+            margin: 2px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            min-height: 36px;
+            font-size: 13px;
+        }
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white !important;
+            border: none;
+        }
+        .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+            background: #f0f2ff;
+            border-color: #667eea;
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px; height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Error */
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 12px 14px;
+            border-radius: 8px;
+            margin-bottom: 14px;
+            border: 1px solid #f5c6cb;
+            font-size: 14px;
+        }
+
+        /* ── Modal ── */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,.5);
+            z-index: 10000;
+            align-items: flex-end;
+            justify-content: center;
+        }
+        .modal-overlay.open { display: flex; }
+
+        .modal-box {
+            background: white;
+            border-radius: 20px 20px 0 0;
+            padding: 24px 20px 32px;
+            width: 100%;
+            max-width: 480px;
+            box-shadow: 0 -8px 40px rgba(0,0,0,.2);
+            position: relative;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-box h2 { margin: 0 0 6px; font-size: 20px; color: #333; }
+        .modal-box p.sub { color: #666; font-size: 13px; margin: 0 0 20px; }
+        .modal-box label {
+            display: block; font-size: 13px;
+            font-weight: 600; color: #444; margin-bottom: 6px;
+        }
+        .modal-box input[type="number"] {
+            width: 100%; padding: 12px 14px;
+            border: 2px solid #ddd; border-radius: 10px;
+            font-size: 18px; outline: none;
+            transition: border-color .2s;
+            min-height: 48px;
+        }
+        .modal-box input[type="number"]:focus { border-color: #667eea; }
+
+        .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+        .btn-submit {
+            flex: 1; padding: 13px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white; border: none; border-radius: 10px;
+            font-size: 15px; font-weight: 600; cursor: pointer;
+            transition: opacity .2s; min-height: 48px;
+        }
+        .btn-submit:hover    { opacity: .88; }
+        .btn-submit:disabled { opacity: .55; cursor: not-allowed; }
+        .btn-cancel {
+            flex: 1; padding: 13px; background: #f1f3f5; color: #555;
+            border: none; border-radius: 10px;
+            font-size: 15px; font-weight: 600; cursor: pointer;
+            min-height: 48px;
+        }
+        .btn-cancel:hover { background: #e2e6ea; }
+
+        .token-log {
+            margin-top: 16px; max-height: 180px; overflow-y: auto;
+            background: #f8f9fa; border-radius: 8px; padding: 10px 12px;
+            font-size: 12px; font-family: 'Courier New', monospace; display: none;
+        }
+        .token-log .log-line { margin: 2px 0; }
+        .token-log .log-ok  { color: #28a745; }
+        .token-log .log-err { color: #e74c3c; }
+        .modal-close {
+            position: absolute; top: 14px; right: 16px;
+            background: #f1f3f5; border: none;
+            width: 32px; height: 32px;
+            border-radius: 50%; font-size: 18px;
+            cursor: pointer; color: #555; line-height: 1;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .modal-close:hover { background: #e2e6ea; color: #333; }
+
+        /* ── Responsive: Desktop override ── */
+        @media (min-width: 640px) {
+            body { padding: 20px; }
+            .container { padding: 30px; }
+            .info-bar {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                flex-wrap: wrap;
+            }
+            .status { grid-column: auto; }
+            .record-count { text-align: left; }
+            .btn-tambah { width: auto; }
+            h1 { margin-bottom: 14px; }
+
+            /* Modal center on desktop */
+            .modal-overlay { align-items: center; }
+            .modal-box {
+                border-radius: 16px;
+                padding: 30px 32px;
+                max-width: 440px;
+            }
+
+            /* Tooltip visible on desktop */
+            .tooltip { display: none; /* shown via JS */ }
+        }
+
+        /* ── Form Nama Tabel ── */
+        .table-name-form {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 14px;
+            padding: 12px 14px;
+            background: linear-gradient(135deg, #f0f2ff 0%, #f5f0ff 100%);
+            border-radius: 12px;
+            border: 2px solid #e0e4ff;
+            flex-wrap: wrap;
+        }
+        .table-name-form label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #555;
+            white-space: nowrap;
+        }
+        .table-name-input-wrap {
+            display: flex;
+            gap: 8px;
+            flex: 1;
+            min-width: 200px;
+        }
+        .table-name-input {
+            flex: 1;
+            padding: 9px 14px;
+            border: 2px solid #c5c8f0;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            outline: none;
+            transition: border-color .2s, box-shadow .2s;
+            background: white;
+            min-height: 40px;
+        }
+        .table-name-input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102,126,234,.15);
+        }
+        .btn-load-table {
+            padding: 9px 18px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            min-height: 40px;
+            transition: opacity .2s, transform .1s;
+        }
+        .btn-load-table:hover  { opacity: .88; }
+        .btn-load-table:active { transform: scale(.97); }
+        .table-name-badge {
+            font-size: 12px;
+            color: #764ba2;
+            background: white;
+            border: 1.5px solid #c5c8f0;
+            border-radius: 6px;
+            padding: 3px 10px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        /* ── Safe area for notch phones ── */
+        @supports (padding-bottom: env(safe-area-inset-bottom)) {
+            .modal-box { padding-bottom: calc(32px + env(safe-area-inset-bottom)); }
+            .bottom-sheet { padding-bottom: calc(20px + env(safe-area-inset-bottom)); }
+        }
+
+        /* ── DataTables info text ── */
+        .dataTables_wrapper .dataTables_info {
+            font-size: 12px;
+            padding: 0 2px;
+        }
+
+        /* ── MOBILE: font 12px, scroll horizontal aktif ── */
+        @media (max-width: 639px) {
+            table.dataTable thead th,
+            table.dataTable tbody td {
+                padding: 9px 6px;
+                font-size: 12px;
+            }
+            .dataTables_wrapper .dataTables_length { font-size: 13px; }
+            .dataTables_wrapper .dataTables_filter { font-size: 13px; }
+            .dataTables_wrapper .dataTables_paginate .paginate_button {
+                padding: 7px 9px;
+                font-size: 12px;
+            }
+
+            /* SCROLL HORIZONTAL — inti perbaikan */
+            .dataTables_wrapper {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Data Tabel <span id="titleTableName">nilai1_json</span></h1>
+        
+        <div class="info-bar">
+            <div class="status">
+                <div class="status-indicator"></div>
+                <span style="font-size:13px;">Auto-refresh setiap 5 detik</span>
+            </div>
+            <div class="last-update" id="lastUpdate">Memuat data...</div>
+            <div class="record-count" id="recordCount">0 records</div>
+        </div>
+        
+        <div id="errorContainer"></div>
+
+        <!-- Form Nama Tabel -->
+        <div class="table-name-form">
+            <label>🗄️ Nama Tabel:</label>
+            <div class="table-name-input-wrap">
+                <input 
+                    type="text" 
+                    id="inputTableName" 
+                    class="table-name-input" 
+                    value="nilai1_json" 
+                    placeholder="Contoh: nilai1, nilai2, nilaiA..."
+                    autocomplete="off"
+                    spellcheck="false"
+                >
+                <button class="btn-load-table" id="btnLoadTable">🔄 Muat</button>
+            </div>
+            <span class="table-name-badge">aktif: <span id="badgeTableName">nilai1_json</span></span>
+        </div>
+
+        <!-- Tombol Tambah Token -->
+        <button class="btn-tambah" id="btnTambahToken">＋ Tambah Token</button>
+        
+        <!-- Hint geser untuk HP -->
+        <p class="table-scroll-hint">← geser untuk lihat semua kolom →</p>
+
+        <div id="tableContainer">
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>Memuat data dari server...</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tooltip (desktop) -->
+    <div class="tooltip" id="tooltip"></div>
+
+    <!-- Bottom Sheet (mobile tap detail) -->
+    <div class="bottom-sheet-overlay" id="bsOverlay">
+        <div class="bottom-sheet" id="bottomSheet">
+            <div class="bottom-sheet-handle"></div>
+            <div class="bottom-sheet-label" id="bsLabel">Detail</div>
+            <div class="bottom-sheet-content" id="bsContent"></div>
+        </div>
+    </div>
+
+    <!-- Modal Tambah Token -->
+    <div class="modal-overlay" id="modalTambahToken">
+        <div class="modal-box">
+            <button class="modal-close" id="btnModalClose">×</button>
+            <h2>🔑 Tambah Token</h2>
+            <p class="sub">Generate token acak (huruf+angka) unik ke API tabel <strong id="modalTableNameLabel">nilai1</strong>.</p>
+            <label for="inputJumlahToken">Jumlah token yang akan dibuat:</label>
+            <input type="number" id="inputJumlahToken" min="1" max="500" value="1" placeholder="Contoh: 10" inputmode="numeric">
+            <div class="modal-actions">
+                <button class="btn-cancel" id="btnModalCancel">Batal</button>
+                <button class="btn-submit" id="btnModalSubmit">⚡ Generate &amp; Simpan</button>
+            </div>
+            <div class="token-log" id="tokenLog"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://lidan-co-id.pages.dev/api/contacts_filter_dinamis7';
+        let TABLE_NAME = 'nilai1_json';
+        const REFRESH_INTERVAL = 5000;
+        
+        let dataTable = null;
+        let lastDataHash = null;
+        const isMobile = () => window.innerWidth < 640;
+
+        // ── Bottom Sheet ──
+        function openBottomSheet(label, content) {
+            document.getElementById('bsLabel').textContent = label;
+            document.getElementById('bsContent').textContent = content;
+            document.getElementById('bsOverlay').classList.add('open');
+            setTimeout(() => document.getElementById('bottomSheet').classList.add('open'), 10);
+        }
+        function closeBottomSheet() {
+            document.getElementById('bottomSheet').classList.remove('open');
+            setTimeout(() => document.getElementById('bsOverlay').classList.remove('open'), 300);
+        }
+        document.getElementById('bsOverlay').addEventListener('click', function(e) {
+            if (e.target === this) closeBottomSheet();
+        });
+        
+        /* ── x_05: JSON → "key:nilai, key:nilai" ── */
+        function formatX05(text) {
+            if (!text) return '';
+            try {
+                const obj = JSON.parse(text);
+                return Object.entries(obj)
+                    .filter(([k, v]) => v !== '' && v !== null && v !== undefined)
+                    .map(([k, v]) => `${k}:${v}`)
+                    .join(', ');
+            } catch(e) { return String(text); }
+        }
+
+        /* ── x_06 / x_07: JSON → "key, key, key" (nilai diabaikan) ── */
+        function formatJsonKeys(text) {
+            if (!text) return '';
+            try {
+                const obj = JSON.parse(text);
+                const keys = Object.keys(obj)
+                    .filter(k => {
+                        const v = obj[k];
+                        return v !== '' && v !== null && v !== undefined;
+                    });
+                return keys.join(', ');
+            } catch(e) { return String(text); }
+        }
+        
+        function hashData(data) { return JSON.stringify(data); }
+        
+        function truncateText(text, maxLength = 30) {
+            if (!text) return '';
+            const textStr = String(text);
+            if (textStr.length <= maxLength) return `<span>${textStr}</span>`;
+            return `<span class="truncate" data-full="${textStr.replace(/"/g, '&quot;')}">${textStr.substring(0, maxLength)}…</span>`;
+        }
+        
+        async function fetchData() {
+            try {
+                const response = await fetch(`${API_URL}?table=${TABLE_NAME}`, {
+                    method: 'GET',
+                    headers: { 'X-Custom-Auth': 'admin', 'Content-Type': 'application/json' }
+                });
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const result = await response.json();
+                if (result.success) return result.data || [];
+                else throw new Error(result.message || 'Failed to fetch data');
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                showError('Gagal mengambil data: ' + error.message);
+                return null;
+            }
+        }
+        
+        function showError(message) {
+            const errorContainer = document.getElementById('errorContainer');
+            errorContainer.innerHTML = `<div class="error-message">${message}</div>`;
+            setTimeout(() => { errorContainer.innerHTML = ''; }, 5000);
+        }
+        
+        async function updateTable() {
+            const data = await fetchData();
+            if (data === null) return;
+            
+            const currentHash = hashData(data);
+            if (lastDataHash === currentHash && dataTable !== null) {
+                updateLastUpdateTime();
+                return;
+            }
+            lastDataHash = currentHash;
+            
+            document.getElementById('recordCount').textContent = `${data.length} records`;
+            
+            const formattedData = data.map(row => {
+                const x05html  = formatX05(row.x_05);
+                const x06html  = formatJsonKeys(row.x_06);
+                const x06full  = x06html;
+                const x07html  = formatJsonKeys(row.x_07);
+                const x07full  = x07html;
+                return {
+                    id_x: row.id_x || '',
+                    x_01: truncateText(row.x_01),
+                    x_02: truncateText(row.x_02),
+                    x_05: x05html
+                        ? `<span class="formatted-value">${x05html}</span>`
+                        : '',
+                    x_06: x06html
+                        ? `<span class="formatted-value">${x06html}</span>`
+                        : '',
+                    x_07: x07html
+                        ? `<span class="formatted-value">${x07html}</span>`
+                        : ''
+                };
+            });
+            
+            if (dataTable !== null) {
+                dataTable.clear();
+                dataTable.rows.add(formattedData);
+                dataTable.draw(false);
+            } else {
+                initializeTable(formattedData);
+            }
+            updateLastUpdateTime();
+        }
+        
+        function initializeTable(data) {
+            const tableContainer = document.getElementById('tableContainer');
+            tableContainer.innerHTML = `
+                <table id="dataTable" class="display" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th class="col-id">ID</th>
+                            <th class="col-x01">Token</th>
+                            <th class="col-x02">Biodata</th>
+                            <th class="col-x05">Skor (x_05)</th>
+                            <th class="col-x06">RMIB (x_06)</th>
+                            <th class="col-x07">EPPS (x_07)</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            `;
+            
+            dataTable = $('#dataTable').DataTable({
+                data: data,
+                columns: [
+                    { data: 'id_x' },
+                    { data: 'x_01', render: d => d },
+                    { data: 'x_02', render: d => d },
+                    { data: 'x_05', render: d => d },
+                    { data: 'x_06', render: d => d },
+                    { data: 'x_07', render: d => d }
+                ],
+                pageLength: 25,
+                lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "Semua"]],
+                language: {
+                    search: "🔍",
+                    searchPlaceholder: "Cari...",
+                    lengthMenu: "Tampilkan _MENU_",
+                    info: "_START_–_END_ dari _TOTAL_ data",
+                    infoEmpty: "0 data",
+                    infoFiltered: "(dari _MAX_)",
+                    paginate: {
+                        first: "«",
+                        last: "»",
+                        next: "›",
+                        previous: "‹"
+                    },
+                    zeroRecords: "Tidak ada data yang ditemukan",
+                    emptyTable: "Tidak ada data tersedia"
+                },
+                responsive: false,
+                scrollX: true,
+                order: [[0, 'desc']],
+                columnDefs: [
+                    { className: 'col-id', targets: 0 },
+                    { className: 'col-x01', targets: 1 },
+                    { className: 'col-x02', targets: 2 },
+                    { className: 'col-x05', targets: 3, orderable: false },
+                    { className: 'col-x06', targets: 4, orderable: false },
+                    { className: 'col-x07', targets: 5, orderable: false }
+                ]
+            });
+        }
+        
+        function updateLastUpdateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            document.getElementById('lastUpdate').textContent = `Update: ${timeString}`;
+        }
+
+        // ── Tooltip (desktop) & Bottom Sheet (mobile) ──
+        document.addEventListener('mouseover', function(e) {
+            if (!isMobile() && e.target.classList.contains('truncate')) {
+                const fullText = e.target.getAttribute('data-full');
+                if (fullText) {
+                    const tooltip = document.getElementById('tooltip');
+                    tooltip.textContent = fullText;
+                    tooltip.style.display = 'block';
+                    const rect = e.target.getBoundingClientRect();
+                    tooltip.style.left = rect.left + 'px';
+                    tooltip.style.top = (rect.bottom + 10) + 'px';
+                }
+            }
+        });
+        document.addEventListener('mouseout', function(e) {
+            if (e.target.classList.contains('truncate')) {
+                document.getElementById('tooltip').style.display = 'none';
+            }
+        });
+        document.addEventListener('click', function(e) {
+            if (isMobile() && e.target.classList.contains('truncate')) {
+                const fullText = e.target.getAttribute('data-full');
+                const colHeader = e.target.closest('td')
+                    ? (() => {
+                        const td = e.target.closest('td');
+                        const table = td.closest('table');
+                        const idx = Array.from(td.parentNode.children).indexOf(td);
+                        const th = table.querySelectorAll('thead th')[idx];
+                        return th ? th.textContent : 'Detail';
+                    })()
+                    : 'Detail';
+                if (fullText) openBottomSheet(colHeader, fullText);
+            }
+        });
+        
+        // ── Token Modal ──
+        const API_INSERT_URL = 'https://lidan-co-id.pages.dev/api/contacts_filter_dinamis6';
+        const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        const TOKEN_LENGTH = 12;
+
+        function randomStr(len) {
+            let r = '';
+            for (let i = 0; i < len; i++) r += CHARS.charAt(Math.floor(Math.random() * CHARS.length));
+            return r;
+        }
+
+        async function tokenExists(token) {
+            try {
+                const res = await fetch(`${API_INSERT_URL}?table=${TABLE_NAME}&x_01_eq=${encodeURIComponent(token)}`, { headers: { 'X-Custom-Auth': 'admin' } });
+                const data = await res.json();
+                return data.success && data.count > 0;
+            } catch { return false; }
+        }
+
+        async function generateUniqueToken() {
+            let token = randomStr(TOKEN_LENGTH);
+            let exists = await tokenExists(token);
+            let attempt = 0;
+            while (exists && attempt < 10) {
+                token = randomStr(TOKEN_LENGTH) + randomStr(2);
+                exists = await tokenExists(token);
+                attempt++;
+            }
+            return token;
+        }
+
+        async function insertTokenToAPI(token) {
+            const res = await fetch(`${API_INSERT_URL}?table=${TABLE_NAME}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-Custom-Auth': 'admin' },
+                body: JSON.stringify({ x_01: token })
+            });
+            return await res.json();
+        }
+
+        function addLog(type, msg) {
+            const log = document.getElementById('tokenLog');
+            log.style.display = 'block';
+            const line = document.createElement('div');
+            line.className = `log-line log-${type}`;
+            line.textContent = msg;
+            log.appendChild(line);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function clearLog() {
+            const log = document.getElementById('tokenLog');
+            log.innerHTML = '';
+            log.style.display = 'none';
+        }
+
+        document.getElementById('btnTambahToken').addEventListener('click', () => {
+            document.getElementById('inputJumlahToken').value = 1;
+            document.getElementById('modalTableNameLabel').textContent = TABLE_NAME;
+            clearLog();
+            document.getElementById('btnModalSubmit').disabled = false;
+            document.getElementById('btnModalSubmit').textContent = '⚡ Generate & Simpan';
+            document.getElementById('modalTambahToken').classList.add('open');
+        });
+
+        function closeModal() { document.getElementById('modalTambahToken').classList.remove('open'); }
+        document.getElementById('btnModalCancel').addEventListener('click', closeModal);
+        document.getElementById('btnModalClose').addEventListener('click', closeModal);
+        document.getElementById('modalTambahToken').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+
+        document.getElementById('btnModalSubmit').addEventListener('click', async function () {
+            const jumlah = parseInt(document.getElementById('inputJumlahToken').value);
+            if (!jumlah || jumlah < 1 || jumlah > 500) { alert('Masukkan jumlah antara 1 sampai 500.'); return; }
+
+            this.disabled = true;
+            this.textContent = '⏳ Memproses...';
+            clearLog();
+            addLog('ok', `Mulai generate ${jumlah} token...`);
+
+            let berhasil = 0, gagal = 0;
+            for (let i = 1; i <= jumlah; i++) {
+                try {
+                    const token = await generateUniqueToken();
+                    const result = await insertTokenToAPI(token);
+                    if (result.success) {
+                        berhasil++;
+                        addLog('ok', `[${i}/${jumlah}] ✓ ${token} → id_x: ${result.id_x}`);
+                    } else {
+                        gagal++;
+                        addLog('err', `[${i}/${jumlah}] ✗ ${result.message || 'error'}`);
+                    }
+                } catch (e) {
+                    gagal++;
+                    addLog('err', `[${i}/${jumlah}] ✗ ${e.message}`);
+                }
+            }
+
+            addLog('ok', `─── Selesai: ${berhasil} berhasil, ${gagal} gagal ───`);
+            this.disabled = false;
+            this.textContent = '⚡ Generate & Simpan';
+
+            if (berhasil > 0) { lastDataHash = null; updateTable(); }
+        });
+
+        // ── Form Nama Tabel ──
+        function applyTableName(name) {
+            const trimmed = name.trim();
+            if (!trimmed) { alert('Nama tabel tidak boleh kosong.'); return; }
+            TABLE_NAME = trimmed;
+            document.getElementById('titleTableName').textContent = trimmed;
+            document.getElementById('badgeTableName').textContent = trimmed;
+            document.getElementById('inputTableName').value = trimmed;
+            // Reset data supaya tabel dimuat ulang penuh
+            lastDataHash = null;
+            if (dataTable !== null) {
+                dataTable.destroy();
+                dataTable = null;
+                document.getElementById('tableContainer').innerHTML = `
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>Memuat data tabel <strong>${trimmed}</strong>...</p>
+                    </div>`;
+            }
+            updateTable();
+        }
+
+        document.getElementById('btnLoadTable').addEventListener('click', () => {
+            applyTableName(document.getElementById('inputTableName').value);
+        });
+
+        document.getElementById('inputTableName').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') applyTableName(e.target.value);
+        });
+
+        // ── Init ──
+        updateTable();
+        setInterval(updateTable, REFRESH_INTERVAL);
+    </script>
+<script src="https://login.lidan.co.id/login_admin.js"></script>
+<script src="js/clickable-id.js"></script>    
+</body>
+</html>
