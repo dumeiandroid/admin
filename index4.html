@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | Lidan Co</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0d1117;
+            --surface: #161b22;
+            --surface2: #21262d;
+            --surface3: #30363d;
+            --border: #30363d;
+            --border-light: #21262d;
+            --accent: #58a6ff;
+            --accent-hover: #79b8ff;
+            --accent-dim: rgba(88, 166, 255, 0.12);
+            --accent-glow: rgba(88, 166, 255, 0.25);
+            --text: #e6edf3;
+            --text-muted: #8b949e;
+            --text-dim: #484f58;
+            --success: #3fb950;
+            --warning: #d29922;
+            --danger: #f85149;
+            --sidebar-w: 280px;
+            --header-h: 60px;
+            --radius: 8px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Sora', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ─── LOGIN ─── */
+        #login-overlay {
+            position: fixed; inset: 0;
+            background: var(--bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 1rem;
+        }
+        #login-overlay.hidden { display: none; }
+
+        .login-card {
+            width: 100%;
+            max-width: 420px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2.5rem;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.5);
+        }
+
+        .login-logo {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.6rem;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 0.3rem;
+        }
+
+        .login-subtitle {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            margin-bottom: 2rem;
+        }
+
+        .field { margin-bottom: 1.2rem; }
+
+        .field label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+
+        .field input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            color: var(--text);
+            font-family: 'Sora', sans-serif;
+            font-size: 0.95rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .field input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-dim);
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 0.8rem;
+            background: var(--accent);
+            color: #0d1117;
+            font-family: 'Sora', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 700;
+            border: none;
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+            margin-top: 0.5rem;
+        }
+
+        .login-btn:hover {
+            background: var(--accent-hover);
+            box-shadow: 0 0 20px var(--accent-glow);
+            transform: translateY(-1px);
+        }
+
+        .error-msg {
+            color: var(--danger);
+            font-size: 0.85rem;
+            margin-top: 1rem;
+            display: none;
+            padding: 0.6rem 0.8rem;
+            background: rgba(248, 81, 73, 0.1);
+            border: 1px solid rgba(248, 81, 73, 0.3);
+            border-radius: 6px;
+        }
+
+        /* ─── SHELL ─── */
+        #app { display: none; min-height: 100vh; }
+        #app.visible { display: flex; }
+
+        /* ─── SIDEBAR ─── */
+        #sidebar {
+            width: var(--sidebar-w);
+            min-height: 100vh;
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0; left: 0; bottom: 0;
+            z-index: 200;
+            transform: translateX(0);
+            transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        #sidebar.collapsed { transform: translateX(-100%); }
+
+        .sidebar-header {
+            padding: 1rem 1.2rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+            min-height: var(--header-h);
+        }
+
+        .brand {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .brand span { color: var(--text-muted); font-weight: 400; }
+
+        .sidebar-close {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            line-height: 1;
+        }
+
+        .sidebar-close:hover { color: var(--text); background: var(--surface2); }
+
+        .sidebar-nav { flex: 1; padding: 0.75rem 0; }
+
+        /* Category */
+        .nav-category {
+            padding: 0.6rem 1.2rem 0.3rem;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-dim);
+            margin-top: 0.5rem;
+        }
+
+        /* Nav item (has children) */
+        .nav-group { }
+
+        .nav-group-header {
+            display: flex;
+            align-items: center;
+            padding: 0.55rem 1.2rem;
+            cursor: pointer;
+            gap: 0.65rem;
+            border-radius: 0;
+            transition: background 0.15s;
+            user-select: none;
+            position: relative;
+        }
+
+        .nav-group-header:hover { background: var(--surface2); }
+
+        .nav-group-header .icon { font-size: 1rem; flex-shrink: 0; opacity: 0.85; }
+
+        .nav-group-header .label {
+            flex: 1;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .nav-group-header .chevron {
+            font-size: 0.65rem;
+            color: var(--text-dim);
+            transition: transform 0.2s;
+            flex-shrink: 0;
+        }
+
+        .nav-group.open > .nav-group-header .chevron { transform: rotate(90deg); }
+        .nav-group.open > .nav-group-header { background: var(--accent-dim); }
+        .nav-group.open > .nav-group-header .label { color: var(--accent); }
+
+        /* Sub items */
+        .nav-children {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .nav-group.open > .nav-children { max-height: 600px; }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 0.45rem 1.2rem 0.45rem 2.6rem;
+            gap: 0.6rem;
+            text-decoration: none;
+            font-size: 0.83rem;
+            color: var(--text-muted);
+            transition: background 0.15s, color 0.15s;
+            border-left: 2px solid transparent;
+        }
+
+        .nav-link:hover {
+            background: var(--surface2);
+            color: var(--text);
+        }
+
+        .nav-link .link-icon { font-size: 0.85rem; }
+
+        /* Sub-sub level */
+        .nav-subgroup { }
+
+        .nav-subgroup-header {
+            display: flex;
+            align-items: center;
+            padding: 0.45rem 1.2rem 0.45rem 2.6rem;
+            gap: 0.6rem;
+            cursor: pointer;
+            font-size: 0.83rem;
+            color: var(--text-muted);
+            transition: background 0.15s, color 0.15s;
+            user-select: none;
+        }
+
+        .nav-subgroup-header:hover { background: var(--surface2); color: var(--text); }
+        .nav-subgroup-header .label { flex: 1; }
+        .nav-subgroup-header .chevron { font-size: 0.6rem; color: var(--text-dim); transition: transform 0.2s; }
+        .nav-subgroup.open > .nav-subgroup-header .chevron { transform: rotate(90deg); }
+        .nav-subgroup.open > .nav-subgroup-header { color: var(--text); }
+
+        .nav-subchildren {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.25s ease;
+        }
+
+        .nav-subgroup.open > .nav-subchildren { max-height: 300px; }
+
+        .nav-sublink {
+            display: flex;
+            align-items: center;
+            padding: 0.4rem 1.2rem 0.4rem 3.8rem;
+            gap: 0.5rem;
+            text-decoration: none;
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            transition: background 0.15s, color 0.15s;
+        }
+
+        .nav-sublink:hover { background: var(--surface2); color: var(--text); }
+
+        .sidebar-footer {
+            padding: 1rem 1.2rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .logout-btn {
+            width: 100%;
+            padding: 0.6rem;
+            background: rgba(248, 81, 73, 0.1);
+            color: var(--danger);
+            border: 1px solid rgba(248, 81, 73, 0.25);
+            border-radius: var(--radius);
+            font-family: 'Sora', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .logout-btn:hover { background: rgba(248, 81, 73, 0.2); }
+
+        /* ─── MAIN CONTENT ─── */
+        #main {
+            flex: 1;
+            margin-left: var(--sidebar-w);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: margin-left 0.3s;
+        }
+
+        .topbar {
+            height: var(--header-h);
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 1.5rem;
+            gap: 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 6px;
+            line-height: 1;
+        }
+
+        .menu-toggle:hover { background: var(--surface2); color: var(--text); }
+
+        .topbar-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            flex: 1;
+        }
+
+        .topbar-badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            background: var(--accent-dim);
+            color: var(--accent);
+            padding: 4px 10px;
+            border-radius: 20px;
+            border: 1px solid rgba(88,166,255,0.2);
+        }
+
+        /* ─── CONTENT ─── */
+        .content {
+            padding: 2rem;
+            flex: 1;
+        }
+
+        .page-header {
+            margin-bottom: 2rem;
+        }
+
+        .page-header h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 0.3rem;
+        }
+
+        .page-header p { color: var(--text-muted); font-size: 0.875rem; }
+
+        /* ─── GRID CARDS ─── */
+        .section-title {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-dim);
+            margin: 2rem 0 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .section-title::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+            gap: 1rem;
+        }
+
+        .app-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem 1rem;
+            text-decoration: none;
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.6rem;
+            text-align: center;
+            transition: border-color 0.2s, background 0.2s, transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+        }
+
+        .app-card:hover {
+            border-color: var(--accent);
+            background: var(--surface2);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3), 0 0 15px var(--accent-dim);
+        }
+
+        .app-card .card-icon { font-size: 1.8rem; }
+        .app-card .card-label { font-size: 0.82rem; font-weight: 500; color: var(--text-muted); line-height: 1.3; }
+        .app-card:hover .card-label { color: var(--text); }
+
+        .app-card.placeholder {
+            border-style: dashed;
+            border-color: var(--border-light);
+            opacity: 0.5;
+        }
+
+        .app-card.placeholder:hover {
+            opacity: 0.8;
+            border-color: var(--text-dim);
+            box-shadow: none;
+            transform: none;
+        }
+
+        /* ─── OVERLAY ─── */
+        #overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 150;
+            backdrop-filter: blur(2px);
+        }
+
+        #overlay.visible { display: block; }
+
+        /* ─── RESPONSIVE ─── */
+        @media (max-width: 768px) {
+            #sidebar { transform: translateX(-100%); }
+            #sidebar.open { transform: translateX(0); }
+            .sidebar-close { display: flex !important; align-items: center; justify-content: center; }
+            #main { margin-left: 0; }
+            .menu-toggle { display: flex !important; align-items: center; }
+            .content { padding: 1.2rem; }
+            .cards-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+        }
+
+        @media (max-width: 400px) {
+            .cards-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        /* Scrollbar */
+        #sidebar::-webkit-scrollbar { width: 4px; }
+        #sidebar::-webkit-scrollbar-track { background: transparent; }
+        #sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    </style>
+</head>
+<body>
+
+<!-- ─── LOGIN ─── -->
+<div id="login-overlay">
+    <div class="login-card">
+        <div class="login-logo">lidan<span>.co</span></div>
+        <p class="login-subtitle">Admin Portal — Masuk untuk melanjutkan</p>
+        <div class="field">
+            <label>Username</label>
+            <input type="text" id="username" placeholder="Masukkan username" autocomplete="username">
+        </div>
+        <div class="field">
+            <label>Password</label>
+            <input type="password" id="password" placeholder="Masukkan password" autocomplete="current-password" onkeydown="if(event.key==='Enter') handleLogin()">
+        </div>
+        <button class="login-btn" onclick="handleLogin()">Masuk Dashboard</button>
+        <p id="error-msg" class="error-msg"></p>
+    </div>
+</div>
+
+<!-- ─── APP SHELL ─── -->
+<div id="app">
+    <!-- SIDEBAR -->
+    <nav id="sidebar">
+        <div class="sidebar-header">
+            <div class="brand">lidan<span>.co</span></div>
+            <button class="sidebar-close" onclick="closeSidebar()">✕</button>
+        </div>
+
+        <div class="sidebar-nav" id="sidebar-nav">
+            <!-- rendered by JS -->
+        </div>
+
+        <div class="sidebar-footer">
+            <button class="logout-btn" onclick="logout()">🚪 Keluar</button>
+        </div>
+    </nav>
+
+    <!-- OVERLAY (mobile) -->
+    <div id="overlay" onclick="closeSidebar()"></div>
+
+    <!-- MAIN -->
+    <div id="main">
+        <header class="topbar">
+            <button class="menu-toggle" onclick="openSidebar()">☰</button>
+            <span class="topbar-title" id="topbar-title">Dashboard</span>
+            <span class="topbar-badge">Admin</span>
+        </header>
+
+        <div class="content" id="content">
+            <!-- rendered by JS -->
+        </div>
+    </div>
+</div>
+
+<script>
+const API_URL = 'https://lidan-co-id.pages.dev/api/contacts_filter_dinamis6';
+
+/* ═══════════════════════════════════════════
+   NAV STRUCTURE
+   type: 'group'  → collapsible section with children
+   type: 'link'   → direct link
+   type: 'subgroup' → nested group inside a group
+═══════════════════════════════════════════ */
+const navStructure = [
+    {
+        category: "Utama",
+        items: [
+            {
+                type: 'group', icon: '📊', label: 'Overview',
+                children: [
+                    { type: 'link', icon: '🏠', label: 'Dashboard', href: '#home' },
+                ]
+            }
+        ]
+    },
+    {
+        category: "Psikotest",
+        items: [
+            {
+                type: 'group', icon: '🧠', label: 'Platform Psikotest',
+                children: [
+                    { type: 'link', icon: '🔬', label: 'Psikotest Admin', href: 'https://admin.lidan.co.id/admin/psikotest', external: true },
+                    { type: 'link', icon: '🌐', label: 'Psikotest.co.id', href: 'https://psikotest.lidan.co.id/', external: true },
+                    { type: 'link', icon: '🌐', label: 'Psikotest.my.id', href: 'https://psikotest.my.id/', external: true },
+                    {
+                        type: 'subgroup', icon: '📦', label: 'Transfer Data',
+                        children: [
+                            { type: 'link', icon: '↕️', label: 'Transfer SQL', href: 'https://lidanpsikologi.my.id/cloud', external: true },
+                            { type: 'link', icon: '↕️', label: 'Transfer Psikotest.my.id', href: 'https://psikotest.my.id/transfer', external: true },
+                            { type: 'link', icon: '↕️', label: 'Transfer Lidanpsikologi', href: 'https://lidanpsikologi.my.id/transfer', external: true },
+                        ]
+                    },
+                    {
+                        type: 'subgroup', icon: '🎫', label: 'Voucher',
+                        children: [
+                            { type: 'link', icon: '🎟️', label: 'Voucher LidanPsikologi', href: 'https://pkl.lidan.co.id/', external: true },
+                            { type: 'link', icon: '🎟️', label: 'Voucher Psikotest', href: 'https://lidanpsikologi.my.id/test/admin/voucher.php', external: true },
+                        ]
+                    }
+                ]
+            },
+            {
+                type: 'group', icon: '📈', label: 'Hasil & Laporan',
+                children: [
+                    { type: 'link', icon: '📋', label: 'Psikogram', href: 'https://psikogram.lidan.co.id', external: true },
+                    { type: 'link', icon: '🆔', label: 'Who am I', href: 'https://test.lidan.co.id/', external: true },
+                    { type: 'link', icon: '🎓', label: 'IQ Sertifikat', href: 'https://iq.lidan.co.id/', external: true },
+                ]
+            }
+        ]
+    },
+    {
+        category: "Psikotest",
+        items: [
+            {
+                type: 'group', icon: '🧠', label: 'Platform Psikotest',
+                children: [
+                    { type: 'link', icon: '🔬', label: 'Psikotest Admin', href: 'https://admin.lidan.co.id/admin/psikotest', external: true },
+                    { type: 'link', icon: '🌐', label: 'Psikotest.co.id', href: 'https://psikotest.lidan.co.id/', external: true },
+                    { type: 'link', icon: '🌐', label: 'Psikotest.my.id', href: 'https://psikotest.my.id/', external: true },
+                    {
+                        type: 'subgroup', icon: '📦', label: 'Transfer Data',
+                        children: [
+                            { type: 'link', icon: '↕️', label: 'Transfer SQL', href: 'https://lidanpsikologi.my.id/cloud', external: true },
+                            { type: 'link', icon: '↕️', label: 'Transfer Psikotest.my.id', href: 'https://psikotest.my.id/transfer', external: true },
+                            { type: 'link', icon: '↕️', label: 'Transfer Lidanpsikologi', href: 'https://lidanpsikologi.my.id/transfer', external: true },
+                        ]
+                    },
+                    {
+                        type: 'subgroup', icon: '🎫', label: 'Voucher',
+                        children: [
+                            { type: 'link', icon: '🎟️', label: 'Voucher LidanPsikologi', href: 'https://pkl.lidan.co.id/', external: true },
+                            { type: 'link', icon: '🎟️', label: 'Voucher Psikotest', href: 'https://lidanpsikologi.my.id/test/admin/voucher.php', external: true },
+                        ]
+                    }
+                ]
+            },
+            {
+                type: 'group', icon: '📈', label: 'Hasil & Laporan',
+                children: [
+                    { type: 'link', icon: '📋', label: 'Psikogram', href: 'https://psikogram.lidan.co.id', external: true },
+                    { type: 'link', icon: '🆔', label: 'Who am I', href: 'https://test.lidan.co.id/', external: true },
+                    { type: 'link', icon: '🎓', label: 'IQ Sertifikat', href: 'https://iq.lidan.co.id/', external: true },
+                ]
+            }
+        ]
+    },
+    {
+        category: "Keuangan & Dokumen",
+        items: [
+            {
+                type: 'group', icon: '💰', label: 'Keuangan',
+                children: [
+                    { type: 'link', icon: '🧾', label: 'Invoice', href: 'https://invoice.lidan.co.id/', external: true },
+                    { type: 'link', icon: '🧾', label: 'Kwitansi', href: 'https://kwitansi.lidan.co.id/', external: true },
+                    { type: 'link', icon: '💼', label: 'Penawaran', href: 'https://penawaran.lidan.co.id/', external: true },
+                ]
+            },
+            {
+                type: 'group', icon: '📄', label: 'Dokumen',
+                children: [
+                    { type: 'link', icon: '✉️', label: 'Surat', href: 'https://surat.lidan.co.id/', external: true },
+                    { type: 'link', icon: '🔗', label: 'QR Code', href: 'https://qr.lidan.co.id/', external: true },
+                ]
+            }
+        ]
+    },
+    {
+        category: "PKL & Pendidikan",
+        items: [
+            {
+                type: 'group', icon: '🎓', label: 'PKL',
+                children: [
+                    { type: 'link', icon: '👨‍💼', label: 'PKL Admin', href: 'https://pkl.lidan.co.id/admin', external: true },
+                    { type: 'link', icon: '🎫', label: 'PKL Voucher', href: 'https://psikotest.my.id/test/admin/voucher.php', external: true },
+                ]
+            }
+        ]
+    },
+    {
+        category: "Sistem",
+        items: [
+            {
+                type: 'group', icon: '⚙️', label: 'Data & Storage',
+                children: [
+                    { type: 'link', icon: '💾', label: 'LocalStorage Admin', href: 'https://admin.lidan.co.id/admin/local', external: true },
+                ]
+            },
+            {
+                type: 'group', icon: '📦', label: 'Template Kosong',
+                children: [
+                    { type: 'link', icon: '➕', label: 'Tambah Menu Baru', href: '#placeholder', external: false },
+                    { type: 'link', icon: '➕', label: 'Tambah Menu Baru', href: '#placeholder', external: false },
+                    { type: 'link', icon: '➕', label: 'Tambah Menu Baru', href: '#placeholder', external: false },
+                ]
+            }
+        ]
+    }
+];
+
+/* ═══════════════════════════════════
+   PAGE DATA (for content area)
+═══════════════════════════════════ */
+const pageData = {
+    home: {
+        title: 'Dashboard',
+        subtitle: 'Selamat datang di Admin Portal Lidan Co',
+        sections: [
+        {
+                heading: 'Alur Psikotest',
+                cards: [
+                    { icon: '🔬', label: 'Psikotest Admin', href: 'https://admin.lidan.co.id/admin/psikotest' },
+                    { type: 'link', icon: '🔬', label: 'QR Test', href: 'https://qrtest.lidan.co.id/', external: true },
+                    { icon: '🌐', label: 'Psikotest.co.id', href: 'https://psikotest.lidan.co.id/' },
+                    { icon: '📋', label: 'Psikogram Mentah', href: 'https://psikogram.lidan.co.id' },
+                    { icon: '☁️', label: 'Transfer Hasil', href: 'https://psikogram.lidan.co.id/psikogram_db/index_transfer' },
+                    { icon: '🌐', label: 'Rekap Hasil Akhir', href: 'https://psikogram.lidan.co.id/psikogram_db/index_rekap' },
+                    { icon: '📋', label: 'Psikogram Edit & Final', href: 'https://psikogram.lidan.co.id/psikogram_db/index_final' },
+                    { icon: '🆔', label: 'Analisa Hasil Kelompok', href: 'https://psikogram.lidan.co.id/psikogram_db/index_analisa' },
+                    { icon: '🆔', label: 'DB', href: 'https://cipta.my.id/multi_db_all' },
+                ]
+            },
+        {
+                heading: 'Alur Psikotest Json',
+                cards: [
+                    { icon: '🔬', label: 'Psikotest Admin', href: 'https://admin.lidan.co.id/admin/psikotest_json' },
+                    { type: 'link', icon: '🔬', label: 'QR Test', href: 'https://qrtest.lidan.co.id/qrtestjson', external: true },
+                    { icon: '🌐', label: 'Psikotest.co.id', href: 'https://psikotest.lidan.co.id/index_json2/' },
+                    { icon: '📋', label: 'Psikogram Mentah', href: 'https://psikogram.lidan.co.id' },
+                    { icon: '☁️', label: 'Transfer Hasil', href: 'https://psikogram.lidan.co.id/psikogram_db/index_transfer' },
+                    { icon: '🌐', label: 'Rekap Hasil Akhir', href: 'https://psikogram.lidan.co.id/psikogram_db/index_rekap' },
+                    { icon: '📋', label: 'Psikogram Edit & Final', href: 'https://psikogram.lidan.co.id/psikogram_db/index_final' },
+                    { icon: '🆔', label: 'Analisa Hasil Kelompok', href: 'https://psikogram.lidan.co.id/psikogram_db/index_analisa' },
+                ]
+            },
+        {
+                heading: 'PKL',
+                cards: [
+                    { icon: '🔬', label: 'Create User', href: 'https://cipta.my.id/multi' },
+                    { icon: '🌐', label: 'Dashboard PKL', href: 'https://pkl.lidan.co.id/' },
+                    { icon: '📋', label: 'Dashboard Admin', href: 'https://pkl.lidan.co.id/admin' },
+                ]
+            },
+            {
+                heading: 'Psikotest',
+                cards: [
+                    { icon: '🔬', label: 'Psikotest Admin', href: 'https://admin.lidan.co.id/admin/psikotest' },
+                    { icon: '🌐', label: 'Psikotest.co.id', href: 'https://psikotest.lidan.co.id/' },
+                    { icon: '🌐', label: 'Psikotest.my.id', href: 'https://psikotest.my.id/' },
+                    { icon: '📋', label: 'Psikogram', href: 'https://psikogram.lidan.co.id' },
+                    { icon: '🆔', label: 'Who am I', href: 'https://test.lidan.co.id/' },
+                    { icon: '🎓', label: 'IQ Sertifikat', href: 'https://iq.lidan.co.id/' },
+                ]
+            },{
+                heading: 'Psikotest Final',
+                cards: [
+                    { icon: '🔬', label: 'Psikotest Admin', href: 'https://admin.lidan.co.id/admin/psikotest' },
+                    { icon: '🌐', label: 'Psikotest.co.id', href: 'https://psikotest.lidan.co.id/' },
+                    { icon: '🌐', label: 'Psikotest.my.id', href: 'https://psikotest.my.id/' },
+                    { icon: '📋', label: 'Psikogram', href: 'https://psikogram.lidan.co.id' },
+                    { icon: '🆔', label: 'Who am I', href: 'https://test.lidan.co.id/' },
+                    { icon: '🎓', label: 'IQ Sertifikat', href: 'https://iq.lidan.co.id/' },
+                ]
+            },
+            {
+                heading: 'Transfer Data',
+                cards: [
+                    { icon: '☁️', label: 'Transfer SQL', href: 'https://lidanpsikologi.my.id/cloud' },
+                    { icon: '↕️', label: 'Transfer Psikotest.my.id', href: 'https://psikotest.my.id/transfer' },
+                    { icon: '↕️', label: 'Transfer Lidanpsikologi', href: 'https://lidanpsikologi.my.id/transfer' },
+                ]
+            },
+            {
+                heading: 'Keuangan & Dokumen',
+                cards: [
+                    { icon: '🧾', label: 'Invoice', href: 'https://invoice.lidan.co.id/' },
+                    { icon: '🧾', label: 'Kwitansi', href: 'https://kwitansi.lidan.co.id/' },
+                    { icon: '💼', label: 'Penawaran', href: 'https://penawaran.lidan.co.id/' },
+                    { icon: '✉️', label: 'Surat', href: 'https://surat.lidan.co.id/' },
+                    { icon: '🔗', label: 'QR Code', href: 'https://qr.lidan.co.id/' },
+                ]
+            },
+            {
+                heading: 'Voucher & PKL',
+                cards: [
+                    { icon: '🎟️', label: 'Voucher LidanPsikologi', href: 'https://pkl.lidan.co.id/' },
+                    { icon: '🎟️', label: 'Voucher Psikotest', href: 'https://lidanpsikologi.my.id/test/admin/voucher.php' },
+                    { icon: '🎫', label: 'PKL Voucher', href: 'https://psikotest.my.id/test/admin/voucher.php' },
+                    { icon: '👨‍💼', label: 'PKL Admin', href: 'https://pkl.lidan.co.id/admin' },
+                ]
+            },
+            {
+                heading: 'Sistem',
+                cards: [
+                    { icon: '💾', label: 'LocalStorage Admin', href: 'https://admin.lidan.co.id/admin/local' },
+                ]
+            },
+            {
+                heading: 'Template (Kosong)',
+                cards: [
+                    { icon: '➕', label: 'Slot Kosong', href: '#', placeholder: true },
+                    { icon: '➕', label: 'Slot Kosong', href: '#', placeholder: true },
+                    { icon: '➕', label: 'Slot Kosong', href: '#', placeholder: true },
+                    { icon: '➕', label: 'Slot Kosong', href: '#', placeholder: true },
+                ]
+            }
+        ]
+    }
+};
+
+/* ═══════════════════════════════════
+   RENDER SIDEBAR
+═══════════════════════════════════ */
+function renderSidebar() {
+    const nav = document.getElementById('sidebar-nav');
+    let html = '';
+
+    navStructure.forEach(cat => {
+        html += `<div class="nav-category">${cat.category}</div>`;
+        cat.items.forEach(item => {
+            if (item.type === 'group') {
+                html += renderGroup(item);
+            } else if (item.type === 'link') {
+                html += renderLink(item);
+            }
+        });
+    });
+
+    nav.innerHTML = html;
+
+    // Attach toggle events
+    nav.querySelectorAll('.nav-group-header').forEach(header => {
+        header.addEventListener('click', () => {
+            const group = header.parentElement;
+            group.classList.toggle('open');
+        });
+    });
+
+    nav.querySelectorAll('.nav-subgroup-header').forEach(header => {
+        header.addEventListener('click', () => {
+            const group = header.parentElement;
+            group.classList.toggle('open');
+        });
+    });
+
+    // Handle nav links
+    nav.querySelectorAll('a[href^="#"]').forEach(a => {
+        a.addEventListener('click', e => {
+            e.preventDefault();
+            const page = a.getAttribute('href').replace('#', '') || 'home';
+            renderPage(page || 'home');
+            if (window.innerWidth <= 768) closeSidebar();
+        });
+    });
+}
+
+function renderGroup(item) {
+    let html = `
+        <div class="nav-group">
+            <div class="nav-group-header">
+                <span class="icon">${item.icon}</span>
+                <span class="label">${item.label}</span>
+                <span class="chevron">▶</span>
+            </div>
+            <div class="nav-children">`;
+
+    item.children.forEach(child => {
+        if (child.type === 'subgroup') {
+            html += `
+                <div class="nav-subgroup">
+                    <div class="nav-subgroup-header">
+                        <span>${child.icon}</span>
+                        <span class="label">${child.label}</span>
+                        <span class="chevron">▶</span>
+                    </div>
+                    <div class="nav-subchildren">`;
+            child.children.forEach(sub => {
+                html += renderLink(sub, true);
+            });
+            html += `</div></div>`;
+        } else {
+            html += renderLink(child);
+        }
+    });
+
+    html += `</div></div>`;
+    return html;
+}
+
+function renderLink(item, isSub = false) {
+    const cls = isSub ? 'nav-sublink' : 'nav-link';
+    const target = item.external ? 'target="_blank" rel="noopener"' : '';
+    return `<a href="${item.href}" class="${cls}" ${target}>
+        <span class="link-icon">${item.icon}</span>
+        <span>${item.label}</span>
+    </a>`;
+}
+
+/* ═══════════════════════════════════
+   RENDER CONTENT
+═══════════════════════════════════ */
+function renderPage(pageId) {
+    const data = pageData[pageId] || pageData.home;
+    document.getElementById('topbar-title').textContent = data.title;
+
+    let html = `
+        <div class="page-header">
+            <h2>${data.title}</h2>
+            <p>${data.subtitle}</p>
+        </div>`;
+
+    data.sections.forEach(section => {
+        html += `<div class="section-title">${section.heading}</div>`;
+        html += `<div class="cards-grid">`;
+        section.cards.forEach(card => {
+            const cls = card.placeholder ? 'app-card placeholder' : 'app-card';
+            const target = card.placeholder ? '' : 'target="_blank" rel="noopener"';
+            html += `<a href="${card.href}" class="${cls}" ${target}>
+                <span class="card-icon">${card.icon}</span>
+                <span class="card-label">${card.label}</span>
+            </a>`;
+        });
+        html += `</div>`;
+    });
+
+    document.getElementById('content').innerHTML = html;
+}
+
+/* ═══════════════════════════════════
+   SIDEBAR TOGGLE
+═══════════════════════════════════ */
+function openSidebar() {
+    document.getElementById('sidebar').classList.add('open');
+    document.getElementById('overlay').classList.add('visible');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('overlay').classList.remove('visible');
+    document.body.style.overflow = '';
+}
+
+/* ═══════════════════════════════════
+   AUTH
+═══════════════════════════════════ */
+async function handleLogin() {
+    const user = document.getElementById('username').value;
+    const pass = document.getElementById('password').value;
+    const errMsg = document.getElementById('error-msg');
+
+    if (!user || !pass) {
+        errMsg.style.display = 'block';
+        errMsg.innerText = 'Username dan password wajib diisi';
+        return;
+    }
+
+    const btn = document.querySelector('.login-btn');
+    btn.textContent = 'Memproses...';
+    btn.disabled = true;
+
+    try {
+        const response = await fetch(`${API_URL}?action=login`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Custom-Auth': 'admin',
+                'X-Role': 'admin'
+            },
+            body: JSON.stringify({ username: user, password: pass })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            localStorage.setItem('isAdminLoggedIn', 'true');
+            showDashboard();
+        } else {
+            errMsg.style.display = 'block';
+            errMsg.innerText = result.message || 'Login Gagal. Periksa kembali kredensial Anda.';
+        }
+    } catch (error) {
+        console.error(error);
+        errMsg.style.display = 'block';
+        errMsg.innerText = 'Terjadi kesalahan koneksi. Coba lagi.';
+    } finally {
+        btn.textContent = 'Masuk Dashboard';
+        btn.disabled = false;
+    }
+}
+
+function showDashboard() {
+    document.getElementById('login-overlay').classList.add('hidden');
+    document.getElementById('app').classList.add('visible');
+    renderSidebar();
+    renderPage('home');
+}
+
+function logout() {
+    localStorage.removeItem('isAdminLoggedIn');
+    location.reload();
+}
+
+window.onload = () => {
+    if (localStorage.getItem('isAdminLoggedIn') === 'true') {
+        showDashboard();
+    }
+};
+</script>
+</body>
+</html>
