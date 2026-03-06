@@ -506,7 +506,67 @@ table.dataTable { min-width: 500px; }
     margin-top: 4px; letter-spacing: 1px;
 }
 
-/* ── Print styles ── */
+/* ── Tombol aksi di tab Hari Ini ── */
+.btn-del-peserta {
+    background: #fee2e2; color: #dc2626;
+    border: 1.5px solid #fca5a5; border-radius: 7px;
+    padding: 4px 8px; font-size: 11px; font-weight: 600;
+    cursor: pointer; transition: all 0.15s; white-space: nowrap;
+}
+.btn-del-peserta:hover { background: #dc2626; color: white; border-color: #dc2626; }
+.btn-goto-test {
+    background: #dbeafe; color: #1d4ed8;
+    border: 1.5px solid #93c5fd; border-radius: 7px;
+    padding: 4px 8px; font-size: 11px; font-weight: 600;
+    cursor: pointer; transition: all 0.15s; white-space: nowrap;
+    text-decoration: none; display: inline-block;
+}
+.btn-goto-test:hover { background: #1d4ed8; color: white; border-color: #1d4ed8; }
+.btn-copy-url {
+    background: #f0fdf4; color: #16a34a;
+    border: 1.5px solid #86efac; border-radius: 7px;
+    padding: 4px 8px; font-size: 11px; font-weight: 600;
+    cursor: pointer; transition: all 0.15s; white-space: nowrap;
+}
+.btn-copy-url:hover { background: #16a34a; color: white; border-color: #16a34a; }
+.btn-copy-url.copied { background: #16a34a; color: white; border-color: #16a34a; }
+
+/* Checkbox pilih baris */
+.row-checkbox { width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary); }
+#selectAllToday { width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary); }
+
+/* Bulk action bar */
+#bulkActionBar {
+    display: none; align-items: center; gap: 10px; flex-wrap: wrap;
+    background: #fff7ed; border: 1.5px solid #fed7aa;
+    border-radius: 10px; padding: 10px 14px; margin-bottom: 12px;
+}
+#bulkActionBar.visible { display: flex; }
+#bulkSelectedCount { font-weight: 700; color: #ea580c; font-size: 13px; }
+
+/* Modal reset angka acak */
+.reset-confirm-box {
+    background: white; border-radius: 16px; padding: 28px 24px;
+    width: 90%; max-width: 440px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.2);
+    position: relative;
+}
+.reset-code-display {
+    background: #1e293b; color: #fbbf24;
+    border-radius: 12px; padding: 14px;
+    font-size: 28px; font-weight: 900; text-align: center;
+    letter-spacing: 6px; font-family: 'Courier New', monospace;
+    margin: 12px 0 16px; user-select: none;
+}
+.reset-list-preview {
+    background: #f8fafc; border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 12px;
+    font-size: 12px; color: var(--muted);
+    max-height: 80px; overflow-y: auto;
+    margin-bottom: 12px;
+}
+.reset-err { color: #dc2626; font-size: 13px; min-height: 18px; margin-top: 6px; }
+/* ── Styles ── */
 @media print {
     body { background: white !important; padding: 0 !important; }
     .topnav, .card-header, .controls-bar, .btn-print-bar, #pagePrint > .card > .card-header { display: none !important; }
@@ -523,10 +583,10 @@ table.dataTable { min-width: 500px; }
 <!-- TOP NAV -->
 <nav class="topnav">
     <div class="topnav-brand">🧠 Psikotest JSON</div>
-    <div class="nav-tab active" onclick="switchPage('pageAll')">📊 Semua Data</div>
+    <div class="nav-tab active" onclick="switchPage('pageToday')">📅 Hari Ini</div>
     <div class="nav-tab" onclick="switchPage('pageEmpty')">📋 Token Kosong</div>
-    <div class="nav-tab" onclick="switchPage('pageToday')">📅 Hari Ini</div>
     <div class="nav-tab" onclick="switchPage('pagePrint')">🖨 Print QR</div>
+    <div class="nav-tab" onclick="switchPage('pageAll')">📊 Semua Data</div>
 </nav>
 
 <div class="main">
@@ -534,7 +594,7 @@ table.dataTable { min-width: 500px; }
 <!-- ══════════════════════════════════
      PAGE 1 — SEMUA DATA
 ══════════════════════════════════ -->
-<div id="pageAll" class="page active">
+<div id="pageAll" class="page">
     <div class="card">
         <div class="card-header">
             <div class="card-title">📊 Semua Data Peserta <span style="font-size:11px;background:#e0f2fe;color:#0891b2;padding:2px 8px;border-radius:99px;font-weight:700;margin-left:6px">JSON</span></div>
@@ -585,7 +645,7 @@ table.dataTable { min-width: 500px; }
 <!-- ══════════════════════════════════
      PAGE 3 — PESERTA HARI INI
 ══════════════════════════════════ -->
-<div id="pageToday" class="page">
+<div id="pageToday" class="page active">
     <div class="card">
         <div class="card-header">
             <div class="card-title">
@@ -608,6 +668,17 @@ table.dataTable { min-width: 500px; }
             <label style="font-size:13px;font-weight:700;color:var(--muted);margin-left:6px">Tanggal:</label>
             <input type="date" id="todayDateInput" style="padding:8px 12px;border:2px solid var(--border);border-radius:10px;font-size:14px;outline:none">
             <button class="btn btn-warning" onclick="todayLoadTable()">🔍 Cari</button>
+            <a href="https://psikotest.lidan.co.id/" target="_blank" class="btn btn-primary" style="text-decoration:none">🔗 Buka Tes</a>
+            <button class="btn btn-outline btn-sm" onclick="copyTestUrl(this)" title="Copy URL halaman tes">📋 Copy URL</button>
+        </div>
+        <!-- Bulk action bar -->
+        <div id="bulkActionBar">
+            <span id="bulkSelectedCount">0 dipilih</span>
+            <button class="btn btn-sm" onclick="bulkResetSelected()"
+                style="background:#dc2626;color:white;border:none;border-radius:8px;padding:6px 14px;font-weight:700;cursor:pointer">
+                🗑 Reset yang Dipilih
+            </button>
+            <button class="btn btn-outline btn-sm" onclick="clearAllChecks()">✕ Batal Pilih</button>
         </div>
         <p style="font-size:12px;color:var(--muted);margin-bottom:12px">
             💡 Peserta terdeteksi dari tanggal yang otomatis disimpan saat mengisi biodata.
@@ -673,7 +744,7 @@ table.dataTable { min-width: 500px; }
     <div class="modal-box">
         <button class="modal-close" onclick="closeModal('modalToken')">×</button>
         <h2>🔑 Tambah Token</h2>
-        <p class="sub">Generate token acak (huruf+angka) unik ke tabel <strong id="modalTokenTableLabel">nilai1</strong></p>
+        <p class="sub">Generate token acak (huruf+angka) unik ke tabel <strong id="modalTokenTableLabel">nilai1_json/strong></p>
         <div class="form-group">
             <label>Jumlah Token</label>
             <input type="number" id="modalTokenJumlah" min="1" max="500" value="1" placeholder="Contoh: 10">
@@ -683,6 +754,38 @@ table.dataTable { min-width: 500px; }
             <button class="btn btn-primary" id="btnTokenSubmit" onclick="doGenerateToken()">⚡ Generate & Simpan</button>
         </div>
         <div class="token-log" id="tokenLog"></div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════
+     MODAL: RESET PESERTA (konfirmasi kode angka acak)
+══════════════════════════════════ -->
+<div class="modal-overlay" id="modalResetPeserta">
+    <div class="reset-confirm-box">
+        <button class="modal-close" onclick="closeModal('modalResetPeserta')">×</button>
+        <h2 style="font-size:18px;margin-bottom:6px" id="resetModalTitle">⚠️ Reset Data Peserta</h2>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:8px">
+            Biodata &amp; semua skor akan dikosongkan. Token tetap bisa dipakai kembali.
+        </p>
+        <div class="reset-list-preview" id="resetListPreview"></div>
+        <p style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px;text-align:center">
+            Ketik kode ini untuk konfirmasi:
+        </p>
+        <div class="reset-code-display" id="resetCodeDisplay">0000</div>
+        <input type="text" id="resetCodeInput"
+            placeholder="Ketik 4 angka di atas..."
+            maxlength="4"
+            style="width:100%;padding:10px 14px;border:2px solid var(--border);border-radius:10px;font-size:18px;font-weight:700;text-align:center;outline:none;letter-spacing:4px"
+            onkeydown="if(event.key==='Enter') doResetPeserta()"
+            oninput="document.getElementById('resetErrMsg').textContent=''">
+        <div class="reset-err" id="resetErrMsg"></div>
+        <div class="modal-actions" style="margin-top:14px">
+            <button class="btn btn-outline" onclick="closeModal('modalResetPeserta')">Batal</button>
+            <button class="btn" id="btnResetSubmit" onclick="doResetPeserta()"
+                style="background:#dc2626;color:white;border:none;padding:10px 20px;border-radius:10px;font-weight:700;cursor:pointer">
+                🗑 Reset Data
+            </button>
+        </div>
     </div>
 </div>
 
@@ -1053,8 +1156,8 @@ function allInitTable(rows) {
     document.getElementById('allContainer').innerHTML = `
         <table id="allDataTable" class="display nowrap" style="width:100%">
             <thead><tr>
-                <th>ID</th><th>Token</th><th>Biodata</th><th>Skor</th>
-                <th>⏱ Timer</th><th>Skor 1</th><th>Skor 2</th><th>Tgl Tes</th>
+                <th>ID</th><th>Token</th><th>Biodata</th><th>Skor (x05)</th>
+                <th>⏱ Timer</th><th>Skor (x06)</th><th>Skor (x07)</th><th>Tgl Tes</th>
             </tr></thead><tbody></tbody>
         </table>`;
     allTable = $('#allDataTable').DataTable({
@@ -1216,7 +1319,6 @@ function todayUpdateFromCache() {
     document.getElementById('todayLastUpdate').textContent = '🕐 ' + nowTimeString();
 
     if (data.length === 0) {
-        // Jangan hapus tabel jika sudah ada isinya (mungkin cache belum update)
         if (!todayTable) {
             document.getElementById('todayContainer').innerHTML = `
                 <div class="empty-msg">
@@ -1233,13 +1335,18 @@ function todayUpdateFromCache() {
     const rows = data.map(row => {
         const idX   = String(row.id_x || '');
         const token = row.x_01 || '';
+        const pipe0 = row.x_02 ? row.x_02.split('|')[0] : '';
+        const nama  = pipe0 ? (pipe0.split(';')[0] || '') : '';
         let idLink  = idX;
         if (idX) {
             let url = 'https://psikogram.lidan.co.id/?id_x=' + encodeURIComponent(idX);
             if (token) url += '&x_01=' + encodeURIComponent(token);
             idLink = `<a href="${url}" target="_blank" style="color:#2563eb;font-weight:700;text-decoration:none">${idX}</a>`;
         }
+        const namaEsc = escHtml(nama);
+        const testUrl = token ? 'https://psikotest.lidan.co.id/?token=' + encodeURIComponent(token) : 'https://psikotest.lidan.co.id/';
         return {
+            chk:  `<input type="checkbox" class="row-checkbox" data-idx="${idX}" data-nama="${namaEsc}" onchange="onRowCheck()">`,
             id_x: idLink,
             x_01: makeTruncate(token),
             x_02: makeTruncate(row.x_02),
@@ -1247,7 +1354,12 @@ function todayUpdateFromCache() {
             x_04: renderTimer(row.id_x, row.x_04 || ''),
             x_06: `<span class="formatted-value">${formatPipes(row.x_06)}</span>`,
             x_07: `<span class="formatted-value">${formatPipes(row.x_07)}</span>`,
-            tgl:  `<span style="font-size:12px;color:var(--muted)">${getDateFromX02(row.x_02)}</span>`
+            tgl:  `<span style="font-size:12px;color:var(--muted)">${getDateFromX02(row.x_02)}</span>`,
+            del:  `<div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">
+                     <a href="${testUrl}" target="_blank" class="btn-goto-test" title="Buka halaman tes peserta ini">🔗</a>
+                     <button class="btn-copy-url" onclick="copyRowUrl(this,'${escHtml(testUrl)}')" title="Copy URL tes peserta">📋</button>
+                     <button class="btn-del-peserta" onclick="confirmResetPeserta('${idX}','${namaEsc}')">🗑</button>
+                   </div>`
         };
     });
 
@@ -1267,13 +1379,15 @@ function todayInitTable(rows) {
     document.getElementById('todayContainer').innerHTML = `
         <table id="todayDataTable" class="display nowrap" style="width:100%">
             <thead><tr>
-                <th>ID</th><th>Token</th><th>Biodata</th><th>Skor</th>
-                <th>⏱ Timer</th><th>Skor 1</th><th>Skor 2</th><th>Tgl Tes</th>
+                <th><input type="checkbox" id="selectAllToday" onclick="toggleSelectAll(this)" title="Pilih semua"></th>
+                <th>ID</th><th>Token</th><th>Biodata</th><th>Skor (x05)</th>
+                <th>⏱ Timer</th><th>Skor (x06)</th><th>Skor (x07)</th><th>Tgl Tes</th><th>Aksi</th>
             </tr></thead><tbody></tbody>
         </table>`;
     todayTable = $('#todayDataTable').DataTable({
         data: rows,
         columns: [
+            { data:'chk',   orderable:false, width:'30px' },
             { data:'id_x',  orderable:true },
             { data:'x_01' },
             { data:'x_02' },
@@ -1281,11 +1395,12 @@ function todayInitTable(rows) {
             { data:'x_04', orderable:false },
             { data:'x_06' },
             { data:'x_07' },
-            { data:'tgl',  orderable:false }
+            { data:'tgl',  orderable:false },
+            { data:'del',  orderable:false }
         ],
         pageLength: 25,
         lengthMenu: [[10,25,50,100,-1],[10,25,50,100,'Semua']],
-        order: [[0,'desc']],
+        order: [[1,'desc']],
         language: {
             search:'🔍', searchPlaceholder:'Cari...',
             lengthMenu:'Tampilkan _MENU_',
@@ -1296,6 +1411,130 @@ function todayInitTable(rows) {
         },
         scrollX: true
     });
+}
+
+/* ── Copy URL halaman tes ── */
+function copyTestUrl(btn) {
+    navigator.clipboard.writeText('https://psikotest.lidan.co.id/').then(() => {
+        const orig = btn.textContent;
+        btn.textContent = '✅ Copied!';
+        setTimeout(() => btn.textContent = orig, 1500);
+    });
+}
+function copyRowUrl(btn, url) {
+    navigator.clipboard.writeText(url).then(() => {
+        btn.classList.add('copied');
+        btn.textContent = '✅';
+        setTimeout(() => { btn.classList.remove('copied'); btn.textContent = '📋'; }, 1500);
+    });
+}
+
+/* ── Checkbox & bulk action ── */
+function onRowCheck() {
+    const checked = document.querySelectorAll('#todayDataTable .row-checkbox:checked');
+    const bar = document.getElementById('bulkActionBar');
+    const allCb = document.getElementById('selectAllToday');
+    const total = document.querySelectorAll('#todayDataTable .row-checkbox').length;
+    document.getElementById('bulkSelectedCount').textContent = checked.length + ' dipilih';
+    bar.classList.toggle('visible', checked.length > 0);
+    if (allCb) allCb.indeterminate = checked.length > 0 && checked.length < total;
+    if (allCb) allCb.checked = checked.length === total && total > 0;
+}
+
+function toggleSelectAll(masterCb) {
+    document.querySelectorAll('#todayDataTable .row-checkbox').forEach(cb => {
+        cb.checked = masterCb.checked;
+    });
+    onRowCheck();
+}
+
+function clearAllChecks() {
+    document.querySelectorAll('#todayDataTable .row-checkbox').forEach(cb => cb.checked = false);
+    const allCb = document.getElementById('selectAllToday');
+    if (allCb) { allCb.checked = false; allCb.indeterminate = false; }
+    onRowCheck();
+}
+
+function bulkResetSelected() {
+    const checked = document.querySelectorAll('#todayDataTable .row-checkbox:checked');
+    if (!checked.length) return;
+    const items = Array.from(checked).map(cb => ({ idX: cb.dataset.idx, nama: cb.dataset.nama }));
+    // Buka modal bulk
+    _resetBulkItems = items;
+    _resetIdX  = null;
+    _resetNama = null;
+    const code = Math.floor(1000 + Math.random() * 9000).toString();
+    _resetConfirmCode = code;
+    document.getElementById('resetCodeDisplay').textContent = code;
+    document.getElementById('resetCodeInput').value = '';
+    document.getElementById('resetErrMsg').textContent = '';
+    document.getElementById('btnResetSubmit').disabled = false;
+    document.getElementById('btnResetSubmit').textContent = '🗑 Reset Data';
+    // Tampilkan preview nama
+    const preview = items.map(i => '• ' + (i.nama || '(tanpa nama)')).join('\n');
+    document.getElementById('resetListPreview').textContent = preview;
+    document.getElementById('resetListPreview').style.display = '';
+    document.getElementById('resetModalTitle').textContent = `⚠️ Reset ${items.length} Peserta`;
+    openModal('modalResetPeserta');
+}
+
+/* ── Reset satu peserta ── */
+let _resetIdX  = null;
+let _resetNama = null;
+let _resetBulkItems = null;
+let _resetConfirmCode = '';
+
+function confirmResetPeserta(idX, nama) {
+    _resetIdX   = idX;
+    _resetNama  = nama;
+    _resetBulkItems = null;
+    const code  = Math.floor(1000 + Math.random() * 9000).toString();
+    _resetConfirmCode = code;
+    document.getElementById('resetCodeDisplay').textContent = code;
+    document.getElementById('resetCodeInput').value = '';
+    document.getElementById('resetErrMsg').textContent = '';
+    document.getElementById('btnResetSubmit').disabled = false;
+    document.getElementById('btnResetSubmit').textContent = '🗑 Reset Data';
+    document.getElementById('resetListPreview').textContent = '• ' + (nama || '(tanpa nama)');
+    document.getElementById('resetListPreview').style.display = '';
+    document.getElementById('resetModalTitle').textContent = '⚠️ Reset Data Peserta';
+    openModal('modalResetPeserta');
+}
+
+async function doResetPeserta() {
+    const typed = document.getElementById('resetCodeInput').value.trim();
+    const errEl = document.getElementById('resetErrMsg');
+    if (typed !== _resetConfirmCode) {
+        errEl.textContent = '❌ Kode salah, coba lagi.';
+        document.getElementById('resetCodeInput').focus();
+        return;
+    }
+    errEl.textContent = '';
+    const btn = document.getElementById('btnResetSubmit');
+    btn.disabled = true;
+    btn.textContent = '⏳ Mereset...';
+
+    const tbl   = document.getElementById('todayTableInput').value.trim() || 'nilai1_json';
+    const items = _resetBulkItems || [{ idX: _resetIdX }];
+    const emptyData = { x_02:'', x_04:'', x_05:'', x_06:'', x_07:'', x_08:'' };
+
+    try {
+        await Promise.all(items.map(item =>
+            fetch(`${API_INSERT}?table=${tbl}&id_x=${item.idX}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'X-Custom-Auth': AUTH_KEY },
+                body: JSON.stringify(emptyData)
+            })
+        ));
+        closeModal('modalResetPeserta');
+        clearAllChecks();
+        allLastHash = null;
+        await allUpdate();
+    } catch(e) {
+        errEl.textContent = '⚠ Gagal: ' + e.message;
+        btn.disabled = false;
+        btn.textContent = '🗑 Reset Data';
+    }
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -1373,6 +1612,9 @@ async function doGenerateToken() {
    INIT
 ══════════════════════════════════════════════════════════════════ */
 document.getElementById('todayDateInput').value = todayString();
+// Tampilkan tab Hari Ini sebagai default aktif
+document.getElementById('pageToday').classList.add('active');
+// Mulai fetch data (shared cache — semua tab ikut terupdate)
 allLoadTable();
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
