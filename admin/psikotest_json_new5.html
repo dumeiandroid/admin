@@ -242,10 +242,6 @@ body {
 .dataTables_wrapper { overflow-x: auto; width: 100%; }
 table.dataTable { width: 100% !important; table-layout: auto; }
 table.dataTable thead th, table.dataTable tbody td { white-space: nowrap; }
-/* Kolom Skor, Skor 1, Skor 2 boleh wrap */
-table.dataTable tbody td:nth-child(4),
-table.dataTable tbody td:nth-child(6),
-table.dataTable tbody td:nth-child(7) { white-space: normal; vertical-align: top; }
 
 /* ── DATATABLES custom ── */
 table.dataTable { width: 100% !important; border-collapse: collapse; font-size: 13px; }
@@ -1083,7 +1079,7 @@ function renderJsonField(raw) {
             `<span style="font-size:11px;background:#f1f5f9;border-radius:4px;padding:1px 6px;margin:1px;display:inline-block">${escHtml(k)}</span>`
         ).join(' ');
         const keyOnly = entries.map(([k]) => k).join(', ');
-        return `<div title="${escHtml(keyOnly)}" style="max-width:180px;white-space:normal;word-break:break-word;cursor:default;line-height:1.6">${items}</div>`;
+        return `<div title="${escHtml(keyOnly)}" style="max-width:180px;overflow:hidden;white-space:nowrap;cursor:default">${items}</div>`;
     } catch(e) {
         // Jika bukan JSON, coba potong sebelum titik dua pertama
         const parts = raw.split(':');
