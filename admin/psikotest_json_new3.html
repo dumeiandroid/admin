@@ -310,54 +310,6 @@ table.dataTable { min-width: 500px; }
 .log-ok  { color: #16a34a; margin: 2px 0; }
 .log-err { color: #dc2626; margin: 2px 0; }
 
-/* ── PAKET SELECTOR di modal token ── */
-.paket-selector-label {
-    font-size: 12px; font-weight: 600; color: var(--muted);
-    text-transform: uppercase; letter-spacing: 0.05em;
-    margin-bottom: 8px;
-}
-.paket-selector-grid {
-    display: flex; flex-wrap: wrap; gap: 7px;
-    margin-bottom: 16px;
-    max-height: 160px; overflow-y: auto;
-    padding: 2px;
-}
-.paket-btn {
-    display: flex; flex-direction: column; align-items: flex-start;
-    padding: 7px 12px;
-    border: 2px solid var(--border); border-radius: 10px;
-    background: #f8fafc; cursor: pointer;
-    transition: all 0.15s; font-family: inherit;
-    min-width: 110px; flex: 1 1 110px; max-width: 180px;
-}
-.paket-btn:hover { border-color: var(--primary); background: #eff6ff; }
-.paket-btn.selected {
-    border-color: var(--primary); background: var(--primary);
-    color: white;
-}
-.paket-btn .pb-id {
-    font-size: 10px; font-weight: 700; letter-spacing: 0.04em;
-    opacity: 0.65; margin-bottom: 2px;
-    font-family: 'Courier New', monospace;
-}
-.paket-btn.selected .pb-id { opacity: 0.8; color: rgba(255,255,255,0.85); }
-.paket-btn .pb-nama {
-    font-size: 12px; font-weight: 600; line-height: 1.3;
-}
-.paket-none-btn {
-    padding: 7px 14px; border: 2px dashed var(--border); border-radius: 10px;
-    background: white; cursor: pointer; font-size: 12px; color: var(--muted);
-    font-family: inherit; transition: all 0.15s; font-weight: 500;
-}
-.paket-none-btn:hover { border-color: var(--muted); color: var(--text); }
-.paket-none-btn.selected { border-color: var(--muted); background: #f1f5f9; color: var(--text); font-weight: 600; }
-.paket-preview {
-    font-size: 11px; color: var(--muted); margin-bottom: 14px;
-    background: #f8fafc; border-radius: 7px; padding: 7px 12px;
-    font-family: 'Courier New', monospace; border: 1px solid var(--border);
-}
-.paket-preview span { color: var(--primary); font-weight: 700; }
-
 /* ── QR MODAL ── */
 .qr-modal-box {
     background: white; border-radius: 20px; padding: 32px 28px;
@@ -794,16 +746,6 @@ table.dataTable { min-width: 500px; }
         <button class="modal-close" onclick="closeModal('modalToken')">×</button>
         <h2>🔑 Tambah Token</h2>
         <p class="sub">Generate token acak (huruf+angka) unik ke tabel <strong id="modalTokenTableLabel">nilai1</strong></p>
-
-        <!-- Pilih Paket -->
-        <div class="paket-selector-label">Pilih Paket Tes</div>
-        <div class="paket-selector-grid" id="paketSelectorGrid">
-            <div style="font-size:12px;color:var(--muted)">⏳ Memuat paket...</div>
-        </div>
-        <div class="paket-preview" id="paketPreview">
-            Format token: <span id="paketPreviewText">tokenacak</span>
-        </div>
-
         <div class="form-group">
             <label>Jumlah Token</label>
             <input type="number" id="modalTokenJumlah" min="1" max="500" value="1" placeholder="Contoh: 10">
@@ -1193,7 +1135,7 @@ async function allFetch() {
 }
 
 function allLoadTable() {
-    allTableName = document.getElementById('allTableInput').value.trim() || 'nilai1';
+    allTableName = document.getElementById('allTableInput').value.trim() || 'nilai1_json';
     // sync tabel nama ke tab lain
     document.getElementById('emptyTableInput').value = allTableName;
     document.getElementById('todayTableInput').value  = allTableName;
@@ -1234,15 +1176,25 @@ async function allUpdate() {
         const rows = data.map(row => {
             const idX   = String(row.id_x || '');
             const token = row.x_01 || '';
+            let nama = '';
+            try { nama = JSON.parse(row.x_02 || '{}').nama || ''; } catch(e) {}
+            const namaEsc = escHtml(nama);
             let idLink  = idX;
             if (idX) {
-                let url = 'https://psikogram.lidan.co.id/index_json_new?id_x=' + encodeURIComponent(idX);
+                let url = 'https://psikogram.lidan.co.id/index_json?id_x=' + encodeURIComponent(idX);
                 if (token) url += '&x_01=' + encodeURIComponent(token);
                 idLink = `<a href="${url}" target="_blank" style="color:#2563eb;font-weight:700;text-decoration:none">${idX}</a>`;
             }
+            const testUrl = token ? 'https://psikotest.lidan.co.id/?token=' + encodeURIComponent(token) : 'https://psikotest.lidan.co.id/';
             const dateStr = getDateFromX02(row.x_02);
             const isToday = dateStr === todayString();
+            const aksi = '<div style="display:flex;gap:4px;align-items:center;flex-wrap:nowrap">'
+                + '<a href="' + testUrl + '" target="_blank" class="btn-goto-test" title="Buka tes">\uD83D\uDD17</a>'
+                + '<button class="btn-copy-url" onclick="copyRowUrl(this,\'' + testUrl + '\')" title="Copy URL">\uD83D\uDCCB</button>'
+                + '<button class="btn-del-peserta" onclick="confirmResetPeserta(\'' + idX + '\',\'' + namaEsc + '\')" title="Reset">\uD83D\uDDD1</button>'
+                + '</div>';
             return {
+                chk:  '<input type="checkbox" class="row-checkbox" data-idx="' + idX + '" data-nama="' + namaEsc + '" onchange="onAllCheck()">',
                 id_x:  idLink,
                 x_01:  makeTruncate(token),
                 x_02:  renderJsonBio(row.x_02),
@@ -1252,8 +1204,9 @@ async function allUpdate() {
                 x_07:  renderJsonField(row.x_07),
                 x_09:  renderViolation(row.x_09 || ''),
                 tgl:   isToday
-                    ? `<span class="badge badge-active">📅 Hari Ini</span>`
-                    : (dateStr ? `<span style="font-size:12px;color:var(--muted)">${dateStr}</span>` : '')
+                    ? '<span class="badge badge-active">\uD83D\uDCC5 Hari Ini</span>'
+                    : (dateStr ? '<span style="font-size:12px;color:var(--muted)">' + dateStr + '</span>' : ''),
+                aksi:  aksi
             };
         });
 
@@ -1269,15 +1222,22 @@ async function allUpdate() {
 
 function allInitTable(rows) {
     document.getElementById('allContainer').innerHTML = `
+        <div id="allBulkBar" style="display:none;align-items:center;gap:10px;flex-wrap:wrap;background:#fff7ed;border:1.5px solid #fed7aa;border-radius:10px;padding:10px 14px;margin-bottom:12px">
+            <span id="allBulkCount" style="font-weight:700;color:#ea580c;font-size:13px">0 dipilih</span>
+            <button class="btn btn-sm" onclick="allBulkReset()" style="background:#dc2626;color:white;border:none;border-radius:8px;padding:6px 14px;font-weight:700;cursor:pointer">🗑 Reset yang Dipilih</button>
+            <button class="btn btn-outline btn-sm" onclick="allClearChecks()">✕ Batal Pilih</button>
+        </div>
         <table id="allDataTable" class="display nowrap" style="width:100%">
             <thead><tr>
+                <th><input type="checkbox" id="selectAllData" onclick="allToggleSelect(this)" title="Pilih semua"></th>
                 <th>ID</th><th>Token</th><th>Biodata</th><th>Skor</th>
-                <th>⏱ Timer</th><th>Skor 1</th><th>Skor 2</th><th>🔄 Tab</th><th>Tgl Tes</th>
+                <th>⏱ Timer</th><th>Skor 1</th><th>Skor 2</th><th>🔄 Tab</th><th>Tgl Tes</th><th>Aksi</th>
             </tr></thead><tbody></tbody>
         </table>`;
     allTable = $('#allDataTable').DataTable({
         data: rows,
         columns: [
+            { data:'chk',  orderable:false, width:'30px' },
             { data:'id_x',  orderable:true },
             { data:'x_01' },
             { data:'x_02' },
@@ -1286,11 +1246,12 @@ function allInitTable(rows) {
             { data:'x_06' },
             { data:'x_07' },
             { data:'x_09', title:'🔄 Tab', orderable:false, defaultContent:'—' },
-            { data:'tgl',  orderable:false }
+            { data:'tgl',  orderable:false },
+            { data:'aksi', orderable:false, width:'90px' }
         ],
         pageLength: 25,
         lengthMenu: [[10,25,50,100,-1],[10,25,50,100,'Semua']],
-        order: [[0,'desc']],
+        order: [[1,'desc']],
         language: {
             search:'🔍', searchPlaceholder:'Cari...',
             lengthMenu:'Tampilkan _MENU_',
@@ -1459,7 +1420,7 @@ function todayUpdateFromCache() {
         try { nama = JSON.parse(row.x_02 || '{}').nama || ''; } catch(e) {}
         let idLink  = idX;
         if (idX) {
-            let url = 'https://psikogram.lidan.co.id/index_json_new?id_x=' + encodeURIComponent(idX);
+            let url = 'https://psikogram.lidan.co.id/?id_x=' + encodeURIComponent(idX);
             if (token) url += '&x_01=' + encodeURIComponent(token);
             idLink = `<a href="${url}" target="_blank" style="color:#2563eb;font-weight:700;text-decoration:none">${idX}</a>`;
         }
@@ -1527,6 +1488,47 @@ function todayInitTable(rows) {
         },
         scrollX: true
     });
+}
+
+/* ── Checkbox & bulk action — Semua Data ── */
+function onAllCheck() {
+    const checked = document.querySelectorAll('#allDataTable .row-checkbox:checked');
+    const bar = document.getElementById('allBulkBar');
+    const allCb = document.getElementById('selectAllData');
+    const total = document.querySelectorAll('#allDataTable .row-checkbox').length;
+    document.getElementById('allBulkCount').textContent = checked.length + ' dipilih';
+    if (bar) bar.style.display = checked.length > 0 ? 'flex' : 'none';
+    if (allCb) allCb.indeterminate = checked.length > 0 && checked.length < total;
+    if (allCb) allCb.checked = checked.length === total && total > 0;
+}
+function allToggleSelect(masterCb) {
+    document.querySelectorAll('#allDataTable .row-checkbox').forEach(cb => { cb.checked = masterCb.checked; });
+    onAllCheck();
+}
+function allClearChecks() {
+    document.querySelectorAll('#allDataTable .row-checkbox').forEach(cb => cb.checked = false);
+    const allCb = document.getElementById('selectAllData');
+    if (allCb) { allCb.checked = false; allCb.indeterminate = false; }
+    onAllCheck();
+}
+function allBulkReset() {
+    const checked = document.querySelectorAll('#allDataTable .row-checkbox:checked');
+    if (!checked.length) return;
+    const items = Array.from(checked).map(cb => ({ idX: cb.dataset.idx, nama: cb.dataset.nama }));
+    _resetBulkItems = items;
+    _resetIdX = null; _resetNama = null;
+    const code = Math.floor(1000 + Math.random() * 9000).toString();
+    _resetConfirmCode = code;
+    document.getElementById('resetCodeDisplay').textContent = code;
+    document.getElementById('resetCodeInput').value = '';
+    document.getElementById('resetErrMsg').textContent = '';
+    document.getElementById('btnResetSubmit').disabled = false;
+    document.getElementById('btnResetSubmit').textContent = '\uD83D\uDDD1 Reset Data';
+    const preview = items.map(i => '• ' + (i.nama || '(tanpa nama)')).join('\n');
+    document.getElementById('resetListPreview').textContent = preview;
+    document.getElementById('resetListPreview').style.display = '';
+    document.getElementById('resetModalTitle').textContent = '\u26A0\uFE0F Reset ' + items.length + ' Peserta';
+    openModal('modalResetPeserta');
 }
 
 /* ── Copy URL halaman tes ── */
@@ -1656,72 +1658,6 @@ async function doResetPeserta() {
 /* ══════════════════════════════════════════════════════════════════
    TOKEN GENERATOR
 ══════════════════════════════════════════════════════════════════ */
-
-/* ── State paket ── */
-let paketData       = [];      // semua row dari tabel alat_tes
-let selectedPaketId = null;    // x_01 paket yang dipilih (null = tanpa paket)
-const TBL_PAKET_TOKEN = 'alat_tes';
-
-async function loadPaketList() {
-    try {
-        const res  = await fetch(`${API_BASE}?table=${TBL_PAKET_TOKEN}`, { headers: { 'X-Custom-Auth': AUTH_KEY } });
-        const data = await res.json();
-        paketData  = (data.success && data.data) ? data.data : [];
-    } catch(e) {
-        paketData = [];
-    }
-    renderPaketSelector();
-}
-
-function renderPaketSelector() {
-    const grid = document.getElementById('paketSelectorGrid');
-    if (!grid) return;
-    grid.innerHTML = '';
-
-    // Tombol "Tanpa Paket"
-    const noneBtn = document.createElement('button');
-    noneBtn.className = 'paket-none-btn' + (selectedPaketId === null ? ' selected' : '');
-    noneBtn.textContent = '— Tanpa Paket';
-    noneBtn.onclick = () => selectPaket(null);
-    grid.appendChild(noneBtn);
-
-    // Tombol per paket
-    for (const p of paketData) {
-        const idX  = String(p.id_x || '').trim();   // id_x = prefix token
-        const nama = (p.x_01 || '').trim();          // x_01 = nama paket (tampil)
-        const ket  = (p.x_03 || '').trim();          // x_03 = keterangan
-        if (!idX) continue;
-        const btn = document.createElement('button');
-        btn.className = 'paket-btn' + (selectedPaketId === idX ? ' selected' : '');
-        btn.innerHTML = `<span class="pb-id">id: ${escHtml(idX)}</span><span class="pb-nama">${escHtml(nama || ket || idX)}</span>`;
-        btn.onclick   = () => selectPaket(idX);
-        grid.appendChild(btn);
-    }
-
-    if (paketData.length === 0) {
-        const msg = document.createElement('div');
-        msg.style.cssText = 'font-size:12px;color:var(--muted);padding:4px 0';
-        msg.textContent = 'Tidak ada paket tersedia.';
-        grid.appendChild(msg);
-    }
-    updatePaketPreview();
-}
-
-function selectPaket(id) {
-    selectedPaketId = id;
-    renderPaketSelector();
-}
-
-function updatePaketPreview() {
-    const el = document.getElementById('paketPreviewText');
-    if (!el) return;
-    if (selectedPaketId) {
-        el.textContent = selectedPaketId + '-tokenacak';
-    } else {
-        el.textContent = 'tokenacak';
-    }
-}
-
 function openTokenModal() {
     const tbl = document.getElementById('allTableInput').value.trim() || 'nilai1';
     document.getElementById('modalTokenTableLabel').textContent = tbl;
@@ -1730,11 +1666,6 @@ function openTokenModal() {
     document.getElementById('tokenLog').innerHTML = '';
     document.getElementById('btnTokenSubmit').disabled = false;
     document.getElementById('btnTokenSubmit').textContent = '⚡ Generate & Simpan';
-    // Reset pilihan paket & load fresh
-    selectedPaketId = null;
-    document.getElementById('paketSelectorGrid').innerHTML = '<div style="font-size:12px;color:var(--muted)">⏳ Memuat paket...</div>';
-    updatePaketPreview();
-    loadPaketList();
     openModal('modalToken');
 }
 
@@ -1763,13 +1694,8 @@ async function tokenExists(token, tbl) {
 }
 
 async function genUniqueToken(tbl) {
-    const suffix = randStr(TOKEN_LEN);
-    const token  = selectedPaketId ? (selectedPaketId + '-' + suffix) : suffix;
-    // Cek keunikan, retry jika sudah ada
-    for (let i=0; i<10 && await tokenExists(token, tbl); i++) {
-        const s2 = randStr(TOKEN_LEN + 2);
-        return selectedPaketId ? (selectedPaketId + '-' + s2) : s2;
-    }
+    let token = randStr(TOKEN_LEN);
+    for (let i=0; i<10 && await tokenExists(token, tbl); i++) token = randStr(TOKEN_LEN+2);
     return token;
 }
 
@@ -1780,8 +1706,7 @@ async function doGenerateToken() {
     const btn = document.getElementById('btnTokenSubmit');
     btn.disabled = true; btn.textContent = '⏳ Memproses...';
     document.getElementById('tokenLog').innerHTML = '';
-    const prefix = selectedPaketId ? `[Paket: ${selectedPaketId}] ` : '[Tanpa Paket] ';
-    addLog('ok', `${prefix}Mulai generate ${jumlah} token ke tabel "${tbl}"...`);
+    addLog('ok', `Mulai generate ${jumlah} token ke tabel "${tbl}"...`);
     let ok=0, fail=0;
     for (let i=1; i<=jumlah; i++) {
         try {
@@ -1805,8 +1730,24 @@ async function doGenerateToken() {
    INIT
 ══════════════════════════════════════════════════════════════════ */
 document.getElementById('todayDateInput').value = todayString();
+
+/* ── Baca parameter ?p= dari URL untuk set nama tabel ── */
+(function() {
+    const params = new URLSearchParams(window.location.search);
+    const p = params.get('p');
+    if (p && p.trim()) {
+        const tbl = p.trim();
+        document.getElementById('allTableInput').value   = tbl;
+        document.getElementById('emptyTableInput').value = tbl;
+        document.getElementById('todayTableInput').value = tbl;
+        document.getElementById('printTableInput').value = tbl;
+    }
+})();
+
 // Tampilkan tab Hari Ini sebagai default aktif
 document.getElementById('pageToday').classList.add('active');
+// Sinkronkan allTableName dengan nilai input (yang mungkin sudah di-set dari ?p=)
+allTableName = document.getElementById('allTableInput').value.trim() || 'nilai1_json';
 // Mulai fetch data (shared cache — semua tab ikut terupdate)
 allLoadTable();
 </script>

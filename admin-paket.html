@@ -1,0 +1,1740 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Paket Tes</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg:       #0f1117;
+    --surface:  #1a1d27;
+    --surface2: #22263a;
+    --border:   #2e3350;
+    --accent:   #4f8ef7;
+    --accent2:  #7c5cfc;
+    --success:  #22c55e;
+    --danger:   #f43f5e;
+    --warn:     #f59e0b;
+    --text:     #e8eaf0;
+    --muted:    #6b7280;
+    --mono:     'IBM Plex Mono', monospace;
+    --sans:     'IBM Plex Sans', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── SCREEN SYSTEM ── */
+  .screen { display: none; }
+  .screen.active { display: flex; }
+
+  /* ── LOGIN ── */
+  #screenLogin {
+    min-height: 100vh;
+    align-items: center;
+    justify-content: center;
+    background:
+      radial-gradient(ellipse 80% 60% at 20% 40%, rgba(79,142,247,0.12) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 80% at 80% 70%, rgba(124,92,252,0.10) 0%, transparent 60%),
+      var(--bg);
+  }
+
+  .login-box {
+    width: 100%;
+    max-width: 380px;
+    padding: 40px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+  }
+
+  .login-logo {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .login-title {
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 32px;
+    color: var(--text);
+  }
+
+  .field { margin-bottom: 16px; }
+  .field label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+    font-family: var(--mono);
+  }
+  .field input {
+    width: 100%;
+    padding: 11px 14px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 14px;
+    outline: none;
+    transition: border-color .2s;
+  }
+  .field input:focus { border-color: var(--accent); }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #3a7ae8; }
+  .btn-success { background: var(--success); color: #fff; }
+  .btn-success:hover { filter: brightness(1.1); }
+  .btn-danger  { background: var(--danger); color: #fff; }
+  .btn-danger:hover  { filter: brightness(1.1); }
+  .btn-ghost {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover { color: var(--text); border-color: var(--text); }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .btn-full { width: 100%; justify-content: center; }
+
+  .err-msg {
+    color: var(--danger);
+    font-size: 13px;
+    margin-top: 10px;
+    font-family: var(--mono);
+    min-height: 18px;
+  }
+
+  /* ── MAIN APP ── */
+  #screenApp {
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  .app-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 28px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .app-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .app-brand {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  .app-sep { color: var(--border); }
+  .app-title { font-size: 14px; color: var(--muted); }
+  .logged-as {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    margin-right: 12px;
+  }
+
+  /* CONTENT — layout vertikal penuh */
+  .app-content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    width: 100%;
+    padding: 14px 20px;
+    gap: 12px;
+    /* Tinggi pas viewport minus header */
+    height: calc(100vh - 53px);
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+
+  /* ── BARIS 1: PAKET TES (grid 6 kolom horizontal) ── */
+  .panel-list {
+    width: 100%;
+    flex-shrink: 0;
+  }
+
+  .panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .panel-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .paket-list {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 8px;
+  }
+
+  .paket-item {
+    padding: 10px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all .15s;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    min-width: 0;
+  }
+  .paket-item:hover { border-color: var(--accent); background: var(--surface2); }
+  .paket-item.active {
+    border-color: var(--accent);
+    background: rgba(79,142,247,0.1);
+  }
+  .paket-id-badge {
+    font-family: var(--mono);
+    font-size: 9px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 1px 5px;
+    border-radius: 4px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-bottom: 2px;
+    display: inline-block;
+  }
+  .btn-delete-paket {
+    width: 24px; height: 24px;
+    border: 1px solid #fecdd3;
+    border-radius: 6px;
+    background: #fff1f2;
+    color: #e11d48;
+    font-size: 12px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.15s;
+    padding: 0;
+  }
+  .btn-delete-paket:hover { background: #e11d48; color: white; border-color: #e11d48; }
+  .paket-item-name {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .paket-item-ket {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .paket-badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 2px 6px;
+    border-radius: 99px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .btn-dashboard-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 11px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent);
+    background: rgba(79,142,247,0.08);
+    text-decoration: none;
+    transition: all .15s;
+  }
+  .btn-dashboard-link:hover {
+    background: rgba(79,142,247,0.2);
+    border-color: var(--accent);
+  }
+
+  .dnd-link-btn {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--muted);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all .12s;
+    padding: 0;
+    text-decoration: none;
+    font-size: 10px;
+  }
+  .dnd-link-btn:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .dnd-link-btn.who-link:hover {
+    background: var(--accent2);
+    border-color: var(--accent2);
+    color: #fff;
+  }
+
+  .paket-copy-btn {
+    width: 24px;
+    height: 24px;
+    border-radius: 5px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all .15s;
+    padding: 0;
+    margin-left: 4px;
+  }
+  .paket-copy-btn:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+
+  .empty-list {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 16px;
+    color: var(--muted);
+    font-size: 13px;
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+  }
+
+  /* ── BARIS 2: INFO PAKET (full width, compact) ── */
+  .panel-editor {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    gap: 10px;
+    min-height: 0;
+  }
+
+  .editor-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 18px;
+  }
+
+  .editor-card.card-subtes {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .editor-card-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .form-row { display: flex; gap: 16px; }
+  .form-group { flex: 1; }
+  .form-group label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+    font-family: var(--mono);
+  }
+  .form-group input, .form-group textarea {
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    outline: none;
+    transition: border-color .2s;
+  }
+  .form-group input:focus, .form-group textarea:focus { border-color: var(--accent); }
+  .form-group textarea { resize: vertical; min-height: 70px; }
+
+  /* ── DRAG & DROP SUBTES ── */
+  .dnd-wrapper {
+    display: flex;
+    gap: 16px;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .dnd-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .dnd-col-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .dnd-col-count {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 99px;
+    padding: 1px 8px;
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  .dnd-zone {
+    flex: 1;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    transition: border-color .2s, background .2s;
+    overflow-y: auto;
+  }
+  .dnd-zone.drag-over {
+    border-color: var(--accent);
+    background: rgba(79,142,247,0.05);
+  }
+
+  .dnd-item {
+    padding: 9px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    cursor: grab;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all .12s;
+    font-size: 13px;
+  }
+  .dnd-item:hover {
+    border-color: var(--accent);
+    background: var(--surface2);
+  }
+  .dnd-item.dragging {
+    opacity: .4;
+    cursor: grabbing;
+  }
+  .dnd-item.drag-placeholder {
+    border: 2px dashed var(--accent);
+    background: rgba(79,142,247,0.06);
+    opacity: .7;
+  }
+  .dnd-handle { color: var(--muted); font-size: 14px; flex-shrink: 0; }
+  .dnd-id {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    background: rgba(79,142,247,0.1);
+    padding: 2px 7px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+  .dnd-name { color: var(--text); font-size: 12px; flex: 1; }
+  .dnd-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    width: 20px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .dnd-move-btn {
+    width: 22px; height: 22px;
+    border-radius: 5px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--muted);
+    font-size: 13px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: all .12s;
+    line-height: 1;
+    padding: 0;
+  }
+  .dnd-move-btn:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .dnd-move-btn.to-left:hover {
+    background: var(--muted);
+    border-color: var(--muted);
+    color: #fff;
+  }
+
+  /* Manual input tambahan */
+  .manual-add-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .manual-add-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .manual-add-row input {
+    flex: 1;
+    padding: 8px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    outline: none;
+  }
+  .manual-add-row input:focus { border-color: var(--accent); }
+
+  /* Pemisah grup di zona tersedia */
+  .dnd-group-divider {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 4px 4px;
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    user-select: none;
+  }
+  .dnd-group-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* Zona tersedia: dua sub-panel berdampingan */
+  .avail-col { flex: 2; }
+
+  .avail-panels {
+    display: flex;
+    gap: 10px;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .avail-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .avail-panel-title {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 2px;
+  }
+
+  /* Search box di atas panel */
+  .search-box-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+  .search-icon {
+    position: absolute;
+    left: 8px;
+    color: var(--muted);
+    font-size: 15px;
+    pointer-events: none;
+    line-height: 1;
+  }
+  .search-box {
+    width: 100%;
+    padding: 6px 28px 6px 26px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 11px;
+    outline: none;
+    transition: border-color .2s;
+  }
+  .search-box:focus { border-color: var(--accent); }
+  .search-box::placeholder { color: var(--muted); }
+  .search-clear {
+    position: absolute;
+    right: 6px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 15px;
+    cursor: pointer;
+    padding: 0 2px;
+    line-height: 1;
+    display: none;
+  }
+  .search-clear:hover { color: var(--text); }
+  .search-clear.visible { display: block; }
+  .avail-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 3px !important;
+    align-content: start;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  /* Item di grid compact — teks terpotong, tooltip saat hover */
+  .avail-grid .dnd-item {
+    padding: 5px 7px;
+    gap: 5px;
+    overflow: hidden;
+    position: relative;
+  }
+  .avail-grid .dnd-name {
+    font-size: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+  .avail-grid .dnd-id {
+    font-size: 10px;
+    padding: 1px 4px;
+    flex-shrink: 0;
+    max-width: 58px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .avail-grid .dnd-handle { display: none; }
+  .avail-grid .dnd-move-btn { flex-shrink: 0; width: 18px; height: 18px; font-size: 11px; }
+
+  /* Tooltip native via title — tambahan custom tooltip */
+  #dnd-tooltip {
+    position: fixed;
+    background: var(--surface2);
+    border: 1px solid var(--accent);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 5px 10px;
+    border-radius: 6px;
+    white-space: nowrap;
+    z-index: 9999;
+    pointer-events: none;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    display: none;
+  }
+
+  /* X02 preview */
+  .x02-preview {
+    margin-top: 12px;
+    padding: 10px 14px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    word-break: break-all;
+    min-height: 36px;
+  }
+  .x02-preview span { color: var(--accent); }
+
+  /* ACTION BAR */
+  .action-bar {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    justify-content: flex-end;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+  .action-msg {
+    flex: 1;
+    font-size: 13px;
+    font-family: var(--mono);
+  }
+  .action-msg.ok  { color: var(--success); }
+  .action-msg.err { color: var(--danger); }
+
+  /* LOADER */
+  .loader-overlay {
+    position: fixed; inset: 0;
+    background: rgba(15,17,23,.7);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 999;
+  }
+  .loader-overlay.hidden { display: none; }
+  .loader-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px 32px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 14px;
+  }
+  .spinner {
+    width: 22px; height: 22px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .6s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 24px; right: 24px;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-family: var(--mono);
+    z-index: 1000;
+    animation: slideUp .25s ease;
+    max-width: 320px;
+  }
+  .toast.ok  { background: var(--success); color: #fff; }
+  .toast.err { background: var(--danger);  color: #fff; }
+  @keyframes slideUp {
+    from { transform: translateY(16px); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+
+  /* CONFIRM DELETE */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.6);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 200;
+  }
+  .modal-overlay.hidden { display: none; }
+  .modal-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px 32px;
+    max-width: 360px;
+    width: 90%;
+  }
+  .modal-title { font-size: 16px; font-weight: 600; margin-bottom: 10px; }
+  .modal-desc { font-size: 13px; color: var(--muted); margin-bottom: 24px; line-height: 1.5; }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+  .placeholder-editor {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+    color: var(--muted);
+    font-size: 14px;
+    text-align: center;
+    padding: 20px;
+    line-height: 1.8;
+  }
+
+  @media (max-width: 900px) {
+    .app-content { padding: 10px; }
+    .paket-list { grid-template-columns: repeat(3, 1fr); }
+    .dnd-wrapper { flex-direction: column; }
+    .avail-panels { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══ SCREEN LOGIN ══ -->
+<div id="screenLogin" class="screen active">
+  <div class="login-box">
+    <div class="login-logo">Psikotest Admin</div>
+    <div class="login-title">Manajemen Paket Tes</div>
+    <div class="field">
+      <label>Username</label>
+      <input type="text" id="loginUser" placeholder="username" autocomplete="username">
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password"
+             onkeydown="if(event.key==='Enter') doLogin()">
+    </div>
+    <button class="btn btn-primary btn-full" onclick="doLogin()" id="btnLogin">Masuk</button>
+    <div class="err-msg" id="loginErr"></div>
+  </div>
+</div>
+
+<!-- ══ SCREEN APP ══ -->
+<div id="screenApp" class="screen">
+
+  <!-- Header -->
+  <div class="app-header">
+    <div class="app-header-left">
+      <span class="app-brand">Psikotest</span>
+      <span class="app-sep">›</span>
+      <span class="app-title">Manajemen Paket Tes</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <a href="https://admin.lidan.co.id/admin/psikotest_json_new.html" target="_blank" class="btn-dashboard-link">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Dashboard
+      </a>
+      <span class="logged-as" id="loggedAsLabel"></span>
+      <button class="btn btn-ghost btn-sm" onclick="doLogout()">Logout</button>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="app-content">
+
+    <!-- BARIS 1: List Paket (grid 6 kolom) -->
+    <div class="panel-list">
+      <div class="panel-head">
+        <span class="panel-label">Paket Tes</span>
+        <button class="btn btn-primary btn-sm" onclick="newPaket()">+ Baru</button>
+      </div>
+      <div id="paketList" class="paket-list">
+        <div class="empty-list">Memuat data...</div>
+      </div>
+    </div>
+
+    <!-- BARIS 2 & 3: Editor -->
+    <div class="panel-editor" id="panelEditor">
+      <div class="placeholder-editor" id="editorPlaceholder">
+        ↑ Pilih paket untuk diedit atau klik <strong>+ Baru</strong> untuk membuat paket baru
+      </div>
+
+      <!-- Form Editor (tersembunyi sampai ada paket dipilih) -->
+      <div id="editorForm" style="display:none; flex-direction:column; gap:10px; flex:1; min-height:0;">
+
+        <!-- Info Dasar -->
+        <div class="editor-card">
+          <div class="editor-card-title">📦 Info Paket</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Nama Paket (x_01)</label>
+              <input type="text" id="fNama" placeholder="misal: minat, psikotes_full, cfit_only">
+            </div>
+            <div class="form-group">
+              <label>Keterangan (x_03)</label>
+              <input type="text" id="fKet" placeholder="misal: Paket lengkap CFIT + EPPS + RMIB">
+            </div>
+          </div>
+        </div>
+
+        <!-- Drag & Drop Subtes -->
+        <div class="editor-card card-subtes">
+          <div class="editor-card-title">🧩 Susunan Subtes (x_02)</div>
+
+          <div class="dnd-wrapper">
+
+            <!-- Kolom kiri: TERSEDIA (Subtes + WHO berdampingan) -->
+            <div class="dnd-col avail-col">
+              <div class="dnd-col-title">
+                Tersedia
+                <span class="dnd-col-count" id="countAvail">0</span>
+              </div>
+              <!-- Dua sub-panel berdampingan -->
+              <div class="avail-panels">
+                <!-- Sub-panel Subtes -->
+                <div class="avail-panel">
+                  <div class="avail-panel-title">
+                    <span>📋 Subtes</span>
+                    <span class="dnd-col-count" id="countAvailSubtes">0</span>
+                  </div>
+                  <div class="search-box-wrap">
+                    <span class="search-icon">⌕</span>
+                    <input type="text" id="searchSubtes" class="search-box" placeholder="Cari subtes..." oninput="filterAvail()">
+                    <button class="search-clear" id="clearSubtes" onclick="clearSearch('searchSubtes')" title="Hapus">×</button>
+                  </div>
+                  <div class="dnd-zone avail-grid" id="zoneAvailSubtes"
+                       ondragover="onDragOver(event,'avail')"
+                       ondragleave="onDragLeave(event,'avail')"
+                       ondrop="onDrop(event,'avail')">
+                  </div>
+                </div>
+                <!-- Sub-panel WHO -->
+                <div class="avail-panel">
+                  <div class="avail-panel-title">
+                    <span>🗂 WHO</span>
+                    <span class="dnd-col-count" id="countAvailWho">0</span>
+                  </div>
+                  <div class="search-box-wrap">
+                    <span class="search-icon">⌕</span>
+                    <input type="text" id="searchWho" class="search-box" placeholder="Cari WHO..." oninput="filterAvail()">
+                    <button class="search-clear" id="clearWho" onclick="clearSearch('searchWho')" title="Hapus">×</button>
+                  </div>
+                  <div class="dnd-zone avail-grid" id="zoneAvailWho"
+                       ondragover="onDragOver(event,'avail')"
+                       ondragleave="onDragLeave(event,'avail')"
+                       ondrop="onDrop(event,'avail')">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tengah: panah -->
+            <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:0 4px">
+              <div style="color:var(--muted);font-size:22px">⇄</div>
+              <div style="font-size:10px;color:var(--muted);text-align:center;line-height:1.6">Drag ke<br>kanan<br>untuk pakai</div>
+            </div>
+
+            <!-- Kolom kanan: dipilih -->
+            <div class="dnd-col">
+              <div class="dnd-col-title">
+                Dipilih (urutan)
+                <span class="dnd-col-count" id="countPilih">0</span>
+              </div>
+              <div class="dnd-zone" id="zonePilih"
+                   ondragover="onDragOver(event,'pilih')"
+                   ondragleave="onDragLeave(event,'pilih')"
+                   ondrop="onDrop(event,'pilih')">
+              </div>
+            </div>
+          </div>
+
+          <!-- Input manual tambahan -->
+          <div class="manual-add-section">
+            <div class="manual-add-row">
+              <span class="dnd-id" style="background:rgba(79,142,247,0.1);color:var(--accent)">subtes:</span>
+              <input type="text" id="subtesKeyInput" placeholder="id subtes di luar list, misal: tkd5 atau deret6">
+              <button class="btn btn-ghost btn-sm" onclick="addSubtesKey()">+ Tambah Subtes</button>
+            </div>
+            <div class="manual-add-row">
+              <span class="dnd-id" style="background:rgba(124,92,252,0.15);color:var(--accent2)">who:</span>
+              <input type="text" id="whoKeyInput" placeholder="key WHO di luar list, misal: 23 atau 3b">
+              <button class="btn btn-ghost btn-sm" onclick="addWhoKey()">+ Tambah WHO</button>
+            </div>
+          </div>
+
+          <!-- Preview x_02 -->
+          <div class="x02-preview" id="x02Preview">—</div>
+        </div>
+
+        <!-- Action Bar -->
+        <div class="action-bar">
+          <span class="action-msg" id="actionMsg"></span>
+          <button class="btn btn-danger btn-sm" id="btnHapus" onclick="confirmHapus()">🗑 Hapus</button>
+          <button class="btn btn-success" id="btnSimpan" onclick="simpanPaket()">💾 Simpan</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Konfirmasi Hapus -->
+<div class="modal-overlay hidden" id="modalHapus">
+  <div class="modal-box">
+    <div class="modal-title">Hapus Paket?</div>
+    <div class="modal-desc" id="modalHapusDesc">—</div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Batal</button>
+      <button class="btn btn-danger" onclick="doHapus()">Ya, Hapus</button>
+    </div>
+  </div>
+</div>
+
+<!-- Loader -->
+<div class="loader-overlay hidden" id="loaderOverlay">
+  <div class="loader-box">
+    <div class="spinner"></div>
+    <span id="loaderText">Memuat...</span>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════
+   CONSTANTS
+══════════════════════════════════════════════════════════ */
+const API_READ   = 'https://lidan-co-id.pages.dev/api/contacts_filter_dinamis7';
+const API_WRITE  = 'https://lidan-co-id.pages.dev/api/contacts_filter_dinamis6';
+const AUTH_KEY   = 'admin';
+const TBL_ADMIN  = 'admins';
+const TBL_PAKET  = 'alat_tes';
+
+/* ══════════════════════════════════════════════════════════
+   DAFTAR SUBTES (sesuai file di folder)
+══════════════════════════════════════════════════════════ */
+const ALL_SUBTES = [
+  // APM
+  { id:'apm0',   label:'APM — Subtes 0',               group:'APM'   },
+  { id:'apm1',   label:'APM — Subtes 1',               group:'APM'   },
+  { id:'apm1a',  label:'APM — Subtes 1a',              group:'APM'   },
+  { id:'apm1b',  label:'APM — Subtes 1b',              group:'APM'   },
+  { id:'apm2',   label:'APM — Subtes 2',               group:'APM'   },
+  { id:'apm2a',  label:'APM — Subtes 2a',              group:'APM'   },
+  { id:'apm2b',  label:'APM — Subtes 2b',              group:'APM'   },
+  // CFIT
+  { id:'cfit0',  label:'Subtes 0 — CFIT',              group:'CFIT'  },
+  { id:'cfit1',  label:'Subtes 1 — CFIT',              group:'CFIT'  },
+  { id:'cfit2_a',label:'Subtes 2a — CFIT',             group:'CFIT'  },
+  { id:'cfit3',  label:'Subtes 3 — CFIT',              group:'CFIT'  },
+  { id:'cfit4',  label:'Subtes 4 — CFIT',              group:'CFIT'  },
+  // Kepribadian
+  { id:'epps',   label:'Tes Kepribadian — EPPS',       group:'Kepribadian' },
+  { id:'papi',   label:'Tes Kepribadian — PAPI',       group:'Kepribadian' },
+  // IST
+  { id:'ist0',   label:'Subtes 0 — IST',               group:'IST'   },
+  { id:'ist1',   label:'Subtes 1 — IST',               group:'IST'   },
+  { id:'ist2',   label:'Subtes 2 — IST',               group:'IST'   },
+  { id:'ist3',   label:'Subtes 3 — IST',               group:'IST'   },
+  { id:'ist4_a', label:'Subtes 4 — IST (Persamaan Kata)', group:'IST' },
+  { id:'ist5_a', label:'Subtes 5 — IST (Hitungan)',    group:'IST'   },
+  { id:'ist6_a', label:'Subtes 6 — IST (Deret Angka)', group:'IST'  },
+  { id:'ist7',   label:'Subtes 7 — IST',               group:'IST'   },
+  { id:'ist8',   label:'Subtes 8 — IST',               group:'IST'   },
+  { id:'ist9',   label:'Subtes 9 — IST',               group:'IST'   },
+  // Minat
+  { id:'rmib',   label:'RMIB — Minat Jabatan',         group:'Minat' },
+  // TKD
+  { id:'tkd3',   label:'TKD — Subtes 3',               group:'TKD'   },
+  { id:'tkd6_a', label:'TKD — Subtes 6a',              group:'TKD'   },
+];
+
+/* ══════════════════════════════════════════════════════════
+   DAFTAR WHO (sesuai file di folder who1, kecuali 'hasil')
+══════════════════════════════════════════════════════════ */
+const ALL_WHO = [
+  '0','1','2','3','4','5','6','7',
+  '8','8a','9','10','11','12','13','14',
+  '15','16','17','18','19','20','20a','21','22'
+].map(k => ({ id: 'who:' + k, label: 'WHO — ' + k, isWho: true }));
+
+/* ══════════════════════════════════════════════════════════
+   STATE
+══════════════════════════════════════════════════════════ */
+let currentUser   = null;   // { id_x, x_01 } dari tabel admins
+let paketList     = [];     // semua row dari alat_tes
+let activePaket   = null;   // row yang sedang diedit
+let isNew         = false;  // apakah sedang buat baru
+
+// Drag state
+let dragItem      = null;
+let dragFrom      = null;   // 'avail' | 'pilih'
+let dragKey       = null;   // id subtes yang di-drag
+
+// Kolom pilih
+let pilihList     = [];     // [{id, label}] urutan dipilih
+
+/* ══════════════════════════════════════════════════════════
+   HELPERS
+══════════════════════════════════════════════════════════ */
+function showLoader(t) {
+  document.getElementById('loaderText').textContent = t || 'Memuat...';
+  document.getElementById('loaderOverlay').classList.remove('hidden');
+}
+function hideLoader() { document.getElementById('loaderOverlay').classList.add('hidden'); }
+
+function toast(msg, type='ok') {
+  document.querySelectorAll('.toast').forEach(t => t.remove());
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+function setMsg(msg, type='') {
+  const el = document.getElementById('actionMsg');
+  el.textContent = msg;
+  el.className = 'action-msg ' + type;
+  if (msg) setTimeout(() => { if (el.textContent === msg) el.textContent = ''; }, 3000);
+}
+
+async function apiFetch(url, opts={}) {
+  const r = await fetch(url, opts);
+  return r.json();
+}
+
+/* ══════════════════════════════════════════════════════════
+   LOGIN / LOGOUT
+══════════════════════════════════════════════════════════ */
+async function doLogin() {
+  const user = document.getElementById('loginUser').value.trim();
+  const pass = document.getElementById('loginPass').value.trim();
+  const err  = document.getElementById('loginErr');
+  const btn  = document.getElementById('btnLogin');
+  if (!user || !pass) { err.textContent = 'Username dan password wajib diisi.'; return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Memeriksa...';
+  err.textContent = '';
+
+  try {
+    const res = await apiFetch(
+      `${API_READ}?table=${TBL_ADMIN}&x_01_eq=${encodeURIComponent(user)}`,
+      { headers: { 'X-Custom-Auth': AUTH_KEY } }
+    );
+    if (!res.success || res.count === 0) {
+      err.textContent = 'Username tidak ditemukan.'; return;
+    }
+    const row = res.data[0];
+    if ((row.x_02 || '').trim() !== pass) {
+      err.textContent = 'Password salah.'; return;
+    }
+    currentUser = row;
+    sessionStorage.setItem('admin_user', user);
+    showApp();
+  } catch(e) {
+    err.textContent = 'Gagal terhubung ke server.';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Masuk';
+  }
+}
+
+function doLogout() {
+  sessionStorage.removeItem('admin_user');
+  currentUser = null;
+  document.getElementById('screenApp').classList.remove('active');
+  document.getElementById('screenLogin').classList.add('active');
+  document.getElementById('loginUser').value = '';
+  document.getElementById('loginPass').value = '';
+}
+
+/* ══════════════════════════════════════════════════════════
+   BOOT
+══════════════════════════════════════════════════════════ */
+window.onload = async () => {
+  const saved = sessionStorage.getItem('admin_user');
+  if (saved) {
+    showLoader('Memeriksa sesi...');
+    try {
+      const res = await apiFetch(
+        `${API_READ}?table=${TBL_ADMIN}&x_01_eq=${encodeURIComponent(saved)}`,
+        { headers: { 'X-Custom-Auth': AUTH_KEY } }
+      );
+      if (res.success && res.count > 0) {
+        currentUser = res.data[0];
+        showApp();
+        return;
+      }
+    } catch(e) {}
+    finally { hideLoader(); }
+    sessionStorage.removeItem('admin_user');
+  }
+  hideLoader();
+};
+
+async function showApp() {
+  document.getElementById('screenLogin').classList.remove('active');
+  document.getElementById('screenApp').classList.add('active');
+  document.getElementById('loggedAsLabel').textContent = currentUser.x_01;
+  await loadPaketList();
+}
+
+/* ══════════════════════════════════════════════════════════
+   LOAD PAKET LIST
+══════════════════════════════════════════════════════════ */
+async function loadPaketList() {
+  showLoader('Memuat paket...');
+  try {
+    const res = await apiFetch(
+      `${API_READ}?table=${TBL_PAKET}`,
+      { headers: { 'X-Custom-Auth': AUTH_KEY } }
+    );
+    paketList = (res.success && res.data) ? res.data : [];
+    renderPaketList();
+  } catch(e) {
+    toast('Gagal memuat paket.', 'err');
+  } finally { hideLoader(); }
+}
+
+function renderPaketList() {
+  const el = document.getElementById('paketList');
+  if (paketList.length === 0) {
+    el.innerHTML = '<div class="empty-list">Belum ada paket.<br>Klik <strong>+ Baru</strong> untuk membuat.</div>';
+    return;
+  }
+  el.innerHTML = '';
+  for (const p of paketList) {
+    const div = document.createElement('div');
+    div.className = 'paket-item' + (activePaket && activePaket.id_x === p.id_x ? ' active' : '');
+    const subtes = (p.x_02 || '').split('|').filter(Boolean);
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'paket-copy-btn';
+    copyBtn.title = 'Copy link paket';
+    copyBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
+    copyBtn.onclick = (e) => {
+      e.stopPropagation();
+      const url = `https://lidan.co.id/psikotest/${encodeURIComponent(p.x_01 || '')}`;
+      navigator.clipboard.writeText(url).then(() => {
+        copyBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+        copyBtn.style.color = 'var(--success)';
+        copyBtn.style.borderColor = 'var(--success)';
+        setTimeout(() => {
+          copyBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
+          copyBtn.style.color = '';
+          copyBtn.style.borderColor = '';
+        }, 1500);
+      });
+    };
+
+    div.innerHTML = `
+      <div style="flex:1;min-width:0">
+        <span class="paket-id-badge">id: ${p.id_x}</span>
+        <div class="paket-item-name">${escHtml(p.x_01 || '—')}</div>
+        <div class="paket-item-ket">${escHtml(p.x_03 || '')}</div>
+      </div>
+      <span class="paket-badge">${subtes.length} tes</span>`;
+
+    // Tombol delete langsung di item
+    const delBtn = document.createElement('button');
+    delBtn.className = 'btn-delete-paket';
+    delBtn.title = 'Hapus paket';
+    delBtn.innerHTML = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`;
+    delBtn.onclick = (e) => {
+      e.stopPropagation();
+      activePaket = p;
+      confirmHapus();
+    };
+
+    div.appendChild(copyBtn);
+    div.appendChild(delBtn);
+    div.onclick = () => selectPaket(p);
+    el.appendChild(div);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   SELECT / NEW PAKET
+══════════════════════════════════════════════════════════ */
+function selectPaket(p) {
+  activePaket = p;
+  isNew = false;
+  renderPaketList();
+  document.getElementById('editorPlaceholder').style.display = 'none';
+  document.getElementById('editorForm').style.display = 'flex';
+  document.getElementById('btnHapus').style.display = '';
+
+  document.getElementById('fNama').value = p.x_01 || '';
+  document.getElementById('fKet').value  = p.x_03 || '';
+
+  // Parse x_02 ke pilihList
+  const items = (p.x_02 || '').split('|').map(s => s.trim()).filter(Boolean);
+  pilihList = items.map(id => {
+    if (id.startsWith('who:')) {
+      const key = id.slice(4);
+      const foundWho = ALL_WHO.find(w => w.id === id);
+      return { id: 'who:' + key, label: foundWho ? foundWho.label : 'WHO — ' + key, isWho: true };
+    }
+    const found = ALL_SUBTES.find(s => s.id === id);
+    return found ? { id: found.id, label: found.label } : { id, label: id };
+  });
+
+  renderDnD();
+  setMsg('');
+}
+
+function newPaket() {
+  activePaket = null;
+  isNew = true;
+  renderPaketList();
+  document.getElementById('editorPlaceholder').style.display = 'none';
+  document.getElementById('editorForm').style.display = 'flex';
+  document.getElementById('btnHapus').style.display = 'none';
+
+  document.getElementById('fNama').value = '';
+  document.getElementById('fKet').value  = '';
+  pilihList = [];
+  renderDnD();
+  setMsg('');
+  document.getElementById('fNama').focus();
+}
+
+/* ══════════════════════════════════════════════════════════
+   DRAG & DROP
+══════════════════════════════════════════════════════════ */
+function renderDnD() {
+  const pilihIds = new Set(pilihList.map(p => p.id));
+  const qSubtes  = (document.getElementById('searchSubtes')?.value || '').toLowerCase().trim();
+  const qWho     = (document.getElementById('searchWho')?.value    || '').toLowerCase().trim();
+
+  // ── Zona TERSEDIA Subtes ──
+  const availSubtes = ALL_SUBTES.filter(s => {
+    if (pilihIds.has(s.id)) return false;
+    if (!qSubtes) return true;
+    return s.id.toLowerCase().includes(qSubtes) || s.label.toLowerCase().includes(qSubtes);
+  });
+  const zoneSubtes = document.getElementById('zoneAvailSubtes');
+  zoneSubtes.innerHTML = '';
+  if (availSubtes.length === 0) {
+    zoneSubtes.innerHTML = '<div style="color:var(--muted);font-size:11px;padding:10px;text-align:center;grid-column:1/-1">Tidak ada hasil</div>';
+  } else {
+    availSubtes.forEach(s => zoneSubtes.appendChild(makeDndItem(s.id, s.label, 'avail', false)));
+  }
+
+  // ── Zona TERSEDIA WHO ──
+  const availWho = ALL_WHO.filter(s => {
+    if (pilihIds.has(s.id)) return false;
+    if (!qWho) return true;
+    return s.id.toLowerCase().includes(qWho) || s.label.toLowerCase().includes(qWho);
+  });
+  const zoneWho = document.getElementById('zoneAvailWho');
+  zoneWho.innerHTML = '';
+  if (availWho.length === 0) {
+    zoneWho.innerHTML = '<div style="color:var(--muted);font-size:11px;padding:10px;text-align:center;grid-column:1/-1">Tidak ada hasil</div>';
+  } else {
+    availWho.forEach(s => zoneWho.appendChild(makeDndItem(s.id, s.label, 'avail', false)));
+  }
+
+  // ── Zona DIPILIH ──
+  const pilih = document.getElementById('zonePilih');
+  pilih.innerHTML = '';
+  pilihList.forEach((s, i) => {
+    pilih.appendChild(makeDndItem(s.id, s.label, 'pilih', false, i + 1));
+  });
+
+  // Hitung total tersedia (tanpa filter)
+  const totalSubtes = ALL_SUBTES.filter(s => !pilihIds.has(s.id)).length;
+  const totalWho    = ALL_WHO.filter(s => !pilihIds.has(s.id)).length;
+  document.getElementById('countAvail').textContent = totalSubtes + totalWho;
+  document.getElementById('countAvailSubtes').textContent = qSubtes ? `${availSubtes.length}/${totalSubtes}` : totalSubtes;
+  document.getElementById('countAvailWho').textContent    = qWho    ? `${availWho.length}/${totalWho}`       : totalWho;
+  document.getElementById('countPilih').textContent = pilihList.length;
+
+  updateX02Preview();
+}
+
+function filterAvail() {
+  // Tampilkan/sembunyikan tombol clear
+  const qs = document.getElementById('searchSubtes').value;
+  const qw = document.getElementById('searchWho').value;
+  document.getElementById('clearSubtes').classList.toggle('visible', qs.length > 0);
+  document.getElementById('clearWho').classList.toggle('visible', qw.length > 0);
+  renderDnD();
+}
+
+function clearSearch(inputId) {
+  document.getElementById(inputId).value = '';
+  filterAvail();
+  document.getElementById(inputId).focus();
+}
+
+function makeDndItem(id, label, zone, isDragging, num) {
+  const div = document.createElement('div');
+  div.className = 'dnd-item' + (isDragging ? ' dragging' : '');
+  div.draggable = true;
+  div.dataset.id   = id;
+  div.dataset.zone = zone;
+  div.title = `${id}  —  ${label}`;  // tooltip saat hover
+
+  const isWho = id.startsWith('who:');
+  const idColor = isWho ? 'color:var(--accent2);background:rgba(124,92,252,0.15)' : '';
+
+  // Link preview untuk subtes/who (hanya di zona avail)
+  let linkBtn = '';
+  if (zone === 'avail') {
+    if (isWho) {
+      const whoKey = id.replace('who:', '');
+      const whoUrl = 'https://cipta.my.id/who1/' + encodeURIComponent(whoKey) + '.txt';
+      linkBtn = `<a class="dnd-link-btn who-link" href="${whoUrl}" target="_blank" title="Buka WHO ${whoKey}" onclick="event.stopPropagation()">↗</a>`;
+    } else {
+      const subtesUrl = 'https://cipta.my.id/psikotest/' + encodeURIComponent(id) + '.txt';
+      linkBtn = `<a class="dnd-link-btn" href="${subtesUrl}" target="_blank" title="Buka subtes ${id}" onclick="event.stopPropagation()">↗</a>`;
+    }
+  }
+
+  const moveBtn = zone === 'avail'
+    ? `<button class="dnd-move-btn" title="Tambah ke daftar" onclick="clickMoveToRight('${id.replace(/'/g,"\\'")}')" >›</button>`
+    : `<button class="dnd-move-btn to-left" title="Keluarkan dari daftar" onclick="clickMoveToLeft('${id.replace(/'/g,"\\'")}')" >‹</button>`;
+
+  div.innerHTML = `
+    <span class="dnd-handle">⠿</span>
+    <span class="dnd-id" style="${idColor}">${escHtml(id)}</span>
+    <span class="dnd-name">${escHtml(label)}</span>
+    ${num ? `<span class="dnd-num">${num}</span>` : ''}
+    ${linkBtn}
+    ${moveBtn}`;
+
+  div.addEventListener('dragstart', e => {
+    dragItem = div;
+    dragFrom = zone;
+    dragKey  = id;
+    e.dataTransfer.effectAllowed = 'move';
+    setTimeout(() => div.classList.add('dragging'), 0);
+  });
+  div.addEventListener('dragend', () => {
+    div.classList.remove('dragging');
+    dragItem = null;
+  });
+
+  return div;
+}
+
+function onDragOver(e, zone) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  if (zone === 'avail') {
+    document.getElementById('zoneAvailSubtes').classList.add('drag-over');
+    document.getElementById('zoneAvailWho').classList.add('drag-over');
+  } else {
+    document.getElementById('zonePilih').classList.add('drag-over');
+  }
+}
+
+function onDragLeave(e, zone) {
+  if (zone === 'avail') {
+    document.getElementById('zoneAvailSubtes').classList.remove('drag-over');
+    document.getElementById('zoneAvailWho').classList.remove('drag-over');
+  } else {
+    document.getElementById('zonePilih').classList.remove('drag-over');
+  }
+}
+
+function onDrop(e, targetZone) {
+  e.preventDefault();
+  document.getElementById('zoneAvailSubtes').classList.remove('drag-over');
+  document.getElementById('zoneAvailWho').classList.remove('drag-over');
+  document.getElementById('zonePilih').classList.remove('drag-over');
+
+  if (!dragKey) return;
+
+  if (dragFrom === targetZone) {
+    // Reorder dalam zona pilih
+    if (targetZone === 'pilih') {
+      reorderInPilih(e);
+    }
+    return;
+  }
+
+  if (targetZone === 'pilih') {
+    // Avail → Pilih
+    const found = ALL_SUBTES.find(s => s.id === dragKey) || ALL_WHO.find(s => s.id === dragKey);
+    if (found && !pilihList.find(p => p.id === dragKey)) {
+      pilihList.push({ id: found.id, label: found.label, isWho: found.isWho || false });
+    }
+  } else {
+    // Pilih → Avail (remove)
+    if (!dragKey.startsWith('who:')) {
+      pilihList = pilihList.filter(p => p.id !== dragKey);
+    }
+  }
+
+  renderDnD();
+}
+
+function reorderInPilih(e) {
+  // Hitung posisi drop berdasarkan mouse Y
+  const zone = document.getElementById('zonePilih');
+  const items = [...zone.querySelectorAll('.dnd-item')];
+  const mouseY = e.clientY;
+
+  let insertBefore = null;
+  for (const item of items) {
+    const rect = item.getBoundingClientRect();
+    if (mouseY < rect.top + rect.height / 2) {
+      insertBefore = item;
+      break;
+    }
+  }
+
+  const fromIdx = pilihList.findIndex(p => p.id === dragKey);
+  if (fromIdx === -1) return;
+
+  const item = pilihList.splice(fromIdx, 1)[0];
+
+  if (!insertBefore) {
+    pilihList.push(item);
+  } else {
+    const toIdx = pilihList.findIndex(p => p.id === insertBefore.dataset.id);
+    if (toIdx === -1) pilihList.push(item);
+    else pilihList.splice(toIdx, 0, item);
+  }
+
+  renderDnD();
+}
+
+function clickMoveToRight(id) {
+  // Avail → Pilih (tambah ke baris paling bawah)
+  if (pilihList.find(p => p.id === id)) return;
+  const found = ALL_SUBTES.find(s => s.id === id) || ALL_WHO.find(s => s.id === id);
+  if (found) {
+    pilihList.push({ id: found.id, label: found.label, isWho: found.isWho || false });
+    renderDnD();
+  }
+}
+
+function clickMoveToLeft(id) {
+  // Pilih → Avail (hapus dari pilih, urutkan avail sesuai abjad ALL_SUBTES)
+  if (id.startsWith('who:')) {
+    // WHO item: hapus dari pilih saja
+    pilihList = pilihList.filter(p => p.id !== id);
+  } else {
+    pilihList = pilihList.filter(p => p.id !== id);
+  }
+  // Avail dirender ulang — ALL_SUBTES sudah urut abjad/grup, otomatis urut
+  renderDnD();
+}
+
+function addSubtesKey() {
+  const input = document.getElementById('subtesKeyInput');
+  const key   = input.value.trim();
+  if (!key) { toast('Masukkan id subtes terlebih dahulu.', 'err'); return; }
+  if (pilihList.find(p => p.id === key)) {
+    toast('Subtes ini sudah ada di daftar.', 'err'); return;
+  }
+  // Cek apakah ada di ALL_SUBTES, kalau ada pakai labelnya
+  const found = ALL_SUBTES.find(s => s.id === key);
+  pilihList.push({ id: key, label: found ? found.label : key, isWho: false });
+  input.value = '';
+  renderDnD();
+}
+
+function addWhoKey() {
+  const input = document.getElementById('whoKeyInput');
+  const key   = input.value.trim();
+  if (!key) { toast('Masukkan key WHO terlebih dahulu.', 'err'); return; }
+  const id = 'who:' + key;
+  if (pilihList.find(p => p.id === id)) {
+    toast('WHO key ini sudah ada di daftar.', 'err'); return;
+  }
+  pilihList.push({ id, label: 'WHO — ' + key, isWho: true });
+  input.value = '';
+  renderDnD();
+}
+
+function updateX02Preview() {
+  const val = pilihList.map(p => p.id).join('|');
+  const el  = document.getElementById('x02Preview');
+  if (!val) { el.innerHTML = '<span style="color:var(--muted)">—</span>'; return; }
+  el.innerHTML = pilihList.map(p =>
+    `<span style="color:${p.isWho ? 'var(--accent2)' : 'var(--accent)'}">${escHtml(p.id)}</span>`
+  ).join('<span style="color:var(--muted)"> | </span>');
+}
+
+/* ══════════════════════════════════════════════════════════
+   SIMPAN
+══════════════════════════════════════════════════════════ */
+async function simpanPaket() {
+  const nama = document.getElementById('fNama').value.trim();
+  const ket  = document.getElementById('fKet').value.trim();
+
+  if (!nama) { toast('Nama paket (x_01) wajib diisi.', 'err'); return; }
+  if (pilihList.length === 0) { toast('Pilih minimal 1 subtes.', 'err'); return; }
+
+  const x02 = pilihList.map(p => p.id).join('|');
+  const body = { x_01: nama, x_02: x02, x_03: ket };
+
+  const btn = document.getElementById('btnSimpan');
+  btn.disabled = true;
+  showLoader('Menyimpan...');
+
+  try {
+    let res;
+    if (isNew) {
+      res = await apiFetch(`${API_WRITE}?table=${TBL_PAKET}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Custom-Auth': AUTH_KEY },
+        body: JSON.stringify(body)
+      });
+    } else {
+      res = await apiFetch(`${API_WRITE}?table=${TBL_PAKET}&id_x=${activePaket.id_x}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'X-Custom-Auth': AUTH_KEY },
+        body: JSON.stringify(body)
+      });
+    }
+
+    if (res.success) {
+      toast(isNew ? 'Paket berhasil dibuat!' : 'Paket berhasil disimpan!', 'ok');
+      await loadPaketList();
+      // Re-select paket yang baru disimpan
+      if (isNew && res.id_x) {
+        const found = paketList.find(p => String(p.id_x) === String(res.id_x));
+        if (found) selectPaket(found);
+        else { isNew = false; }
+      }
+    } else {
+      toast('Gagal menyimpan: ' + (res.message || 'error'), 'err');
+    }
+  } catch(e) {
+    toast('Gagal menyimpan: ' + e.message, 'err');
+  } finally {
+    btn.disabled = false;
+    hideLoader();
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   HAPUS
+══════════════════════════════════════════════════════════ */
+function confirmHapus() {
+  if (!activePaket) return;
+  document.getElementById('modalHapusDesc').textContent =
+    `Yakin ingin menghapus paket "${activePaket.x_01}"? Tindakan ini tidak bisa dibatalkan.`;
+  document.getElementById('modalHapus').classList.remove('hidden');
+}
+
+function closeModal() {
+  document.getElementById('modalHapus').classList.add('hidden');
+}
+
+async function doHapus() {
+  closeModal();
+  if (!activePaket) return;
+  showLoader('Menghapus...');
+  try {
+    const res = await apiFetch(
+      `${API_WRITE}?table=${TBL_PAKET}&id_x=${activePaket.id_x}`,
+      { method: 'DELETE', headers: { 'X-Custom-Auth': AUTH_KEY } }
+    );
+    if (res.success) {
+      toast('Paket dihapus.', 'ok');
+      activePaket = null;
+      document.getElementById('editorForm').style.display = 'none';
+      document.getElementById('editorPlaceholder').style.display = '';
+      await loadPaketList();
+    } else {
+      toast('Gagal hapus: ' + (res.message || 'error'), 'err');
+    }
+  } catch(e) {
+    toast('Gagal hapus: ' + e.message, 'err');
+  } finally { hideLoader(); }
+}
+
+/* ══════════════════════════════════════════════════════════
+   UTILS
+══════════════════════════════════════════════════════════ */
+function escHtml(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+<!-- Custom Tooltip -->
+<div id="dnd-tooltip"></div>
+
+<script>
+/* ══ TOOLTIP ══ */
+const _tip = document.getElementById('dnd-tooltip');
+document.addEventListener('mouseover', e => {
+  const item = e.target.closest('.avail-grid .dnd-item');
+  if (item && item.title) {
+    _tip.textContent = item.title;
+    _tip.style.display = 'block';
+  }
+});
+document.addEventListener('mousemove', e => {
+  if (_tip.style.display === 'block') {
+    const x = e.clientX + 14;
+    const y = e.clientY - 34;
+    _tip.style.left = Math.min(x, window.innerWidth - _tip.offsetWidth - 8) + 'px';
+    _tip.style.top  = Math.max(y, 4) + 'px';
+  }
+});
+document.addEventListener('mouseout', e => {
+  const item = e.target.closest('.avail-grid .dnd-item');
+  if (item) _tip.style.display = 'none';
+});
+</script>
+</body>
+</html>
