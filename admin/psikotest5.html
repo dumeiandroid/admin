@@ -7,7 +7,6 @@
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
 :root {
     --primary: #667eea;
@@ -821,7 +820,6 @@ table.dataTable { min-width: 500px; }
 </div>
 
 <script>
-/* v20260309_0804 */
 /* ══════════════════════════════════════════════════════════════════
    CONSTANTS
 ══════════════════════════════════════════════════════════════════ */
@@ -940,35 +938,8 @@ function renderTimer(idX, x04Raw) {
     return '<span style="color:#ccc;font-size:12px">—</span>';
 }
 
-
-function renderViolation(x09Raw) {
-    if (!x09Raw || x09Raw.trim() === '') return '<span style="color:#ccc;font-size:12px">—</span>';
-    const parts = x09Raw.split('|').filter(p => p.includes(':'));
-    const total = parts.reduce((sum, part) => {
-        const v = parseInt((part.split(':')[1]) || '0');
-        return sum + (isNaN(v) ? 0 : v);
-    }, 0);
-    const color = total >= 5 ? '#dc2626' : total >= 2 ? '#d97706' : '#16a34a';
-
-    // Tooltip detail: "cfit3: 7x, ist1: 2x"
-    const tooltip = parts.map(p => {
-        const [k, v] = p.split(':');
-        return `${k}: ${v}x`;
-    }).join(' | ');
-
-    // Cell: hanya tampil ringkasan per subtes dalam 1 baris, hover untuk total+detail
-    const summary = parts.map(p => {
-        const [k, v] = p.split(':');
-        const c = parseInt(v) >= 5 ? '#dc2626' : parseInt(v) >= 2 ? '#d97706' : '#16a34a';
-        return `<span style="color:${c};font-weight:600">${k} ${v}x</span>`;
-    }).join('<span style="color:#ccc"> · </span>');
-
-    return `<div title="Total: ${total}x &#10;${tooltip}" style="cursor:default;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${summary}</div>`;
-}
-
 function buildQrUrl(token) {
     const target = PSIKOTEST_URL + '?token=' + encodeURIComponent(token);
-    // Tetap pakai URL eksternal untuk preview saja (tidak di-capture html2canvas)
     const qr = 'https://api.qrserver.com/v1/create-qr-code/?data=' + encodeURIComponent(target) + '&size=200x200';
     return { target, qr };
 }
@@ -1013,12 +984,11 @@ function qrfsNav(dir) {
     qrfsRender();
 }
 
-async function qrfsRender() {
+function qrfsRender() {
     const item   = qrfsList[qrfsIndex];
     const target = PSIKOTEST_URL + '?token=' + encodeURIComponent(item.token);
-
-    // ✅ Generate QR lokal agar tidak bergantung server eksternal
-    const qrSrc = await generateQRDataUrl(target);
+    const qrSrc  = 'https://api.qrserver.com/v1/create-qr-code/?data='
+                   + encodeURIComponent(target) + '&size=220x220';
 
     document.getElementById('qrfsId').textContent    = 'ID: ' + item.idX + '  |  ' + (emptyTableName || 'nilai1');
     document.getElementById('qrfsImg').src            = qrSrc;
@@ -1067,7 +1037,7 @@ async function stopPeserta(idX) {
         await fetch(`${API_INSERT}?table=${table}&id_x=${idX}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json', 'X-Custom-Auth': AUTH_KEY },
-            body: JSON.stringify({ x_12: 'FORCE_END' })
+            body: JSON.stringify({ x_04: '' })
         });
     } catch(e) { alert('Gagal: ' + e.message); }
 }
@@ -1164,7 +1134,6 @@ async function allUpdate() {
                 x_04:  renderTimer(row.id_x, row.x_04 || ''),
                 x_06:  `<span class="formatted-value">${formatPipes(row.x_06)}</span>`,
                 x_07:  `<span class="formatted-value">${formatPipes(row.x_07)}</span>`,
-                x_09:  renderViolation(row.x_09 || ''),
                 tgl:   isToday
                     ? `<span class="badge badge-active">📅 Hari Ini</span>`
                     : (dateStr ? `<span style="font-size:12px;color:var(--muted)">${dateStr}</span>` : '')
@@ -1186,7 +1155,7 @@ function allInitTable(rows) {
         <table id="allDataTable" class="display nowrap" style="width:100%">
             <thead><tr>
                 <th>ID</th><th>Token</th><th>Biodata</th><th>Skor</th>
-                <th>⏱ Timer</th><th>Skor 1</th><th>Skor 2</th><th>🔄 Tab</th><th>Tgl Tes</th>
+                <th>⏱ Timer</th><th>Skor 1</th><th>Skor 2</th><th>Tgl Tes</th>
             </tr></thead><tbody></tbody>
         </table>`;
     allTable = $('#allDataTable').DataTable({
@@ -1199,7 +1168,6 @@ function allInitTable(rows) {
             { data:'x_04', orderable:false },
             { data:'x_06' },
             { data:'x_07' },
-            { data:'x_09', title:'🔄 Tab', orderable:false, defaultContent:'—' },
             { data:'tgl',  orderable:false }
         ],
         pageLength: 25,
@@ -1384,7 +1352,6 @@ function todayUpdateFromCache() {
             x_04: renderTimer(row.id_x, row.x_04 || ''),
             x_06: `<span class="formatted-value">${formatPipes(row.x_06)}</span>`,
             x_07: `<span class="formatted-value">${formatPipes(row.x_07)}</span>`,
-            x_09: renderViolation(row.x_09 || ''),
             tgl:  `<span style="font-size:12px;color:var(--muted)">${getDateFromX02(row.x_02)}</span>`
         };
     });
@@ -1407,7 +1374,7 @@ function todayInitTable(rows) {
             <thead><tr>
                 <th><input type="checkbox" id="selectAllToday" onclick="toggleSelectAll(this)" title="Pilih semua"></th>
                 <th>ID</th><th>Token</th><th>Biodata</th><th>Skor</th>
-                <th>⏱ Timer</th><th>Skor 1</th><th>Skor 2</th><th>🔄 Tab</th><th>Tgl Tes</th>
+                <th>⏱ Timer</th><th>Skor 1</th><th>Skor 2</th><th>Tgl Tes</th>
             </tr></thead><tbody></tbody>
         </table>`;
     todayTable = $('#todayDataTable').DataTable({
@@ -1421,7 +1388,6 @@ function todayInitTable(rows) {
             { data:'x_04', orderable:false },
             { data:'x_06' },
             { data:'x_07' },
-            { data:'x_09', title:'🔄 Tab', orderable:false, defaultContent:'—' },
             { data:'tgl',  orderable:false }
         ],
         pageLength: 25,
@@ -1690,7 +1656,7 @@ async function printLoadPage(offset) {
             return;
         }
 
-        await printRenderVouchers(data);
+        printRenderVouchers(data);
 
         const from = printCurrentOffset + 1;
         const to   = printCurrentOffset + data.length;
@@ -1713,115 +1679,60 @@ function printNextPage() {
     printLoadPage(printCurrentOffset + printCurrentLimit);
 }
 
-// ✅ Konversi URL gambar eksternal ke base64 agar html2canvas bisa membacanya (menghindari CORS)
-// ✅ Generate QR Code lokal pakai QRCode.js — tidak ada CORS, aman untuk html2canvas
-// ✅ Generate QR langsung sebagai canvas element (bukan dataURL) — lebih reliable untuk html2canvas
-function generateQRCanvas(text) {
-    return new Promise((resolve) => {
-        const tmpDiv = document.createElement('div');
-        tmpDiv.style.cssText = 'position:absolute;left:-9999px;top:-9999px;';
-        document.body.appendChild(tmpDiv);
-
-        new QRCode(tmpDiv, {
-            text: text,
-            width: 150,
-            height: 150,
-            colorDark: '#000000',
-            colorLight: '#ffffff',
-            correctLevel: QRCode.CorrectLevel.M
-        });
-
-        setTimeout(() => {
-            const qrCanvas = tmpDiv.querySelector('canvas');
-            document.body.removeChild(tmpDiv);
-            resolve(qrCanvas); // kembalikan canvas element langsung
-        }, 150);
-    });
-}
-
-async function printRenderVouchers(data) {
+function printRenderVouchers(data) {
     const grid = document.getElementById('voucherGrid');
     grid.innerHTML = '';
-    document.getElementById('printStatus').textContent = '⏳ Membuat QR Code...';
-
-    for (const row of data) {
+    data.forEach(row => {
         const token  = row.x_01 || '';
         const idX    = row.id_x || '';
         const target = PSIKOTEST_URL + '?token=' + encodeURIComponent(token);
-
-        // ✅ Generate QR sebagai canvas, lalu masukkan langsung ke DOM (sama seperti index.html berhasil)
-        const qrCanvas = await generateQRCanvas(target);
+        const qrSrc  = 'https://api.qrserver.com/v1/create-qr-code/?data=' + encodeURIComponent(target) + '&size=150x150';
 
         const div = document.createElement('div');
         div.className = 'voucher-card';
-
-        // Buat struktur mirip index.html yang berhasil — img langsung tanpa wrapper <a>
-        const titleDiv = document.createElement('div');
-        titleDiv.className = 'voucher-card-title';
-        titleDiv.innerHTML = `ID: ${escHtml(String(idX))} &nbsp;|&nbsp; ${escHtml(printTableName)}`;
-
-        const qrLabel = document.createElement('div');
-        qrLabel.textContent = 'QR Code:';
-
-        const qrWrap = document.createElement('div');
-        qrWrap.className = 'voucher-qr-wrap';
-
-        // ✅ Masukkan canvas QR langsung ke DOM (html2canvas bisa baca canvas tanpa masalah CORS)
-        if (qrCanvas) {
-            qrCanvas.style.cssText = 'display:block;margin:0 auto;border:2px solid #007BFF;border-radius:8px;padding:3px;';
-            qrWrap.appendChild(qrCanvas);
-        }
-
-        const urlDiv = document.createElement('div');
-        urlDiv.className = 'voucher-url';
-        urlDiv.textContent = 'URL: ' + PSIKOTEST_URL;
-
-        const codeDiv = document.createElement('div');
-        codeDiv.className = 'voucher-code';
-        codeDiv.textContent = 'Token : ' + (token || '-');
-
-        div.appendChild(titleDiv);
-        div.appendChild(qrLabel);
-        div.appendChild(qrWrap);
-        div.appendChild(urlDiv);
-        div.appendChild(codeDiv);
-
+        div.innerHTML = `
+            <div class="voucher-card-title">ID: ${escHtml(String(idX))} &nbsp;|&nbsp; ${escHtml(printTableName)}</div>
+            <div>QR Code:</div>
+            <a href="${escHtml(target)}" target="_blank" rel="noopener noreferrer">
+                <div class="voucher-qr-wrap">
+                    <img src="${qrSrc}" alt="QR Code" width="140" height="140" crossorigin="anonymous">
+                </div>
+            </a>
+            <div class="voucher-url">URL: ${escHtml(PSIKOTEST_URL)}</div>
+            <div class="voucher-code">Token : ${escHtml(token) || '-'}</div>
+        `;
         grid.appendChild(div);
-    }
+    });
 }
 
-async function downloadVouchers() {
+function downloadVouchers() {
     const grid = document.getElementById('voucherGrid');
     if (!grid.children.length) { alert('Tidak ada voucher untuk didownload.'); return; }
 
+    // Tunggu semua gambar QR selesai load
+    const imgs = grid.querySelectorAll('img');
+    const waits = Array.from(imgs).map(img => new Promise(res => {
+        if (img.complete && img.naturalWidth > 0) res();
+        else { img.onload = res; img.onerror = res; }
+    }));
+
     document.getElementById('printStatus').textContent = '⏳ Menyiapkan download...';
-
-    // ✅ Ikuti pola index.html yang berhasil: tunggu semua canvas siap lalu capture
-    try {
-        // Pastikan semua canvas QR sudah ter-render
-        await new Promise(r => setTimeout(r, 200));
-
-        const canvas = await html2canvas(grid, {
-            scale: 2,
-            useCORS: true,
-            allowTaint: true,
-            backgroundColor: '#f0f2ff'
+    Promise.all(waits).then(() => {
+        html2canvas(grid, { scale: 2, useCORS: true, backgroundColor: '#f0f2ff' }).then(canvas => {
+            const link = document.createElement('a');
+            link.href     = canvas.toDataURL('image/jpeg', 0.95);
+            link.download = `voucher_${printTableName}_${todayString()}.jpg`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            document.getElementById('printStatus').textContent = '✅ Downloaded!';
+            setTimeout(() => {
+                const to = printCurrentOffset + parseInt(document.getElementById('printLimitInput').value||15);
+                document.getElementById('printStatus').textContent =
+                    `${printCurrentOffset+1}–${Math.min(to, printTotal)} dari ${printTotal}`;
+            }, 2000);
         });
-        const link = document.createElement('a');
-        link.href     = canvas.toDataURL('image/jpeg', 0.95);
-        link.download = `voucher_${printTableName}_${todayString()}.jpg`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        document.getElementById('printStatus').textContent = '✅ Downloaded!';
-        setTimeout(() => {
-            const to = printCurrentOffset + parseInt(document.getElementById('printLimitInput').value||15);
-            document.getElementById('printStatus').textContent =
-                `${printCurrentOffset+1}–${Math.min(to, printTotal)} dari ${printTotal}`;
-        }, 2000);
-    } catch(e) {
-        document.getElementById('printStatus').textContent = '⚠ Gagal download: ' + e.message;
-    }
+    });
 }
 </script>
 <script src="https://login.lidan.co.id/login_admin.js"></script>

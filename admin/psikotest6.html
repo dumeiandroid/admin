@@ -821,7 +821,6 @@ table.dataTable { min-width: 500px; }
 </div>
 
 <script>
-/* v20260309_0804 */
 /* ══════════════════════════════════════════════════════════════════
    CONSTANTS
 ══════════════════════════════════════════════════════════════════ */
@@ -940,32 +939,6 @@ function renderTimer(idX, x04Raw) {
     return '<span style="color:#ccc;font-size:12px">—</span>';
 }
 
-
-function renderViolation(x09Raw) {
-    if (!x09Raw || x09Raw.trim() === '') return '<span style="color:#ccc;font-size:12px">—</span>';
-    const parts = x09Raw.split('|').filter(p => p.includes(':'));
-    const total = parts.reduce((sum, part) => {
-        const v = parseInt((part.split(':')[1]) || '0');
-        return sum + (isNaN(v) ? 0 : v);
-    }, 0);
-    const color = total >= 5 ? '#dc2626' : total >= 2 ? '#d97706' : '#16a34a';
-
-    // Tooltip detail: "cfit3: 7x, ist1: 2x"
-    const tooltip = parts.map(p => {
-        const [k, v] = p.split(':');
-        return `${k}: ${v}x`;
-    }).join(' | ');
-
-    // Cell: hanya tampil ringkasan per subtes dalam 1 baris, hover untuk total+detail
-    const summary = parts.map(p => {
-        const [k, v] = p.split(':');
-        const c = parseInt(v) >= 5 ? '#dc2626' : parseInt(v) >= 2 ? '#d97706' : '#16a34a';
-        return `<span style="color:${c};font-weight:600">${k} ${v}x</span>`;
-    }).join('<span style="color:#ccc"> · </span>');
-
-    return `<div title="Total: ${total}x &#10;${tooltip}" style="cursor:default;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${summary}</div>`;
-}
-
 function buildQrUrl(token) {
     const target = PSIKOTEST_URL + '?token=' + encodeURIComponent(token);
     // Tetap pakai URL eksternal untuk preview saja (tidak di-capture html2canvas)
@@ -1067,7 +1040,7 @@ async function stopPeserta(idX) {
         await fetch(`${API_INSERT}?table=${table}&id_x=${idX}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json', 'X-Custom-Auth': AUTH_KEY },
-            body: JSON.stringify({ x_12: 'FORCE_END' })
+            body: JSON.stringify({ x_04: '' })
         });
     } catch(e) { alert('Gagal: ' + e.message); }
 }
@@ -1164,7 +1137,6 @@ async function allUpdate() {
                 x_04:  renderTimer(row.id_x, row.x_04 || ''),
                 x_06:  `<span class="formatted-value">${formatPipes(row.x_06)}</span>`,
                 x_07:  `<span class="formatted-value">${formatPipes(row.x_07)}</span>`,
-                x_09:  renderViolation(row.x_09 || ''),
                 tgl:   isToday
                     ? `<span class="badge badge-active">📅 Hari Ini</span>`
                     : (dateStr ? `<span style="font-size:12px;color:var(--muted)">${dateStr}</span>` : '')
@@ -1186,7 +1158,7 @@ function allInitTable(rows) {
         <table id="allDataTable" class="display nowrap" style="width:100%">
             <thead><tr>
                 <th>ID</th><th>Token</th><th>Biodata</th><th>Skor</th>
-                <th>⏱ Timer</th><th>Skor 1</th><th>Skor 2</th><th>🔄 Tab</th><th>Tgl Tes</th>
+                <th>⏱ Timer</th><th>Skor 1</th><th>Skor 2</th><th>Tgl Tes</th>
             </tr></thead><tbody></tbody>
         </table>`;
     allTable = $('#allDataTable').DataTable({
@@ -1199,7 +1171,6 @@ function allInitTable(rows) {
             { data:'x_04', orderable:false },
             { data:'x_06' },
             { data:'x_07' },
-            { data:'x_09', title:'🔄 Tab', orderable:false, defaultContent:'—' },
             { data:'tgl',  orderable:false }
         ],
         pageLength: 25,
@@ -1384,7 +1355,6 @@ function todayUpdateFromCache() {
             x_04: renderTimer(row.id_x, row.x_04 || ''),
             x_06: `<span class="formatted-value">${formatPipes(row.x_06)}</span>`,
             x_07: `<span class="formatted-value">${formatPipes(row.x_07)}</span>`,
-            x_09: renderViolation(row.x_09 || ''),
             tgl:  `<span style="font-size:12px;color:var(--muted)">${getDateFromX02(row.x_02)}</span>`
         };
     });
@@ -1407,7 +1377,7 @@ function todayInitTable(rows) {
             <thead><tr>
                 <th><input type="checkbox" id="selectAllToday" onclick="toggleSelectAll(this)" title="Pilih semua"></th>
                 <th>ID</th><th>Token</th><th>Biodata</th><th>Skor</th>
-                <th>⏱ Timer</th><th>Skor 1</th><th>Skor 2</th><th>🔄 Tab</th><th>Tgl Tes</th>
+                <th>⏱ Timer</th><th>Skor 1</th><th>Skor 2</th><th>Tgl Tes</th>
             </tr></thead><tbody></tbody>
         </table>`;
     todayTable = $('#todayDataTable').DataTable({
@@ -1421,7 +1391,6 @@ function todayInitTable(rows) {
             { data:'x_04', orderable:false },
             { data:'x_06' },
             { data:'x_07' },
-            { data:'x_09', title:'🔄 Tab', orderable:false, defaultContent:'—' },
             { data:'tgl',  orderable:false }
         ],
         pageLength: 25,

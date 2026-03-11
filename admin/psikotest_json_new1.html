@@ -610,7 +610,7 @@ table.dataTable { min-width: 500px; }
         </div>
         <div class="controls-bar">
             <label style="font-size:13px;font-weight:700;color:var(--muted)">Tabel:</label>
-            <input type="text" class="ctrl-input" id="allTableInput" value="nilai1" style="width:140px">
+            <input type="text" class="ctrl-input" id="allTableInput" value="nilai1_json" style="width:140px">
             <button class="btn btn-primary" onclick="allLoadTable()">🔄 Muat</button>
             <button class="btn btn-success" onclick="openTokenModal()">＋ Tambah Token</button>
         </div>
@@ -634,7 +634,7 @@ table.dataTable { min-width: 500px; }
         </div>
         <div class="controls-bar">
             <label style="font-size:13px;font-weight:700;color:var(--muted)">Tabel:</label>
-            <input type="text" class="ctrl-input" id="emptyTableInput" value="nilai1" style="width:140px">
+            <input type="text" class="ctrl-input" id="emptyTableInput" value="nilai1_json" style="width:140px">
             <button class="btn btn-primary" onclick="emptyLoadTable()">🔄 Muat</button>
         </div>
         <div id="emptyContainer">
@@ -665,7 +665,7 @@ table.dataTable { min-width: 500px; }
         </div>
         <div class="controls-bar">
             <label style="font-size:13px;font-weight:700;color:var(--muted)">Tabel:</label>
-            <input type="text" class="ctrl-input" id="todayTableInput" value="nilai1" style="width:140px">
+            <input type="text" class="ctrl-input" id="todayTableInput" value="nilai1_json" style="width:140px">
             <label style="font-size:13px;font-weight:700;color:var(--muted);margin-left:6px">Tanggal:</label>
             <input type="date" id="todayDateInput" style="padding:8px 12px;border:2px solid var(--border);border-radius:10px;font-size:14px;outline:none">
             <button class="btn btn-warning" onclick="todayLoadTable()">🔍 Cari</button>
@@ -704,7 +704,7 @@ table.dataTable { min-width: 500px; }
         </div>
         <div class="controls-bar">
             <label style="font-size:13px;font-weight:700;color:var(--muted)">Tabel:</label>
-            <input type="text" class="ctrl-input" id="printTableInput" value="nilai1" style="width:140px">
+            <input type="text" class="ctrl-input" id="printTableInput" value="nilai1_json" style="width:140px">
             <label style="font-size:13px;font-weight:700;color:var(--muted)">Per halaman:</label>
             <input type="number" class="ctrl-input" id="printLimitInput" value="15" min="1" max="100" style="width:70px">
             <button class="btn btn-primary" onclick="printLoadPage(0)">🔄 Muat</button>
@@ -832,9 +832,7 @@ const PSIKOTEST_URL = 'https://psikotest.lidan.co.id/';
 const CHARS      = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 const TOKEN_LEN  = 12;
 
-// x_02 pipe index untuk tanggal tes (pipe ke-4, index 3)
-// Format x_02: "biodata_pipe0|pipe1|pipe2|pipe3|YYYY-MM-DD"
-const DATE_PIPE_INDEX = 4;
+// x_02 sekarang format JSON: {"nama":"...","usia":"...","pendidikan":"...","jenis_kelamin":"...","tgl_tes":"YYYY-MM-DD"}
 
 /* ══════════════════════════════════════════════════════════════════
    STATE
@@ -915,7 +913,41 @@ function escHtml(s) {
 
 function formatPipes(text) {
     if (!text) return '';
+    // Format lama (pipe) — fallback
     return text.split('|').map((p,i) => p.trim() ? `v${i+1}` : null).filter(Boolean).join(' ');
+}
+
+function renderJsonField(raw) {
+    if (!raw || raw.trim() === '') return '<span style="color:#ccc;font-size:12px">—</span>';
+    try {
+        const obj = JSON.parse(raw);
+        const entries = Object.entries(obj);
+        if (entries.length === 0) return '<span style="color:#ccc;font-size:12px">—</span>';
+        const items = entries.map(([k,v]) => {
+            const disp = typeof v === 'string' && v.length > 10 ? v.substring(0,10)+'…' : v;
+            return `<span style="font-size:11px;background:#f1f5f9;border-radius:4px;padding:1px 5px;margin:1px">${escHtml(k)}:<b>${escHtml(String(disp))}</b></span>`;
+        }).join(' ');
+        const fullText = entries.map(([k,v]) => `${k}: ${v}`).join(' | ');
+        return `<div title="${escHtml(fullText)}" style="max-width:160px;overflow:hidden;white-space:nowrap;cursor:default">${items}</div>`;
+    } catch(e) {
+        return `<span class="formatted-value">${escHtml(raw)}</span>`;
+    }
+}
+
+function renderJsonBio(raw) {
+    if (!raw || raw.trim() === '') return '<span style="color:#ccc;font-size:12px">—</span>';
+    try {
+        const obj = JSON.parse(raw);
+        const nama = obj.nama || '';
+        const usia = obj.usia ? obj.usia + 'th' : '';
+        const pend = obj.pendidikan || '';
+        const jk   = obj.jenis_kelamin || '';
+        const disp = [nama, usia, pend, jk].filter(Boolean).join(' · ');
+        const full = Object.entries(obj).map(([k,v])=>`${k}: ${v}`).join(' | ');
+        return `<span title="${escHtml(full)}" style="cursor:default">${escHtml(disp)}</span>`;
+    } catch(e) {
+        return escHtml(raw);
+    }
 }
 
 function renderTimer(idX, x04Raw) {
@@ -943,22 +975,16 @@ function renderTimer(idX, x04Raw) {
 
 function renderViolation(x09Raw) {
     if (!x09Raw || x09Raw.trim() === '') return '<span style="color:#ccc;font-size:12px">—</span>';
-    const parts = x09Raw.split('|').filter(p => p.includes(':'));
-    const total = parts.reduce((sum, part) => {
-        const v = parseInt((part.split(':')[1]) || '0');
-        return sum + (isNaN(v) ? 0 : v);
-    }, 0);
-    const color = total >= 5 ? '#dc2626' : total >= 2 ? '#d97706' : '#16a34a';
+    let entries = [];
+    try {
+        const obj = JSON.parse(x09Raw);
+        entries = Object.entries(obj).filter(([k,v]) => v > 0);
+    } catch(e) { return '<span style="color:#ccc;font-size:12px">—</span>'; }
+    if (entries.length === 0) return '<span style="color:#ccc;font-size:12px">—</span>';
 
-    // Tooltip detail: "cfit3: 7x, ist1: 2x"
-    const tooltip = parts.map(p => {
-        const [k, v] = p.split(':');
-        return `${k}: ${v}x`;
-    }).join(' | ');
-
-    // Cell: hanya tampil ringkasan per subtes dalam 1 baris, hover untuk total+detail
-    const summary = parts.map(p => {
-        const [k, v] = p.split(':');
+    const total = entries.reduce((sum, [,v]) => sum + (parseInt(v)||0), 0);
+    const tooltip = entries.map(([k,v]) => `${k}: ${v}x`).join(' | ');
+    const summary = entries.map(([k,v]) => {
         const c = parseInt(v) >= 5 ? '#dc2626' : parseInt(v) >= 2 ? '#d97706' : '#16a34a';
         return `<span style="color:${c};font-weight:600">${k} ${v}x</span>`;
     }).join('<span style="color:#ccc"> · </span>');
@@ -973,11 +999,13 @@ function buildQrUrl(token) {
     return { target, qr };
 }
 
-// Ambil tanggal dari x_02 pipe ke DATE_PIPE_INDEX
+// Ambil tanggal dari x_02 JSON
 function getDateFromX02(x02) {
     if (!x02) return '';
-    const pipes = x02.split('|');
-    return (pipes[DATE_PIPE_INDEX] || '').trim();
+    try {
+        const obj = JSON.parse(x02);
+        return (obj.tgl_tes || '').trim();
+    } catch(e) { return ''; }
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -1062,7 +1090,7 @@ function showQR(idX, token) {
 ══════════════════════════════════════════════════════════════════ */
 async function stopPeserta(idX) {
     if (!confirm(`Paksa selesai timer peserta ID ${idX}?`)) return;
-    const table = document.getElementById('allTableInput').value.trim() || 'nilai1';
+    const table = document.getElementById('allTableInput').value.trim() || 'nilai1_json';
     try {
         await fetch(`${API_INSERT}?table=${table}&id_x=${idX}`, {
             method: 'PUT',
@@ -1094,7 +1122,7 @@ document.addEventListener('mouseout', e => {
 /* ══════════════════════════════════════════════════════════════════
    PAGE 1 — SEMUA DATA
 ══════════════════════════════════════════════════════════════════ */
-let allTableName = 'nilai1';
+let allTableName = 'nilai1_json';
 let rawDataAll   = [];   // ← shared cache semua data mentah dari server
 
 async function allFetch() {
@@ -1150,7 +1178,7 @@ async function allUpdate() {
             const token = row.x_01 || '';
             let idLink  = idX;
             if (idX) {
-                let url = 'https://psikogram.lidan.co.id/?id_x=' + encodeURIComponent(idX);
+                let url = 'https://psikogram.lidan.co.id/index_json?id_x=' + encodeURIComponent(idX);
                 if (token) url += '&x_01=' + encodeURIComponent(token);
                 idLink = `<a href="${url}" target="_blank" style="color:#2563eb;font-weight:700;text-decoration:none">${idX}</a>`;
             }
@@ -1159,11 +1187,11 @@ async function allUpdate() {
             return {
                 id_x:  idLink,
                 x_01:  makeTruncate(token),
-                x_02:  makeTruncate(row.x_02),
-                x_05:  makeTruncate(row.x_05),
+                x_02:  renderJsonBio(row.x_02),
+                x_05:  renderJsonField(row.x_05),
                 x_04:  renderTimer(row.id_x, row.x_04 || ''),
-                x_06:  `<span class="formatted-value">${formatPipes(row.x_06)}</span>`,
-                x_07:  `<span class="formatted-value">${formatPipes(row.x_07)}</span>`,
+                x_06:  renderJsonField(row.x_06),
+                x_07:  renderJsonField(row.x_07),
                 x_09:  renderViolation(row.x_09 || ''),
                 tgl:   isToday
                     ? `<span class="badge badge-active">📅 Hari Ini</span>`
@@ -1236,7 +1264,11 @@ function emptyLoadTable() {
 
 function emptyUpdateFromCache() {
     // Filter dari cache: x_02 kosong
-    const data = rawDataAll.filter(row => !row.x_02 || row.x_02.trim() === '');
+    const data = rawDataAll.filter(row => {
+        if (!row.x_02 || row.x_02.trim() === '') return true;
+        try { const obj = JSON.parse(row.x_02); return !obj.nama || obj.nama.trim() === ''; }
+        catch(e) { return true; }
+    });
     document.getElementById('emptyCount').textContent = data.length + ' token';
 
     if (data.length === 0) {
@@ -1365,8 +1397,8 @@ function todayUpdateFromCache() {
     const rows = data.map(row => {
         const idX   = String(row.id_x || '');
         const token = row.x_01 || '';
-        const pipe0 = row.x_02 ? row.x_02.split('|')[0] : '';
-        const nama  = pipe0 ? (pipe0.split(';')[0] || '') : '';
+        let nama = '';
+        try { nama = JSON.parse(row.x_02 || '{}').nama || ''; } catch(e) {}
         let idLink  = idX;
         if (idX) {
             let url = 'https://psikogram.lidan.co.id/?id_x=' + encodeURIComponent(idX);
@@ -1379,11 +1411,11 @@ function todayUpdateFromCache() {
             chk:  `<input type="checkbox" class="row-checkbox" data-idx="${idX}" data-nama="${namaEsc}" onchange="onRowCheck()">`,
             id_x: idLink,
             x_01: makeTruncate(token),
-            x_02: makeTruncate(row.x_02),
-            x_05: makeTruncate(row.x_05),
+            x_02: renderJsonBio(row.x_02),
+            x_05: renderJsonField(row.x_05),
             x_04: renderTimer(row.id_x, row.x_04 || ''),
-            x_06: `<span class="formatted-value">${formatPipes(row.x_06)}</span>`,
-            x_07: `<span class="formatted-value">${formatPipes(row.x_07)}</span>`,
+            x_06: renderJsonField(row.x_06),
+            x_07: renderJsonField(row.x_07),
             x_09: renderViolation(row.x_09 || ''),
             tgl:  `<span style="font-size:12px;color:var(--muted)">${getDateFromX02(row.x_02)}</span>`
         };
