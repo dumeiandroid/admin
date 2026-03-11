@@ -202,47 +202,6 @@ body {
 .btn-qr { background: #7c3aed; color: white; }
 .btn-qr:hover { background: #6d28d9; }
 
-/* ── PAKET FILTER BAR ── */
-.paket-filter-bar {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 20px;
-    background: #f0f4ff;
-    border-bottom: 1px solid #d0d9f0;
-    flex-wrap: wrap;
-    margin-bottom: 4px;
-    border-radius: 8px;
-}
-.paket-filter-label {
-    font-size: 12px;
-    font-weight: 700;
-    color: #555;
-    white-space: nowrap;
-    margin-right: 2px;
-}
-.pf-btn {
-    padding: 5px 14px;
-    font-size: 12px;
-    font-weight: 600;
-    border: 2px solid #6366f1;
-    border-radius: 20px;
-    background: #fff;
-    color: #6366f1;
-    cursor: pointer;
-    transition: all 0.15s;
-    white-space: nowrap;
-}
-.pf-btn:hover { background: #6366f1; color: #fff; }
-.pf-btn.active { background: #6366f1; color: #fff; box-shadow: 0 2px 8px rgba(99,102,241,0.3); }
-.pf-btn-all { border-color: #6c757d; color: #6c757d; }
-.pf-btn-all:hover, .pf-btn-all.active { background: #6c757d; color: #fff; border-color: #6c757d; }
-
-/* ── DATATABLES header fix ── */
-.dataTables_wrapper { overflow-x: auto; width: 100%; }
-table.dataTable { width: 100% !important; table-layout: auto; }
-table.dataTable thead th, table.dataTable tbody td { white-space: nowrap; }
-
 /* ── DATATABLES custom ── */
 table.dataTable { width: 100% !important; border-collapse: collapse; font-size: 13px; }
 table.dataTable thead th {
@@ -677,7 +636,6 @@ table.dataTable { min-width: 500px; }
     <div class="nav-tab" onclick="switchPage('pageEmpty')">📋 Token Kosong</div>
     <div class="nav-tab" onclick="switchPage('pagePrint')">🖨 Print QR</div>
     <div class="nav-tab" onclick="switchPage('pageAll')">📊 Semua Data</div>
-    <div class="nav-tab" onclick="switchPage('pagePerPaket')">🗂 Data Per Paket</div>
 </nav>
 
 <div class="main">
@@ -726,12 +684,6 @@ table.dataTable { min-width: 500px; }
             <label style="font-size:13px;font-weight:700;color:var(--muted)">Tabel:</label>
             <input type="text" class="ctrl-input" id="emptyTableInput" value="nilai1_json" style="width:140px">
             <button class="btn btn-primary" onclick="emptyLoadTable()">🔄 Muat</button>
-        </div>
-        <!-- Paket Filter Bar -->
-        <div class="paket-filter-bar" id="emptyPaketBar">
-            <span class="paket-filter-label">Paket:</span>
-            <span id="emptyPaketLoading" style="font-size:12px;color:#888;font-style:italic">Memuat paket...</span>
-            <div id="emptyPaketBtnGroup" style="display:flex;gap:6px;flex-wrap:wrap"></div>
         </div>
         <div id="emptyContainer">
             <div class="loading-block"><div class="spinner"></div><p>Memuat data...</p></div>
@@ -808,13 +760,6 @@ table.dataTable { min-width: 500px; }
             <button class="btn btn-outline" id="btnPrintNext" onclick="printNextPage()">Next ›</button>
         </div>
 
-        <!-- Paket Filter Bar -->
-        <div class="paket-filter-bar" id="printPaketBar">
-            <span class="paket-filter-label">Paket:</span>
-            <span id="printPaketLoading" style="font-size:12px;color:#888;font-style:italic">Memuat paket...</span>
-            <div id="printPaketBtnGroup" style="display:flex;gap:6px;flex-wrap:wrap"></div>
-        </div>
-
         <!-- Tombol print bar -->
         <div class="btn-print-bar" style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
             <button class="btn btn-success" onclick="downloadVouchers()" style="flex:1;max-width:220px">
@@ -833,33 +778,6 @@ table.dataTable { min-width: 500px; }
             <p>Tidak ada token kosong tersisa.</p>
         </div>
         <div class="voucher-grid" id="voucherGrid"></div>
-    </div>
-</div>
-
-<!-- ══════════════════════════════════
-     PAGE 5 — DATA PER PAKET
-══════════════════════════════════ -->
-<div id="pagePerPaket" class="page">
-    <div class="card">
-        <div class="card-header">
-            <div class="card-title">🗂 Data Per Paket</div>
-            <div class="info-bar" style="margin-bottom:0">
-                <span class="info-pill pill-blue">Filter berdasarkan paket token</span>
-                <span class="info-pill pill-green" id="perPaketCount">0 data</span>
-            </div>
-        </div>
-        <!-- Paket Filter Bar -->
-        <div class="paket-filter-bar" id="perPaketFilterBar">
-            <span class="paket-filter-label">Paket:</span>
-            <span id="perPaketLoading" style="font-size:12px;color:#888;font-style:italic">Memuat paket...</span>
-            <div id="perPaketBtnGroup" style="display:flex;gap:6px;flex-wrap:wrap"></div>
-        </div>
-        <div id="perPaketContainer">
-            <div class="empty-msg" style="display:block">
-                <div class="em-icon">🗂</div>
-                <p>Pilih paket di atas untuk menampilkan data.</p>
-            </div>
-        </div>
     </div>
 </div>
 
@@ -1024,17 +942,6 @@ function switchPage(id) {
         if (tblAll) document.getElementById('printTableInput').value = tblAll;
         printLoadPage(0);
     }
-    if (id === 'pagePerPaket') {
-        if (rawDataAll.length === 0) allUpdate();
-        renderPerPaketButtons();
-    }
-    // Perbaiki header alignment setelah tab switch
-    setTimeout(() => {
-        if (id === 'pageAll'       && allTable)     { allTable.columns.adjust().draw(false); }
-        if (id === 'pageToday'     && todayTable)   { todayTable.columns.adjust().draw(false); }
-        if (id === 'pageEmpty'     && emptyTable)   { emptyTable.columns.adjust().draw(false); }
-        if (id === 'pagePerPaket'  && ppTable)      { ppTable.columns.adjust().draw(false); }
-    }, 50);
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -1392,7 +1299,7 @@ function allInitTable(rows) {
             paginate:{first:'«',last:'»',next:'›',previous:'‹'},
             zeroRecords:'Tidak ada data', emptyTable:'Tidak ada data'
         },
-        autoWidth: false
+        scrollX: true
     });
 }
 
@@ -1400,15 +1307,10 @@ function allInitTable(rows) {
    PAGE 2 — TOKEN KOSONG
    Tidak fetch sendiri — pakai shared cache rawDataAll dari allUpdate
 ══════════════════════════════════════════════════════════════════ */
-let emptyTableName       = 'nilai1';
-let emptySelectedPaketIdX  = null;   // filter paket token kosong
+let emptyTableName = 'nilai1';
 
 function emptyLoadTable() {
     emptyTableName = document.getElementById('emptyTableInput').value.trim() || 'nilai1';
-    emptySelectedPaketIdX = null;
-    filterPaketLoaded = false;
-    document.getElementById('emptyPaketLoading').style.display = 'inline';
-    document.getElementById('emptyPaketBtnGroup').innerHTML = '';
     if (emptyTable) { emptyTable.destroy(); emptyTable = null; }
     document.getElementById('emptyContainer').innerHTML =
         '<div class="loading-block"><div class="spinner"></div><p>Memuat...</p></div>';
@@ -1420,22 +1322,11 @@ function emptyLoadTable() {
 
 function emptyUpdateFromCache() {
     // Filter dari cache: x_02 kosong
-    let data = rawDataAll.filter(row => {
+    const data = rawDataAll.filter(row => {
         if (!row.x_02 || row.x_02.trim() === '') return true;
         try { const obj = JSON.parse(row.x_02); return !obj.nama || obj.nama.trim() === ''; }
         catch(e) { return true; }
     });
-
-    // Render tombol paket (dengan jumlah per paket)
-    renderEmptyPaketButtons(data);
-
-    // Filter tambahan berdasarkan paket terpilih
-    if (emptySelectedPaketIdX !== null) {
-        data = data.filter(row => {
-            const prefix = (row.x_01 || '').trim().split('-')[0];
-            return prefix === String(emptySelectedPaketIdX);
-        });
-    }
     document.getElementById('emptyCount').textContent = data.length + ' token';
 
     if (data.length === 0) {
@@ -1485,41 +1376,6 @@ function openEmptyQR(idx) {
     const list = emptyRawCache._list || [];
     if (!list.length) return;
     openQRFullscreen(list, idx);
-}
-
-async function renderEmptyPaketButtons(allEmptyTokens) {
-    await loadFilterPaketData();
-    const loading = document.getElementById('emptyPaketLoading');
-    if (loading) loading.style.display = 'none';
-    const group = document.getElementById('emptyPaketBtnGroup');
-    if (!group) return;
-
-    const countMap = countTokenPerPaket(allEmptyTokens);
-    group.innerHTML = '';
-
-    const allBtn = document.createElement('button');
-    allBtn.className = 'pf-btn pf-btn-all' + (emptySelectedPaketIdX === null ? ' active' : '');
-    allBtn.textContent = 'Semua';
-    allBtn.onclick = () => selectEmptyPaket(null, allBtn);
-    group.appendChild(allBtn);
-
-    filterPaketData.forEach(p => {
-        const idX  = String(p.id_x || '').trim();
-        const nama = (p.x_01 || '').trim();
-        const cnt  = countMap[idX] || 0;
-        const btn  = document.createElement('button');
-        btn.className = 'pf-btn' + (emptySelectedPaketIdX === idX ? ' active' : '');
-        btn.innerHTML = `${escHtml(nama || idX)}-${escHtml(idX)} <span style="font-size:11px;font-weight:700">(${cnt})</span>`;
-        btn.onclick = () => selectEmptyPaket(idX, btn);
-        group.appendChild(btn);
-    });
-}
-
-function selectEmptyPaket(idX, clickedBtn) {
-    emptySelectedPaketIdX = idX;
-    document.querySelectorAll('#emptyPaketBtnGroup .pf-btn, #emptyPaketBar .pf-btn-all').forEach(b => b.classList.remove('active'));
-    clickedBtn.classList.add('active');
-    emptyUpdateFromCache();
 }
 
 function emptyInitTable(rows) {
@@ -1669,7 +1525,7 @@ function todayInitTable(rows) {
             paginate:{first:'«',last:'»',next:'›',previous:'‹'},
             zeroRecords:'Tidak ada data', emptyTable:'Tidak ada data'
         },
-        autoWidth: false
+        scrollX: true
     });
 }
 
@@ -1981,15 +1837,6 @@ async function printLoadPage(offset) {
     printCurrentLimit  = parseInt(document.getElementById('printLimitInput').value) || 15;
     printCurrentOffset = offset;
 
-    // Reset paket filter saat tabel berganti
-    if (offset === 0) {
-        printSelectedPaketIdX  = null;
-        printSelectedPaketNama = null;
-        filterPaketLoaded      = false;
-        document.getElementById('printPaketLoading').style.display = 'inline';
-        document.getElementById('printPaketBtnGroup').innerHTML    = '';
-    }
-
     // UI reset
     document.getElementById('printLoadingMsg').style.display = 'block';
     document.getElementById('printEmptyMsg').style.display   = 'none';
@@ -1999,18 +1846,26 @@ async function printLoadPage(offset) {
     document.getElementById('btnPrintNext').disabled = true;
 
     try {
-        // Ambil SEMUA token kosong (untuk filter client-side & hitung per paket)
-        const { data: allTokens } = await printFetch(0, 9999, printTableName);
-        printAllData = allTokens;
-        printTotal   = allTokens.length;
-
+        const { data, total } = await printFetch(printCurrentOffset, printCurrentLimit, printTableName);
+        printTotal = total;
         document.getElementById('printLoadingMsg').style.display = 'none';
 
-        // Render tombol paket dengan jumlah token
-        await renderPrintPaketButtons(allTokens);
+        if (data.length === 0) {
+            document.getElementById('printEmptyMsg').style.display = 'block';
+            document.getElementById('printCount').textContent  = '0 voucher';
+            document.getElementById('printStatus').textContent = 'Kosong';
+            return;
+        }
 
-        // Render voucher (semua / sesuai paket terpilih)
-        await printRenderFiltered(allTokens);
+        await printRenderVouchers(data);
+
+        const from = printCurrentOffset + 1;
+        const to   = printCurrentOffset + data.length;
+        document.getElementById('printCount').textContent  = data.length + ' voucher';
+        document.getElementById('printStatus').textContent = `${from}–${to} dari ${total}`;
+
+        document.getElementById('btnPrintPrev').disabled = (printCurrentOffset === 0);
+        document.getElementById('btnPrintNext').disabled = (to >= total);
 
     } catch(e) {
         document.getElementById('printLoadingMsg').style.display = 'none';
@@ -2101,263 +1956,6 @@ async function printRenderVouchers(data) {
         grid.appendChild(div);
     }
 }
-
-/* ══════════════════════════════════════════════════════════════════
-   PAKET FILTER — shared state untuk Print QR & Data Per Paket
-══════════════════════════════════════════════════════════════════ */
-let filterPaketData     = [];
-let filterPaketLoaded   = false;
-let printSelectedPaketIdX  = null;
-let printSelectedPaketNama = null;
-let printAllData           = [];
-let ppSelectedPaketIdX  = null;
-let ppSelectedPaketNama = null;
-let ppTable             = null;
-
-async function loadFilterPaketData() {
-    if (filterPaketLoaded) return;
-    try {
-        const res  = await fetch(`${API_BASE}?table=alat_tes`, { headers: { 'X-Custom-Auth': AUTH_KEY } });
-        const json = await res.json();
-        filterPaketData = (json.success && json.data) ? json.data : [];
-    } catch(e) { filterPaketData = []; }
-    filterPaketLoaded = true;
-}
-
-function countTokenPerPaket(allTokens) {
-    const map = {};
-    allTokens.forEach(row => {
-        const prefix = (row.x_01 || '').trim().split('-')[0];
-        if (prefix) map[prefix] = (map[prefix] || 0) + 1;
-    });
-    return map;
-}
-
-async function renderPrintPaketButtons(allTokens) {
-    await loadFilterPaketData();
-    document.getElementById('printPaketLoading').style.display = 'none';
-    const group    = document.getElementById('printPaketBtnGroup');
-    const countMap = countTokenPerPaket(allTokens);
-    group.innerHTML = '';
-
-    const allBtn = document.createElement('button');
-    allBtn.className = 'pf-btn pf-btn-all' + (printSelectedPaketIdX === null ? ' active' : '');
-    allBtn.textContent = 'Semua';
-    allBtn.onclick = () => selectPrintPaket(null, null, allBtn, allTokens);
-    group.appendChild(allBtn);
-
-    filterPaketData.forEach(p => {
-        const idX  = String(p.id_x || '').trim();
-        const nama = (p.x_01 || '').trim();
-        const cnt  = countMap[idX] || 0;
-        const btn  = document.createElement('button');
-        btn.className = 'pf-btn' + (printSelectedPaketIdX === idX ? ' active' : '');
-        btn.innerHTML = `${escHtml(nama || idX)}-${escHtml(idX)} <span style="font-size:11px;font-weight:700">(${cnt})</span>`;
-        btn.onclick = () => selectPrintPaket(idX, nama, btn, allTokens);
-        group.appendChild(btn);
-    });
-}
-
-function selectPrintPaket(idX, nama, clickedBtn, allTokens) {
-    printSelectedPaketIdX  = idX;
-    printSelectedPaketNama = nama;
-    document.querySelectorAll('#printPaketBtnGroup .pf-btn, #printPaketBar .pf-btn-all').forEach(b => b.classList.remove('active'));
-    clickedBtn.classList.add('active');
-    printRenderFiltered(allTokens);
-}
-
-async function printRenderFiltered(allTokens) {
-    let filtered = allTokens;
-    if (printSelectedPaketIdX !== null) {
-        filtered = allTokens.filter(row => {
-            const prefix = (row.x_01 || '').trim().split('-')[0];
-            return prefix === String(printSelectedPaketIdX);
-        });
-    }
-    const limit = parseInt(document.getElementById('printLimitInput').value) || 15;
-    printCurrentOffset = 0;
-    printTotal = filtered.length;
-    printAllData = filtered;
-
-    document.getElementById('voucherGrid').innerHTML = '';
-    document.getElementById('printEmptyMsg').style.display = 'none';
-
-    if (filtered.length === 0) {
-        document.getElementById('printEmptyMsg').style.display = 'block';
-        document.getElementById('printCount').textContent  = '0 voucher';
-        document.getElementById('printStatus').textContent = 'Kosong';
-        document.getElementById('btnPrintPrev').disabled = true;
-        document.getElementById('btnPrintNext').disabled = true;
-        return;
-    }
-
-    const page = filtered.slice(0, limit);
-    await printRenderVouchersPaket(page);
-    document.getElementById('printCount').textContent  = page.length + ' voucher';
-    document.getElementById('printStatus').textContent = `1–${page.length} dari ${filtered.length}`;
-    document.getElementById('btnPrintPrev').disabled = true;
-    document.getElementById('btnPrintNext').disabled = (page.length >= filtered.length);
-}
-
-async function printRenderVouchersPaket(data) {
-    const grid = document.getElementById('voucherGrid');
-    grid.innerHTML = '';
-    document.getElementById('printStatus').textContent = '⏳ Membuat QR Code...';
-
-    for (const row of data) {
-        const token = row.x_01 || '';
-        const idX   = row.id_x || '';
-        let baseUrl = PSIKOTEST_URL;
-        if (printSelectedPaketNama) {
-            baseUrl = 'https://lidan.co.id/psikotest/' + encodeURIComponent(printSelectedPaketNama);
-        }
-        const target   = baseUrl + '?token=' + encodeURIComponent(token);
-        const qrCanvas = await generateQRCanvas(target);
-
-        const div      = document.createElement('div');
-        div.className  = 'voucher-card';
-
-        const titleDiv = document.createElement('div');
-        titleDiv.className = 'voucher-card-title';
-        titleDiv.innerHTML = `ID: ${escHtml(String(idX))} &nbsp;|&nbsp; ${escHtml(printTableName)}`;
-
-        const qrLabel = document.createElement('div');
-        qrLabel.textContent = 'QR Code:';
-
-        const qrWrap = document.createElement('div');
-        qrWrap.className = 'voucher-qr-wrap';
-        if (qrCanvas) {
-            qrCanvas.style.cssText = 'display:block;margin:0 auto;border:2px solid #007BFF;border-radius:8px;padding:3px;';
-            qrWrap.appendChild(qrCanvas);
-        }
-
-        const urlDiv = document.createElement('div');
-        urlDiv.className = 'voucher-url';
-        urlDiv.textContent = 'URL: ' + baseUrl;
-
-        const codeDiv = document.createElement('div');
-        codeDiv.className = 'voucher-code';
-        codeDiv.textContent = 'Token : ' + (token || '-');
-
-        div.appendChild(titleDiv);
-        div.appendChild(qrLabel);
-        div.appendChild(qrWrap);
-        div.appendChild(urlDiv);
-        div.appendChild(codeDiv);
-        grid.appendChild(div);
-    }
-}
-
-/* ── Data Per Paket ── */
-async function renderPerPaketButtons() {
-    await loadFilterPaketData();
-    document.getElementById('perPaketLoading').style.display = 'none';
-    const group = document.getElementById('perPaketBtnGroup');
-    group.innerHTML = '';
-
-    filterPaketData.forEach(p => {
-        const idX  = String(p.id_x || '').trim();
-        const nama = (p.x_01 || '').trim();
-        const btn  = document.createElement('button');
-        btn.className = 'pf-btn' + (ppSelectedPaketIdX === idX ? ' active' : '');
-        btn.innerHTML = `${escHtml(nama || idX)}-${escHtml(idX)}`;
-        btn.onclick = () => selectPerPaket(idX, nama, btn);
-        group.appendChild(btn);
-    });
-}
-
-function selectPerPaket(idX, nama, clickedBtn) {
-    ppSelectedPaketIdX  = idX;
-    ppSelectedPaketNama = nama;
-    document.querySelectorAll('#perPaketBtnGroup .pf-btn').forEach(b => b.classList.remove('active'));
-    clickedBtn.classList.add('active');
-    renderPerPaketTable();
-}
-
-function renderPerPaketTable() {
-    const filtered = rawDataAll.filter(row => {
-        const prefix = (row.x_01 || '').trim().split('-')[0];
-        return prefix === String(ppSelectedPaketIdX);
-    });
-
-    document.getElementById('perPaketCount').textContent = filtered.length + ' data';
-
-    const rows = filtered.map(row => {
-        const idX   = String(row.id_x || '');
-        const token = row.x_01 || '';
-        let idLink  = idX;
-        if (idX) {
-            let url = 'https://psikogram.lidan.co.id/index_json_new?id_x=' + encodeURIComponent(idX);
-            if (token) url += '&x_01=' + encodeURIComponent(token);
-            idLink = `<a href="${url}" target="_blank" style="color:#2563eb;font-weight:700;text-decoration:none">${idX}</a>`;
-        }
-        const dateStr = getDateFromX02(row.x_02);
-        const isToday = dateStr === todayString();
-        return {
-            id_x: idLink,
-            x_01: makeTruncate(token),
-            x_02: renderJsonBio(row.x_02),
-            x_05: renderJsonField(row.x_05),
-            x_04: renderTimer(row.id_x, row.x_04 || ''),
-            x_06: renderJsonField(row.x_06),
-            x_07: renderJsonField(row.x_07),
-            x_09: renderViolation(row.x_09 || ''),
-            tgl:  isToday
-                ? `<span class="badge badge-active">📅 Hari Ini</span>`
-                : (dateStr ? `<span style="font-size:12px;color:var(--muted)">${dateStr}</span>` : '')
-        };
-    });
-
-    const container = document.getElementById('perPaketContainer');
-    if (ppTable) { ppTable.destroy(); ppTable = null; }
-
-    if (filtered.length === 0) {
-        container.innerHTML = `<div class="empty-msg" style="display:block">
-            <div class="em-icon">🔍</div>
-            <p>Tidak ada data untuk paket <strong>${escHtml(ppSelectedPaketNama || ppSelectedPaketIdX)}</strong>.</p>
-        </div>`;
-        return;
-    }
-
-    container.innerHTML = `
-        <table id="perPaketTable" class="display nowrap" style="width:100%">
-            <thead><tr>
-                <th>ID</th><th>Token</th><th>Biodata</th><th>Skor</th>
-                <th>⏱ Timer</th><th>Skor 1</th><th>Skor 2</th><th>🔄 Tab</th><th>Tgl Tes</th>
-            </tr></thead><tbody></tbody>
-        </table>`;
-
-    ppTable = $('#perPaketTable').DataTable({
-        data: rows,
-        columns: [
-            { data:'id_x',  orderable:true },
-            { data:'x_01' },
-            { data:'x_02' },
-            { data:'x_05' },
-            { data:'x_04', orderable:false },
-            { data:'x_06' },
-            { data:'x_07' },
-            { data:'x_09', title:'🔄 Tab', orderable:false, defaultContent:'—' },
-            { data:'tgl',  orderable:false }
-        ],
-        pageLength: 25,
-        lengthMenu: [[10,25,50,100,-1],[10,25,50,100,'Semua']],
-        order: [[0,'desc']],
-        language: {
-            search:'🔍', searchPlaceholder:'Cari...',
-            lengthMenu:'Tampilkan _MENU_',
-            info:'_START_–_END_ dari _TOTAL_',
-            infoEmpty:'0 data', infoFiltered:'(dari _MAX_)',
-            paginate:{first:'«',last:'»',next:'›',previous:'‹'},
-            zeroRecords:'Tidak ada data', emptyTable:'Tidak ada data'
-        },
-        autoWidth: false
-    });
-}
-
-/* ══════════════════════════════════════════════════════════════════
-   END PAKET FILTER
-══════════════════════════════════════════════════════════════════ */
 
 async function downloadVouchers() {
     const grid = document.getElementById('voucherGrid');
