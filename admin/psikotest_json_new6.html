@@ -1092,25 +1092,6 @@ function renderJsonField(raw) {
     }
 }
 
-// Khusus kolom Skor (x_05): tampilkan key:value, misal cfit1:8 cfit2:6
-function renderSkorField(raw) {
-    if (!raw || raw.trim() === '') return '<span style="color:#ccc;font-size:12px">—</span>';
-    try {
-        const obj = JSON.parse(raw);
-        const entries = Object.entries(obj);
-        if (entries.length === 0) return '<span style="color:#ccc;font-size:12px">—</span>';
-        const items = entries.map(([k,v]) => {
-            const val = (v !== null && v !== undefined && v !== '') ? v : '—';
-            return `<span style="font-size:11px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:1px 7px;margin:1px;display:inline-block;white-space:nowrap"><span style="color:#1e40af;font-weight:700">${escHtml(k)}</span><span style="color:#64748b">:</span><span style="color:#0f766e;font-weight:800;margin-left:2px">${escHtml(String(val))}</span></span>`;
-        }).join(' ');
-        const tooltip = entries.map(([k,v]) => `${k}: ${v}`).join(' | ');
-        return `<div title="${escHtml(tooltip)}" style="max-width:220px;white-space:normal;word-break:break-word;cursor:default;line-height:1.8">${items}</div>`;
-    } catch(e) {
-        // Fallback: tampilkan apa adanya
-        return `<span title="${escHtml(raw)}" style="font-size:11px;background:#eff6ff;border-radius:4px;padding:1px 6px;cursor:default">${escHtml(raw)}</span>`;
-    }
-}
-
 function renderJsonBio(raw) {
     if (!raw || raw.trim() === '') return '<span style="color:#ccc;font-size:12px">—</span>';
     try {
@@ -1365,7 +1346,7 @@ async function allUpdate() {
                 id_x:  idLink,
                 x_01:  makeTruncate(token),
                 x_02:  renderJsonBio(row.x_02),
-                x_05:  renderSkorField(row.x_05),
+                x_05:  renderJsonField(row.x_05),
                 x_04:  renderTimer(row.id_x, row.x_04 || ''),
                 x_06:  renderJsonField(row.x_06),
                 x_07:  renderJsonField(row.x_07),
@@ -1640,7 +1621,7 @@ function todayUpdateFromCache() {
             id_x: idLink,
             x_01: makeTruncate(token),
             x_02: renderJsonBio(row.x_02),
-            x_05: renderSkorField(row.x_05),
+            x_05: renderJsonField(row.x_05),
             x_04: renderTimer(row.id_x, row.x_04 || ''),
             x_06: renderJsonField(row.x_06),
             x_07: renderJsonField(row.x_07),
@@ -2323,7 +2304,7 @@ function renderPerPaketTable() {
             id_x: idLink,
             x_01: makeTruncate(token),
             x_02: renderJsonBio(row.x_02),
-            x_05: renderSkorField(row.x_05),
+            x_05: renderJsonField(row.x_05),
             x_04: renderTimer(row.id_x, row.x_04 || ''),
             x_06: renderJsonField(row.x_06),
             x_07: renderJsonField(row.x_07),
