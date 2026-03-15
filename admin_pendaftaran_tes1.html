@@ -322,8 +322,6 @@ tr:hover td { background:#FAFBFD; }
 .btn-action.view-detail   { background:var(--blue-light);color:var(--blue); }
 .btn-action.view-detail:hover { background:#d0e8f8; }
 .btn-action.done { background:var(--bg);color:var(--muted);cursor:default; }
-.btn-action.kirim-wa { background:#E7F9EE;color:#1A7A40; }
-.btn-action.kirim-wa:hover { background:#C8F0D8; }
 
 /* EMPTY STATE */
 .empty-state { padding:60px 20px;text-align:center; }
@@ -1021,11 +1019,6 @@ function renderTable() {
       <td>${statusBadge(status, paket)}</td>
       <td>${tesBadge(tesSt)}</td>
       <td>
-        <button class="btn-action kirim-wa" onclick="sendWA('${esc(bio.hp||'')}','${esc(bio.nama||'')}','${esc(paket)}')" title="Kirim WA ke ${esc(bio.nama||'peserta')}">
-          <i class="fab fa-whatsapp"></i> WA
-        </button>
-      </td>
-      <td>
         <div style="display:flex;gap:6px;flex-wrap:wrap;">
           <button class="btn-action view-detail" onclick="openDetail(${row.id_x})">
             <i class="fas fa-eye"></i> Detail
@@ -1047,7 +1040,6 @@ function renderTable() {
             <th>Paket</th>
             <th>Status Bayar</th>
             <th>Status Tes</th>
-            <th>WA</th>
             <th>Aksi</th>
           </tr>
         </thead>
@@ -1346,57 +1338,6 @@ function esc(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 function pad(n) { return String(n).padStart(2,'0'); }
-
-// ══════════════════════════════════════════════════════════════
-//  SEND WA
-// ══════════════════════════════════════════════════════════════
-function getGreeting() {
-  const hour = new Date().getHours();
-  if (hour >= 5  && hour < 11) return 'Selamat pagi';
-  if (hour >= 11 && hour < 15) return 'Selamat siang';
-  if (hour >= 15 && hour < 18) return 'Selamat sore';
-  return 'Selamat malam';
-}
-
-function formatWANumber(hp) {
-  // Remove spaces, dashes, parentheses
-  let num = hp.replace(/[\s\-()]/g, '');
-  // Replace leading 0 with 62
-  if (num.startsWith('0')) num = '62' + num.slice(1);
-  // Remove any + prefix
-  num = num.replace(/^\+/, '');
-  return num;
-}
-
-function sendWA(hp, nama, paket) {
-  if (!hp) { showToast('Nomor WA tidak tersedia.', 'error'); return; }
-
-  const paketLabel = {
-    gratis:       'Gratis',
-    Dasar:        'Dasar',
-    Lengkap:      'Lengkap',
-    Komprehensif: 'Komprehensif',
-  }[paket] || paket;
-
-  const greeting = getGreeting();
-  const msg =
-`${greeting}, ${nama || 'Kak'} 👋
-
-Terima kasih telah melakukan pesanan Tes IQ Paket *${paketLabel}* di Lidan Psikologi.
-
-Berikut detail pelaksanaan tes Anda:
-📌 *Kode Token:* yyy
-🗓 *Pelaksanaan:* Hari ini pukul *15.00 WIB*
-🔗 *Link Zoom:* xxx
-
-Harap bergabung *15 menit sebelumnya* agar tes dapat dimulai tepat waktu.
-
-Jika ada pertanyaan, jangan ragu untuk menghubungi kami. Semoga lancar! 🙏`;
-
-  const waNum = formatWANumber(hp);
-  const url = `https://wa.me/${waNum}?text=${encodeURIComponent(msg)}`;
-  window.open(url, '_blank');
-}
 
 function paketBadge(paket) {
   const map = {
