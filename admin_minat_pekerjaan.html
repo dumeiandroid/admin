@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard — Tes Minat Pekerjaan | Lidan Psikologi</title>
+<meta name="robots" content="noindex, nofollow">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<style>
+:root {
+  --navy:       #042C53;
+  --navy-mid:   #0A3D6B;
+  --navy-dark:  #021E3A;
+  --blue:       #378ADD;
+  --blue-light: #E6F1FB;
+  --blue-pale:  #F0F7FF;
+  --teal:       #1A8C7A;
+  --teal-light: #E0F5F2;
+  --green:      #2EAD6A;
+  --green-light:#E8F8F0;
+  --gold:       #C49A3C;
+  --gold-light: #FDF6E3;
+  --red:        #E05252;
+  --red-light:  #FEF0F0;
+  --amber:      #E07B10;
+  --amber-light:#FEF3E2;
+  --purple:     #7C5CDB;
+  --purple-light:#F0EDFB;
+  --text:       #1A2332;
+  --text-2:     #3D4F63;
+  --muted:      #6B7A90;
+  --border:     #DDE3ED;
+  --white:      #FFFFFF;
+  --bg:         #F0F3F8;
+  --sidebar-w:  240px;
+  --radius:     12px;
+  --radius-sm:  8px;
+  --shadow:     0 2px 12px rgba(4,44,83,0.08);
+  --shadow-md:  0 4px 24px rgba(4,44,83,0.12);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+/* ═══ LOGIN PAGE ═══ */
+#login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #021E3A 0%, var(--navy) 50%, #0E5A4A 100%);
+  position: relative;
+  overflow: hidden;
+}
+#login-page::before { content:''; position:absolute; width:600px; height:600px; border-radius:50%; background:rgba(26,140,122,0.07); top:-200px; right:-200px; pointer-events:none; }
+#login-page::after  { content:''; position:absolute; width:400px; height:400px; border-radius:50%; background:rgba(93,202,165,0.05); bottom:-150px; left:-100px; pointer-events:none; }
+
+.login-box {
+  background: rgba(255,255,255,0.04);
+  border: 0.5px solid rgba(255,255,255,0.12);
+  border-radius: 20px;
+  padding: 48px 44px;
+  width: 100%;
+  max-width: 420px;
+  position: relative;
+  z-index: 1;
+  backdrop-filter: blur(12px);
+  animation: fadeUp 0.5s ease;
+}
+@keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+.login-logo { display:flex; align-items:center; gap:10px; margin-bottom:32px; }
+.login-logo .logo-mark { width:40px; height:40px; background:var(--teal); border-radius:10px; display:flex; align-items:center; justify-content:center; font-family:'Syne',sans-serif; font-weight:800; color:#fff; font-size:18px; }
+.login-logo .logo-text { font-family:'Syne',sans-serif; font-size:16px; font-weight:700; color:#fff; }
+.login-logo .logo-text span { color:#7DCDC5; font-weight:400; }
+.login-title { font-family:'Syne',sans-serif; font-size:26px; font-weight:800; color:#fff; margin-bottom:6px; }
+.login-sub { font-size:13.5px; color:rgba(255,255,255,0.5); margin-bottom:32px; }
+.login-field { margin-bottom:18px; }
+.login-field label { display:block; font-size:12px; font-weight:600; color:rgba(255,255,255,0.6); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:8px; }
+.login-field .input-wrap { position:relative; }
+.login-field .input-wrap i { position:absolute; left:14px; top:50%; transform:translateY(-50%); color:rgba(255,255,255,0.3); font-size:14px; }
+.login-field input { width:100%; padding:12px 14px 12px 40px; background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.12); border-radius:var(--radius-sm); font-family:'DM Sans',sans-serif; font-size:14px; color:#fff; outline:none; transition:border-color 0.2s, background 0.2s; }
+.login-field input::placeholder { color:rgba(255,255,255,0.3); }
+.login-field input:focus { border-color:var(--teal); background:rgba(26,140,122,0.1); }
+.login-err { font-size:12px; color:#FF8080; margin-top:6px; display:none; }
+.login-err.show { display:block; }
+.btn-login { width:100%; padding:14px; background:var(--teal); border:none; border-radius:var(--radius-sm); font-family:'Syne',sans-serif; font-size:15px; font-weight:700; color:#fff; cursor:pointer; margin-top:8px; transition:background 0.2s, transform 0.1s; display:flex; align-items:center; justify-content:center; gap:8px; }
+.btn-login:hover { background:#147A6A; transform:translateY(-1px); }
+.btn-login:disabled { opacity:0.6; cursor:not-allowed; transform:none; }
+.btn-login .spinner { width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;display:none; }
+.btn-login.loading .spinner { display:block; }
+.btn-login.loading .btn-login-text { display:none; }
+@keyframes spin { to{transform:rotate(360deg)} }
+
+/* ═══ DASHBOARD ═══ */
+#dashboard-page { display:none; min-height:100vh; }
+
+/* SIDEBAR */
+.sidebar { position:fixed; top:0; left:0; width:var(--sidebar-w); height:100vh; background:var(--navy-dark); display:flex; flex-direction:column; z-index:100; border-right:0.5px solid rgba(255,255,255,0.06); }
+.sidebar-header { padding:22px 20px; border-bottom:0.5px solid rgba(255,255,255,0.06); }
+.sidebar-logo { display:flex; align-items:center; gap:10px; }
+.sidebar-logo .lm { width:34px;height:34px;background:var(--teal);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;color:#fff;font-size:15px;flex-shrink:0; }
+.sidebar-logo .lt { font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:#fff;line-height:1.2; }
+.sidebar-logo .lt span { color:#7DCDC5;font-weight:400;font-size:11px; }
+.sidebar-badge { margin-top:12px;background:rgba(26,140,122,0.15);border:0.5px solid rgba(26,140,122,0.3);border-radius:6px;padding:5px 10px;font-size:11px;color:#7DCDC5;font-weight:600; }
+
+.sidebar-nav { flex:1; padding:16px 12px; overflow-y:auto; }
+.nav-section-label { font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.25);padding:8px 8px 6px;margin-top:8px; }
+.nav-item { display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--radius-sm);font-size:13.5px;color:rgba(255,255,255,0.55);cursor:pointer;transition:all 0.15s;margin-bottom:2px;text-decoration:none; }
+.nav-item:hover { background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.85); }
+.nav-item.active { background:rgba(26,140,122,0.18);color:#fff; }
+.nav-item.active i { color:var(--teal); }
+.nav-item i { width:18px;text-align:center;font-size:14px;color:rgba(255,255,255,0.35); }
+.nav-item .badge-count { margin-left:auto;background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:100px; }
+
+.sidebar-footer { padding:16px 12px; border-top:0.5px solid rgba(255,255,255,0.06); }
+.admin-chip { display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--radius-sm);background:rgba(255,255,255,0.05); }
+.admin-chip .av { width:30px;height:30px;border-radius:50%;background:var(--teal);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0; }
+.admin-chip .info { flex:1;min-width:0; }
+.admin-chip .info .name { font-size:12.5px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.admin-chip .info .role { font-size:10.5px;color:rgba(255,255,255,0.35); }
+.btn-logout { background:none;border:none;color:rgba(255,255,255,0.3);cursor:pointer;font-size:14px;padding:4px;transition:color 0.15s; }
+.btn-logout:hover { color:var(--red); }
+
+/* MAIN CONTENT */
+.main-content { margin-left:var(--sidebar-w); min-height:100vh; padding:0; }
+.topbar { background:#fff; border-bottom:0.5px solid var(--border); padding:14px 28px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:50; }
+.topbar-title { font-family:'Syne',sans-serif; font-size:18px; font-weight:700; color:var(--navy); }
+.topbar-title span { font-size:13px;font-weight:400;color:var(--muted);margin-left:8px; }
+.topbar-actions { display:flex;align-items:center;gap:10px; }
+.btn-refresh { display:flex;align-items:center;gap:6px;padding:8px 16px;background:var(--navy);color:#fff;border:none;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:background 0.15s; }
+.btn-refresh:hover { background:var(--navy-mid); }
+.btn-refresh.spinning i { animation:spin 0.8s linear infinite; }
+
+.page-body { padding:24px 28px; }
+
+/* STAT CARDS */
+.stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px; }
+@media(max-width:1100px){ .stats-grid{ grid-template-columns:repeat(2,1fr); } }
+.stat-card { background:#fff; border-radius:var(--radius); border:0.5px solid var(--border); padding:20px 22px; position:relative; overflow:hidden; transition:transform 0.15s, box-shadow 0.15s; }
+.stat-card:hover { transform:translateY(-2px); box-shadow:var(--shadow-md); }
+.stat-card .sc-label { font-size:11.5px;font-weight:600;color:var(--muted);letter-spacing:0.04em;text-transform:uppercase;margin-bottom:8px; }
+.stat-card .sc-value { font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:var(--navy);line-height:1; }
+.stat-card .sc-sub { font-size:12px;color:var(--muted);margin-top:6px; }
+.stat-card .sc-icon { position:absolute;top:18px;right:18px;width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px; }
+.stat-card.teal  .sc-icon { background:var(--teal-light); color:var(--teal); }
+.stat-card.green .sc-icon { background:var(--green-light); color:var(--green); }
+.stat-card.gold  .sc-icon { background:var(--gold-light);  color:var(--gold); }
+.stat-card.red   .sc-icon { background:var(--red-light);   color:var(--red);  }
+.stat-card .sc-bar { height:3px;border-radius:2px;margin-top:12px;background:var(--border); }
+.stat-card .sc-bar-fill { height:100%;border-radius:2px;transition:width 1s ease; }
+.stat-card.teal  .sc-bar-fill { background:var(--teal); }
+.stat-card.green .sc-bar-fill { background:var(--green); }
+.stat-card.gold  .sc-bar-fill { background:var(--gold); }
+.stat-card.red   .sc-bar-fill { background:var(--red); }
+
+/* TABLE CARD */
+.table-card { background:#fff; border-radius:var(--radius); border:0.5px solid var(--border); box-shadow:var(--shadow); overflow:hidden; }
+.table-toolbar { padding:16px 20px; border-bottom:0.5px solid var(--border); display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+.search-box { position:relative; flex:1; min-width:200px; max-width:320px; }
+.search-box i { position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px; }
+.search-box input { width:100%;padding:9px 12px 9px 34px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:13.5px;color:var(--text);outline:none;transition:border-color 0.2s; }
+.search-box input:focus { border-color:var(--teal); }
+
+.filter-tabs { display:flex; gap:4px; flex-wrap:wrap; }
+.ftab { padding:7px 14px;border-radius:100px;font-size:12.5px;font-weight:600;border:1.5px solid var(--border);background:#fff;color:var(--muted);cursor:pointer;transition:all 0.15s;white-space:nowrap; }
+.ftab:hover { border-color:var(--teal);color:var(--teal); }
+.ftab.active { background:var(--navy);border-color:var(--navy);color:#fff; }
+.ftab .dot { display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:5px; }
+
+.table-meta { padding:10px 20px;border-bottom:0.5px solid var(--border);font-size:12.5px;color:var(--muted);display:flex;align-items:center;justify-content:space-between; }
+.table-meta strong { color:var(--navy); }
+
+/* TABLE */
+.table-wrap { overflow-x:auto; }
+table { width:100%;border-collapse:collapse; }
+thead tr { background:var(--bg); }
+th { padding:11px 16px;text-align:left;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;border-bottom:0.5px solid var(--border);white-space:nowrap; }
+td { padding:13px 16px;font-size:13.5px;color:var(--text-2);border-bottom:0.5px solid var(--border);vertical-align:middle; }
+tr:last-child td { border-bottom:none; }
+tr:hover td { background:#FAFBFD; }
+
+/* BADGES */
+.badge { display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:100px;font-size:11.5px;font-weight:600;white-space:nowrap; }
+.badge .bdot { width:5px;height:5px;border-radius:50%;flex-shrink:0; }
+.badge.gratis      { background:#EAF4EE; color:#2A7A4A; }
+.badge.gratis .bdot{ background:#2EAD6A; }
+.badge.dasar       { background:var(--teal-light); color:#0E5A4A; }
+.badge.dasar .bdot { background:var(--teal); }
+.badge.lengkap     { background:var(--blue-light); color:#1A5A9A; }
+.badge.lengkap .bdot { background:var(--blue); }
+.badge.komprehensif{ background:var(--gold-light); color:#8A6010; }
+.badge.komprehensif .bdot { background:var(--gold); }
+
+/* STATUS BADGES */
+.sbadge { display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:6px;font-size:11.5px;font-weight:600;white-space:nowrap; }
+.sbadge.gratis-s      { background:#EAF4EE;color:#2A7A4A; }
+.sbadge.menunggu      { background:var(--amber-light);color:#8A4A00; }
+.sbadge.lunas         { background:#E8F8F0;color:#1A6A4A; }
+.sbadge.laporan-kirim { background:var(--purple-light);color:#5A3CAA; }
+.sbadge.pending-tes   { background:var(--bg);color:var(--muted);border:0.5px solid var(--border); }
+
+/* ACTION BUTTONS */
+.btn-action { display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:var(--radius-sm);font-size:12px;font-weight:600;border:none;cursor:pointer;transition:all 0.15s;white-space:nowrap; }
+.btn-action.confirm-bayar  { background:var(--green-light);color:var(--green); }
+.btn-action.confirm-bayar:hover { background:#d0f0e0; }
+.btn-action.kirim-laporan  { background:var(--purple-light);color:var(--purple); }
+.btn-action.kirim-laporan:hover { background:#e0d8f8; }
+.btn-action.view-detail    { background:var(--teal-light);color:var(--teal); }
+.btn-action.view-detail:hover { background:#c0ece8; }
+.btn-action.done           { background:var(--bg);color:var(--muted);cursor:default; }
+.btn-action.kirim-wa       { background:#E7F9EE;color:#1A7A40; }
+.btn-action.kirim-wa:hover { background:#C8F0D8; }
+
+/* EMPTY / LOADING STATE */
+.empty-state { padding:60px 20px;text-align:center; }
+.empty-state i { font-size:40px;color:var(--border);margin-bottom:14px; }
+.empty-state p { font-size:14px;color:var(--muted); }
+.loading-state { padding:48px 20px;text-align:center; }
+.loading-spinner-lg { width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--teal);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 14px; }
+.loading-state p { font-size:13.5px;color:var(--muted); }
+
+/* MODAL */
+.modal-overlay { display:none;position:fixed;inset:0;z-index:1000;background:rgba(2,14,28,0.7);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:20px; }
+.modal-overlay.show { display:flex; }
+.modal { background:#fff;border-radius:16px;width:100%;max-width:580px;max-height:90vh;overflow-y:auto;animation:modalPop 0.25s ease; }
+@keyframes modalPop { from{opacity:0;transform:scale(0.95)} to{opacity:1;transform:scale(1)} }
+.modal-header { padding:20px 24px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:#fff;z-index:1; }
+.modal-header h3 { font-family:'Syne',sans-serif;font-size:17px;font-weight:700;color:var(--navy); }
+.modal-close { background:none;border:none;cursor:pointer;color:var(--muted);font-size:18px;padding:4px; }
+.modal-close:hover { color:var(--text); }
+.modal-body { padding:24px; }
+.detail-row { display:flex;gap:12px;margin-bottom:12px; }
+.detail-row .dl { flex:0 0 140px;font-size:12.5px;font-weight:600;color:var(--muted); }
+.detail-row .dv { flex:1;font-size:13.5px;color:var(--text);word-break:break-word; }
+.detail-divider { height:0.5px;background:var(--border);margin:16px 0; }
+
+/* STATUS UPDATE FORM */
+.status-form { background:var(--bg);border-radius:var(--radius-sm);padding:16px;margin-top:16px; }
+.status-form h4 { font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px; }
+.status-options { display:grid;grid-template-columns:1fr 1fr;gap:8px; }
+.status-opt { display:none; }
+.status-opt + label { display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:var(--radius-sm);border:1.5px solid var(--border);cursor:pointer;font-size:12.5px;font-weight:500;color:var(--text-2);transition:all 0.15s;background:#fff; }
+.status-opt + label:hover { border-color:var(--teal); }
+.status-opt:checked + label { border-color:var(--navy);background:var(--navy);color:#fff; }
+.status-opt:checked + label i { color:#fff; }
+.status-opt + label i { color:var(--muted);font-size:14px; }
+.btn-update-status { width:100%;margin-top:12px;padding:11px;background:var(--navy);color:#fff;border:none;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:background 0.15s; }
+.btn-update-status:hover { background:var(--navy-mid); }
+
+/* TOAST */
+.toast { position:fixed;bottom:24px;right:24px;z-index:9999;background:var(--navy);color:#fff;padding:12px 20px;border-radius:var(--radius-sm);font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow-md);transform:translateY(80px);opacity:0;transition:all 0.3s ease;max-width:340px; }
+.toast.show { transform:translateY(0);opacity:1; }
+.toast.success { background:var(--green); }
+.toast.error   { background:var(--red); }
+
+/* CONFIRM MODAL */
+.confirm-overlay { display:none;position:fixed;inset:0;z-index:2000;background:rgba(2,14,28,0.75);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:20px; }
+.confirm-overlay.show { display:flex; }
+.confirm-box { background:#fff;border-radius:16px;width:100%;max-width:400px;overflow:hidden;animation:modalPop 0.2s ease;box-shadow:0 20px 60px rgba(4,44,83,0.25); }
+.confirm-header { padding:20px 24px 0;display:flex;flex-direction:column;align-items:center;text-align:center; }
+.confirm-icon-wrap { width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:14px; }
+.confirm-icon-wrap.green  { background:var(--green-light);color:var(--green); }
+.confirm-icon-wrap.purple { background:var(--purple-light);color:var(--purple); }
+.confirm-icon-wrap.amber  { background:var(--amber-light);color:var(--amber); }
+.confirm-icon-wrap.red    { background:var(--red-light);color:var(--red); }
+.confirm-title { font-family:'Syne',sans-serif;font-size:17px;font-weight:700;color:var(--navy);margin-bottom:8px; }
+.confirm-desc  { font-size:13.5px;color:var(--muted);line-height:1.6;padding:0 8px; }
+.confirm-detail { margin:14px 24px 0;padding:12px 16px;background:var(--bg);border-radius:var(--radius-sm);border:0.5px solid var(--border); }
+.confirm-detail .cd-row { display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:12.5px; }
+.confirm-detail .cd-row:not(:last-child) { border-bottom:0.5px solid var(--border); }
+.confirm-detail .cd-row .cd-label { color:var(--muted); }
+.confirm-detail .cd-row .cd-val   { font-weight:700;color:var(--navy); }
+.confirm-actions { padding:20px 24px 24px;display:flex;gap:10px; }
+.btn-confirm-cancel { flex:1;padding:11px;background:#fff;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer;transition:all 0.15s; }
+.btn-confirm-cancel:hover { border-color:var(--text);color:var(--text); }
+.btn-confirm-ok { flex:2;padding:11px;border:none;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;color:#fff;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;justify-content:center;gap:8px; }
+.btn-confirm-ok.green  { background:var(--green); }
+.btn-confirm-ok.green:hover  { background:#229958; }
+.btn-confirm-ok.purple { background:var(--purple); }
+.btn-confirm-ok.purple:hover { background:#6248c0; }
+.btn-confirm-ok.amber  { background:var(--amber); }
+.btn-confirm-ok.amber:hover  { background:#c06500; }
+.btn-confirm-ok .spinner { width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;display:none; }
+.btn-confirm-ok.loading .spinner { display:block; }
+.btn-confirm-ok.loading .ok-text { display:none; }
+
+/* MOBILE */
+@media(max-width:768px){
+  .sidebar { transform:translateX(-100%);transition:transform 0.3s; }
+  .sidebar.open { transform:translateX(0); }
+  .main-content { margin-left:0; }
+  .stats-grid { grid-template-columns:1fr 1fr; }
+  .page-body { padding:16px; }
+  .topbar { padding:12px 16px; }
+}
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width:5px;height:5px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--border);border-radius:10px; }
+</style>
+</head>
+<body>
+
+<!-- ════════════ LOGIN PAGE ════════════ -->
+<div id="login-page">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="logo-mark">L</div>
+      <div class="logo-text">Lidan Psikologi<br><span>Admin Panel</span></div>
+    </div>
+    <div class="login-title">Selamat Datang</div>
+    <div class="login-sub">Masuk untuk mengelola data peserta Tes Minat Pekerjaan</div>
+
+    <div class="login-field">
+      <label>Username</label>
+      <div class="input-wrap">
+        <i class="fas fa-user"></i>
+        <input type="text" id="login-user" placeholder="Masukkan username" autocomplete="username">
+      </div>
+    </div>
+    <div class="login-field">
+      <label>Password</label>
+      <div class="input-wrap">
+        <i class="fas fa-lock"></i>
+        <input type="password" id="login-pass" placeholder="Masukkan password" autocomplete="current-password">
+      </div>
+    </div>
+    <div class="login-err" id="login-err"><i class="fas fa-exclamation-circle"></i> <span id="login-err-msg">Username atau password salah.</span></div>
+
+    <button class="btn-login" id="btn-login" onclick="doLogin()">
+      <div class="spinner"></div>
+      <span class="btn-login-text"><i class="fas fa-sign-in-alt"></i> &nbsp;Masuk ke Dashboard</span>
+    </button>
+  </div>
+</div>
+
+<!-- ════════════ DASHBOARD PAGE ════════════ -->
+<div id="dashboard-page">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">
+        <div class="lm">L</div>
+        <div class="lt">Lidan Psikologi<br><span>Admin Panel</span></div>
+      </div>
+      <div class="sidebar-badge"><i class="fas fa-circle" style="color:#5DCAA5;font-size:7px;margin-right:4px;"></i> Tes Minat Pekerjaan — Maret 2026</div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Menu</div>
+      <a class="nav-item active" onclick="setTab('semua')">
+        <i class="fas fa-users"></i> Semua Peserta
+        <span class="badge-count" id="nav-count-semua">0</span>
+      </a>
+      <a class="nav-item" onclick="setTab('gratis')">
+        <i class="fas fa-gift"></i> Hanya Tes Gratis
+      </a>
+      <a class="nav-item" onclick="setTab('upgrade')">
+        <i class="fas fa-star"></i> Upgrade Laporan
+      </a>
+
+      <div class="nav-section-label" style="margin-top:16px;">Tracking Pembayaran</div>
+      <a class="nav-item" onclick="setTab('menunggu_pembayaran')">
+        <i class="fas fa-clock"></i> Menunggu Bayar
+        <span class="badge-count" id="nav-count-bayar" style="display:none;"></span>
+      </a>
+      <a class="nav-item" onclick="setTab('lunas')">
+        <i class="fas fa-check-circle"></i> Sudah Bayar
+        <span class="badge-count" id="nav-count-lunas" style="display:none;background:var(--green);"></span>
+      </a>
+
+      <div class="nav-section-label" style="margin-top:16px;">Tracking Laporan</div>
+      <a class="nav-item" onclick="setTab('laporan_dikirim')">
+        <i class="fas fa-file-alt"></i> Laporan Dikirim
+        <span class="badge-count" id="nav-count-laporan" style="display:none;background:var(--purple);"></span>
+      </a>
+      <a class="nav-item" onclick="setTab('pending')">
+        <i class="fas fa-hourglass-half"></i> Belum Hadir Tes
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="admin-chip">
+        <div class="av" id="sidebar-av">A</div>
+        <div class="info">
+          <div class="name" id="sidebar-name">Admin</div>
+          <div class="role">Administrator</div>
+        </div>
+        <button class="btn-logout" onclick="doLogout()" title="Keluar"><i class="fas fa-sign-out-alt"></i></button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content">
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div class="topbar-title">
+        Dashboard Peserta <span id="topbar-subtitle">Semua Peserta</span>
+      </div>
+      <div class="topbar-actions">
+        <span style="font-size:12px;color:var(--muted);" id="last-updated"></span>
+        <button class="btn-refresh" id="btn-refresh" onclick="loadData()">
+          <i class="fas fa-sync-alt"></i> Refresh
+        </button>
+      </div>
+    </div>
+
+    <!-- PAGE BODY -->
+    <div class="page-body">
+
+      <!-- STATS -->
+      <div class="stats-grid">
+        <div class="stat-card teal">
+          <div class="sc-label">Total Pendaftar</div>
+          <div class="sc-value" id="st-total">—</div>
+          <div class="sc-sub">Semua batch</div>
+          <div class="sc-icon"><i class="fas fa-users"></i></div>
+          <div class="sc-bar"><div class="sc-bar-fill" id="bar-total" style="width:0%"></div></div>
+        </div>
+        <div class="stat-card green">
+          <div class="sc-label">Upgrade Laporan</div>
+          <div class="sc-value" id="st-upgrade">—</div>
+          <div class="sc-sub">Memilih paket berbayar</div>
+          <div class="sc-icon"><i class="fas fa-star"></i></div>
+          <div class="sc-bar"><div class="sc-bar-fill" id="bar-upgrade" style="width:0%"></div></div>
+        </div>
+        <div class="stat-card gold">
+          <div class="sc-label">Menunggu Bayar</div>
+          <div class="sc-value" id="st-menunggu">—</div>
+          <div class="sc-sub">Belum konfirmasi bayar</div>
+          <div class="sc-icon"><i class="fas fa-clock"></i></div>
+          <div class="sc-bar"><div class="sc-bar-fill" id="bar-menunggu" style="width:0%"></div></div>
+        </div>
+        <div class="stat-card" style="border-left:3px solid var(--purple);">
+          <div class="sc-label">Laporan Dikirim</div>
+          <div class="sc-value" id="st-laporan">—</div>
+          <div class="sc-sub">Sudah terima laporan</div>
+          <div class="sc-icon" style="background:var(--purple-light);color:var(--purple);"><i class="fas fa-file-alt"></i></div>
+          <div class="sc-bar"><div class="sc-bar-fill" style="background:var(--purple);width:0%" id="bar-laporan"></div></div>
+        </div>
+      </div>
+
+      <!-- TABLE CARD -->
+      <div class="table-card">
+        <div class="table-toolbar">
+          <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" id="search-input" placeholder="Cari nama, email, kota..." oninput="renderTable()">
+          </div>
+          <div class="filter-tabs" id="filter-tabs">
+            <div class="ftab active" onclick="setTab('semua')"><span class="dot" style="background:var(--teal);"></span>Semua</div>
+            <div class="ftab" onclick="setTab('gratis')"><span class="dot" style="background:#2EAD6A;"></span>Gratis</div>
+            <div class="ftab" onclick="setTab('upgrade')"><span class="dot" style="background:#7C5CDB;"></span>Upgrade</div>
+            <div class="ftab" onclick="setTab('menunggu_pembayaran')"><span class="dot" style="background:#E07B10;"></span>Menunggu Bayar</div>
+            <div class="ftab" onclick="setTab('lunas')"><span class="dot" style="background:#2EAD6A;"></span>Lunas</div>
+            <div class="ftab" onclick="setTab('laporan_dikirim')"><span class="dot" style="background:#7C5CDB;"></span>Laporan Dikirim</div>
+          </div>
+        </div>
+
+        <div class="table-meta">
+          <span>Menampilkan <strong id="showing-count">0</strong> peserta</span>
+          <span id="filter-label" style="color:var(--teal);font-weight:600;"></span>
+        </div>
+
+        <div id="table-container">
+          <div class="loading-state">
+            <div class="loading-spinner-lg"></div>
+            <p>Memuat data peserta...</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- ════════════ DETAIL MODAL ════════════ -->
+<div class="modal-overlay" id="detail-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-title">Detail Peserta</h3>
+      <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<!-- ════════════ CONFIRM MODAL ════════════ -->
+<div class="confirm-overlay" id="confirm-modal">
+  <div class="confirm-box">
+    <div class="confirm-header">
+      <div class="confirm-icon-wrap" id="confirm-icon-wrap">
+        <i id="confirm-icon" class="fas fa-question-circle"></i>
+      </div>
+      <div class="confirm-title" id="confirm-title">Konfirmasi Aksi</div>
+      <div class="confirm-desc"  id="confirm-desc">Apakah Anda yakin ingin melanjutkan?</div>
+    </div>
+    <div class="confirm-detail" id="confirm-detail" style="display:none;"></div>
+    <div class="confirm-actions">
+      <button class="btn-confirm-cancel" onclick="closeConfirm()"><i class="fas fa-times"></i> Batal</button>
+      <button class="btn-confirm-ok" id="confirm-ok-btn" onclick="execConfirm()">
+        <div class="spinner"></div>
+        <span class="ok-text" id="confirm-ok-label"><i class="fas fa-check"></i> Ya, Lanjutkan</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"><i class="fas fa-check-circle"></i> <span id="toast-msg"></span></div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+//  CONFIG
+// ══════════════════════════════════════════════════════════════
+const API   = 'https://lidan-co-id.pages.dev/api/contacts_filter_dinamis6';
+const TABLE = 'pendaftar_tes_minat_pekerjaan';
+const LS_ADMIN = 'lidan_admin_minat_session';
+
+// ══════════════════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════════════════
+let allData      = [];
+let currentTab   = 'semua';
+let currentAdmin = null;
+
+// ══════════════════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+  const session = getSavedSession();
+  if (session) {
+    currentAdmin = session;
+    showDashboard();
+  }
+  ['login-user','login-pass'].forEach(id => {
+    document.getElementById(id).addEventListener('keydown', e => {
+      if (e.key === 'Enter') doLogin();
+    });
+  });
+  document.getElementById('detail-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+  document.getElementById('confirm-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeConfirm();
+  });
+});
+
+// ══════════════════════════════════════════════════════════════
+//  SESSION
+// ══════════════════════════════════════════════════════════════
+function getSavedSession() {
+  try { return JSON.parse(sessionStorage.getItem(LS_ADMIN)); } catch(e) { return null; }
+}
+function saveSession(data) { sessionStorage.setItem(LS_ADMIN, JSON.stringify(data)); }
+function clearSession()    { sessionStorage.removeItem(LS_ADMIN); }
+
+// ══════════════════════════════════════════════════════════════
+//  LOGIN
+// ══════════════════════════════════════════════════════════════
+async function doLogin() {
+  const username = document.getElementById('login-user').value.trim();
+  const password = document.getElementById('login-pass').value.trim();
+  const errEl    = document.getElementById('login-err');
+  const errMsg   = document.getElementById('login-err-msg');
+  const btn      = document.getElementById('btn-login');
+
+  errEl.classList.remove('show');
+  if (!username || !password) {
+    errMsg.textContent = 'Username dan password wajib diisi.';
+    errEl.classList.add('show'); return;
+  }
+
+  btn.classList.add('loading'); btn.disabled = true;
+
+  try {
+    const resp = await fetch(`${API}?action=login`, {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'X-Role':'admin' },
+      body: JSON.stringify({ username, password }),
+    });
+    const result = await resp.json();
+    if (result.success) {
+      currentAdmin = { username, role:'admin' };
+      saveSession(currentAdmin);
+      showDashboard();
+    } else {
+      errMsg.textContent = 'Username atau password salah. Silakan coba lagi.';
+      errEl.classList.add('show');
+    }
+  } catch(err) {
+    errMsg.textContent = 'Gagal terhubung ke server. Periksa koneksi Anda.';
+    errEl.classList.add('show');
+  } finally {
+    btn.classList.remove('loading'); btn.disabled = false;
+  }
+}
+
+function doLogout() {
+  clearSession();
+  currentAdmin = null;
+  allData = [];
+  document.getElementById('login-page').style.display = 'flex';
+  document.getElementById('dashboard-page').style.display = 'none';
+  document.getElementById('login-user').value = '';
+  document.getElementById('login-pass').value = '';
+}
+
+// ══════════════════════════════════════════════════════════════
+//  SHOW DASHBOARD
+// ══════════════════════════════════════════════════════════════
+function showDashboard() {
+  document.getElementById('login-page').style.display    = 'none';
+  document.getElementById('dashboard-page').style.display = 'block';
+  const name = currentAdmin?.username || 'Admin';
+  document.getElementById('sidebar-name').textContent = name;
+  document.getElementById('sidebar-av').textContent   = name[0].toUpperCase();
+  loadData();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  LOAD DATA
+// ══════════════════════════════════════════════════════════════
+async function loadData() {
+  const btn = document.getElementById('btn-refresh');
+  btn.classList.add('spinning'); btn.disabled = true;
+  document.getElementById('table-container').innerHTML = `
+    <div class="loading-state">
+      <div class="loading-spinner-lg"></div>
+      <p>Memuat data peserta...</p>
+    </div>`;
+  try {
+    const resp = await fetch(`${API}?table=${TABLE}`, {
+      headers: { 'X-Table-Name': TABLE }
+    });
+    const result = await resp.json();
+    if (result.success) {
+      allData = result.data || [];
+      updateStats();
+      renderTable();
+      const now = new Date();
+      document.getElementById('last-updated').textContent =
+        `Update: ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+    } else {
+      showError('Gagal memuat data: ' + (result.message || 'Unknown error'));
+    }
+  } catch(err) {
+    showError('Gagal terhubung ke API. ' + err.message);
+  } finally {
+    btn.classList.remove('spinning'); btn.disabled = false;
+  }
+}
+
+function showError(msg) {
+  document.getElementById('table-container').innerHTML = `
+    <div class="empty-state">
+      <i class="fas fa-exclamation-triangle" style="color:var(--red);"></i>
+      <p style="color:var(--red);">${msg}</p>
+    </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+//  STATS
+// ══════════════════════════════════════════════════════════════
+function setNavBadge(id, count, color) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (count > 0) { el.textContent = count; el.style.display = 'inline'; if (color) el.style.background = color; }
+  else { el.style.display = 'none'; el.textContent = ''; }
+}
+
+function updateStats() {
+  const total    = allData.length;
+  const upgrade  = allData.filter(r => r.x_03 !== 'gratis').length;
+  const menunggu = allData.filter(r => r.x_05 === 'menunggu_pembayaran').length;
+  const lunas    = allData.filter(r => r.x_05 === 'lunas').length;
+  const laporan  = allData.filter(r => r.x_05 === 'laporan_dikirim').length;
+
+  animateCount('st-total',    total);
+  animateCount('st-upgrade',  upgrade);
+  animateCount('st-menunggu', menunggu);
+  animateCount('st-laporan',  laporan);
+
+  if (total > 0) {
+    setTimeout(() => {
+      document.getElementById('bar-total').style.width    = '100%';
+      document.getElementById('bar-upgrade').style.width  = (upgrade/total*100) + '%';
+      document.getElementById('bar-menunggu').style.width = (menunggu/total*100) + '%';
+      document.getElementById('bar-laporan').style.width  = (laporan/total*100) + '%';
+    }, 100);
+  }
+
+  document.getElementById('nav-count-semua').textContent = total;
+  setNavBadge('nav-count-bayar',   menunggu, '#E07B10');
+  setNavBadge('nav-count-lunas',   lunas,    '#2EAD6A');
+  setNavBadge('nav-count-laporan', laporan,  '#7C5CDB');
+}
+
+function animateCount(id, target) {
+  const el = document.getElementById(id);
+  let start = 0;
+  const step = Math.ceil(target / 20);
+  const timer = setInterval(() => {
+    start = Math.min(start + step, target);
+    el.textContent = start;
+    if (start >= target) clearInterval(timer);
+  }, 40);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  FILTER TAB
+// ══════════════════════════════════════════════════════════════
+function setTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.ftab').forEach(el => el.classList.remove('active'));
+  const tabMap = { semua:0, gratis:1, upgrade:2, menunggu_pembayaran:3, lunas:4, laporan_dikirim:5 };
+  const tabs = document.querySelectorAll('.ftab');
+  if (tabMap[tab] !== undefined) tabs[tabMap[tab]]?.classList.add('active');
+
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  const navMap = { semua:0, gratis:1, upgrade:2, menunggu_pembayaran:3, lunas:4, laporan_dikirim:5, pending:6 };
+  const navItems = document.querySelectorAll('.nav-item');
+  if (navMap[tab] !== undefined) navItems[navMap[tab]]?.classList.add('active');
+
+  const labels = {
+    semua:'Semua Peserta', gratis:'Hanya Tes Gratis', upgrade:'Upgrade Laporan',
+    menunggu_pembayaran:'Menunggu Bayar', lunas:'Sudah Bayar',
+    laporan_dikirim:'Laporan Dikirim', pending:'Belum Hadir Tes'
+  };
+  document.getElementById('topbar-subtitle').textContent = labels[tab] || '';
+  renderTable();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  RENDER TABLE
+// ══════════════════════════════════════════════════════════════
+function renderTable() {
+  const search = document.getElementById('search-input').value.toLowerCase();
+
+  let filtered = allData.filter(row => {
+    if (currentTab === 'gratis')              return row.x_03 === 'gratis';
+    if (currentTab === 'upgrade')             return row.x_03 !== 'gratis';
+    if (currentTab === 'menunggu_pembayaran') return row.x_05 === 'menunggu_pembayaran';
+    if (currentTab === 'lunas')               return row.x_05 === 'lunas';
+    if (currentTab === 'laporan_dikirim')     return row.x_05 === 'laporan_dikirim';
+    if (currentTab === 'pending')             return row.x_20 === 'pending';
+    return true;
+  });
+
+  if (search) {
+    filtered = filtered.filter(row => {
+      const bio = parseBiodata(row.x_01);
+      return (
+        (bio.nama    || '').toLowerCase().includes(search) ||
+        (bio.email   || '').toLowerCase().includes(search) ||
+        (bio.hp      || '').toLowerCase().includes(search) ||
+        (bio.kota    || '').toLowerCase().includes(search) ||
+        (row.x_03    || '').toLowerCase().includes(search) ||
+        String(row.id_x || '').includes(search)
+      );
+    });
+  }
+
+  document.getElementById('showing-count').textContent = filtered.length;
+  const labels = {
+    semua:'', gratis:'Filter: Gratis saja', upgrade:'Filter: Upgrade laporan',
+    menunggu_pembayaran:'Filter: Menunggu pembayaran',
+    lunas:'Filter: Sudah bayar', laporan_dikirim:'Filter: Laporan dikirim',
+    pending:'Filter: Belum hadir tes'
+  };
+  document.getElementById('filter-label').textContent = labels[currentTab] || '';
+
+  if (filtered.length === 0) {
+    document.getElementById('table-container').innerHTML = `
+      <div class="empty-state">
+        <i class="fas fa-inbox"></i>
+        <p>Tidak ada data yang sesuai filter.</p>
+      </div>`;
+    return;
+  }
+
+  const rows = filtered.map(row => {
+    const bio   = parseBiodata(row.x_01);
+    const paket = row.x_03 || 'gratis';
+    const status= row.x_05 || 'gratis';
+    const tesSt = row.x_20 || 'pending';
+    return `<tr>
+      <td><span style="font-size:11.5px;color:var(--muted);">#${row.id_x}</span></td>
+      <td>
+        <div style="font-weight:600;color:var(--navy);">${esc(bio.nama||'—')}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px;">${esc(bio.email||'—')}</div>
+      </td>
+      <td>
+        <div style="font-size:13px;">${esc(bio.hp||'—')}</div>
+        <div style="font-size:12px;color:var(--muted);">${esc(bio.kota||'—')}</div>
+      </td>
+      <td>${paketBadge(paket)}</td>
+      <td>${statusBadge(status, paket)}</td>
+      <td>${tesBadge(tesSt)}</td>
+      <td>
+        <button class="btn-action kirim-wa" onclick="sendWA('${esc(bio.hp||'')}','${esc(bio.nama||'')}','${esc(paket)}')" title="Kirim WA ke ${esc(bio.nama||'peserta')}">
+          <i class="fab fa-whatsapp"></i> WA
+        </button>
+      </td>
+      <td>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button class="btn-action view-detail" onclick="openDetail(${row.id_x})">
+            <i class="fas fa-eye"></i> Detail
+          </button>
+          ${quickActionBtn(row)}
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('table-container').innerHTML = `
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nama &amp; Email</th>
+            <th>HP &amp; Kota</th>
+            <th>Paket</th>
+            <th>Status Bayar</th>
+            <th>Status Tes</th>
+            <th>WA</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
+function quickActionBtn(row) {
+  const status = row.x_05 || 'gratis';
+  const paket  = row.x_03 || 'gratis';
+  if (paket === 'gratis') return '';
+  if (status === 'menunggu_pembayaran')
+    return `<button class="btn-action confirm-bayar" onclick="quickUpdate(${row.id_x},'lunas')"><i class="fas fa-check"></i> Konfirmasi Bayar</button>`;
+  if (status === 'lunas')
+    return `<button class="btn-action kirim-laporan" onclick="quickUpdate(${row.id_x},'laporan_dikirim')"><i class="fas fa-paper-plane"></i> Kirim Laporan</button>`;
+  if (status === 'laporan_dikirim')
+    return `<span class="btn-action done"><i class="fas fa-check-double"></i> Selesai</span>`;
+  return '';
+}
+
+// ══════════════════════════════════════════════════════════════
+//  OPEN DETAIL MODAL
+// ══════════════════════════════════════════════════════════════
+function openDetail(id) {
+  const row = allData.find(r => r.id_x == id);
+  if (!row) return;
+
+  const bio    = parseBiodata(row.x_01);
+  const info   = parseInfo(row.x_02);
+  const paket  = row.x_03 || 'gratis';
+  const harga  = row.x_04 || '0';
+  const status = row.x_05 || 'gratis';
+  const tesSt  = row.x_20 || 'pending';
+  const isBerbayar = paket !== 'gratis';
+
+  document.getElementById('modal-title').textContent = `Detail — ${bio.nama || 'Peserta #'+id}`;
+  document.getElementById('modal-body').innerHTML = `
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
+      ${paketBadge(paket)} ${statusBadge(status, paket)} ${tesBadge(tesSt)}
+      <span style="font-size:12px;color:var(--muted);align-self:center;">ID: #${id}</span>
+    </div>
+
+    <div class="detail-divider"></div>
+    <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:12px;">Biodata</p>
+    ${dr('Nama Lengkap',  bio.nama)}
+    ${dr('Email',         bio.email)}
+    ${dr('No. WA / HP',   bio.hp)}
+    ${dr('Tgl. Lahir',    bio.tgl_lahir)}
+    ${dr('Jenis Kelamin', bio.jk)}
+    ${dr('Kota',          bio.kota)}
+    ${dr('Pendidikan',    bio.pendidikan)}
+
+    <div class="detail-divider"></div>
+    <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:12px;">Info Tambahan</p>
+    ${dr('Status Pekerjaan', info.pekerjaan)}
+    ${dr('Institusi',        info.institusi || '—')}
+    ${dr('Tujuan / Harapan', info.alasan    || '—')}
+
+    <div class="detail-divider"></div>
+    <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:12px;">Paket &amp; Pembayaran</p>
+    ${dr('Paket Dipilih',     paket === 'gratis' ? 'Gratis (pengalaman tes)' : 'Paket ' + paket)}
+    ${isBerbayar ? dr('Nominal', 'Rp ' + Number(harga).toLocaleString('id-ID')) : ''}
+    ${dr('Status Pembayaran', status)}
+    ${dr('Waktu Daftar',      row.x_19 || '—')}
+
+    <div class="status-form">
+      <h4><i class="fas fa-edit" style="color:var(--teal);margin-right:6px;"></i>Update Status</h4>
+      <div class="status-options">
+        ${statusOpt('s-pending','pending',       'fa-hourglass-half', 'Belum Hadir Tes',  tesSt)}
+        ${statusOpt('s-hadir',  'hadir',         'fa-user-check',     'Sudah Hadir Tes',  tesSt)}
+        ${isBerbayar ? statusOpt('s-menunggu','menunggu_pembayaran','fa-clock',      'Menunggu Bayar',   status) : ''}
+        ${isBerbayar ? statusOpt('s-lunas',   'lunas',              'fa-check-circle','Sudah Bayar',     status) : ''}
+        ${isBerbayar ? statusOpt('s-laporan', 'laporan_dikirim',    'fa-file-alt',   'Laporan Dikirim',  status) : ''}
+      </div>
+      <button class="btn-update-status" onclick="updateStatus(${id})">
+        <i class="fas fa-save"></i> &nbsp;Simpan Perubahan Status
+      </button>
+    </div>
+  `;
+
+  document.getElementById('detail-modal').classList.add('show');
+}
+
+function statusOpt(id, value, icon, label, currentVal) {
+  const checked = value === currentVal ? 'checked' : '';
+  return `<div>
+    <input type="radio" class="status-opt" name="status-radio" id="${id}" value="${value}" ${checked}>
+    <label for="${id}"><i class="fas ${icon}"></i> ${label}</label>
+  </div>`;
+}
+function dr(label, value) {
+  return `<div class="detail-row"><span class="dl">${label}</span><span class="dv">${esc(value||'—')}</span></div>`;
+}
+function closeModal() { document.getElementById('detail-modal').classList.remove('show'); }
+
+// ══════════════════════════════════════════════════════════════
+//  UPDATE STATUS
+// ══════════════════════════════════════════════════════════════
+async function updateStatus(id) {
+  const selected = document.querySelector('input[name="status-radio"]:checked');
+  if (!selected) { showToast('Pilih status terlebih dahulu.', 'error'); return; }
+  const value = selected.value;
+  const row   = allData.find(r => r.id_x == id);
+  if (!row) return;
+  const bio = parseBiodata(row.x_01);
+  const isTestStatus = ['pending','hadir'].includes(value);
+  const payload = isTestStatus ? { x_20: value } : { x_05: value };
+  if (value === 'hadir') payload.x_20 = 'hadir';
+  const labelMap = { pending:'Belum Hadir Tes', hadir:'Sudah Hadir Tes', menunggu_pembayaran:'Menunggu Pembayaran', lunas:'Lunas / Sudah Bayar', laporan_dikirim:'Laporan Sudah Dikirim' };
+  const detail = `
+    <div class="cd-row"><span class="cd-label">Peserta</span><span class="cd-val">${esc(bio.nama||'—')}</span></div>
+    <div class="cd-row"><span class="cd-label">Paket</span><span class="cd-val">${esc(row.x_03||'gratis')}</span></div>
+    <div class="cd-row"><span class="cd-label">Status Baru</span><span class="cd-val" style="color:var(--navy);font-weight:700;">${labelMap[value]||value}</span></div>`;
+  showConfirm({ title:'Konfirmasi Perubahan Status', desc:'Periksa kembali detail di bawah sebelum menyimpan.', icon:'fa-edit', iconColor:'amber', okLabel:'<i class="fas fa-save"></i> Ya, Simpan', okColor:'amber', detail });
+  _confirmCallback = async () => {
+    const resp = await fetch(`${API}?id_x=${id}&table=${TABLE}`, {
+      method: 'PUT',
+      headers: { 'Content-Type':'application/json', 'X-Table-Name': TABLE },
+      body: JSON.stringify(payload),
+    });
+    const result = await resp.json();
+    if (result.success) {
+      if (payload.x_05) row.x_05 = payload.x_05;
+      if (payload.x_20) row.x_20 = payload.x_20;
+      closeModal(); updateStats(); renderTable();
+      showToast('Status berhasil diperbarui!', 'success');
+    } else { showToast('Gagal update: ' + (result.message||'error'), 'error'); }
+  };
+}
+
+async function quickUpdate(id, newStatus) {
+  const row = allData.find(r => r.id_x == id);
+  if (!row) return;
+  const bio = parseBiodata(row.x_01);
+  const cfgMap = {
+    lunas: { title:'Konfirmasi Pembayaran', desc:'Anda akan menandai peserta ini sebagai SUDAH MEMBAYAR. Pastikan transfer telah diterima.', icon:'fa-check-circle', iconColor:'green', okLabel:'<i class="fas fa-check-circle"></i> Ya, Konfirmasi Bayar', okColor:'green' },
+    laporan_dikirim: { title:'Konfirmasi Pengiriman Laporan', desc:'Anda akan menandai laporan peserta ini sebagai SUDAH DIKIRIM. Pastikan laporan telah benar-benar dikirimkan.', icon:'fa-paper-plane', iconColor:'purple', okLabel:'<i class="fas fa-paper-plane"></i> Ya, Laporan Sudah Dikirim', okColor:'purple' },
+  };
+  const cfg = cfgMap[newStatus] || { title:'Konfirmasi', desc:'Lanjutkan aksi ini?', icon:'fa-question', iconColor:'amber', okLabel:'Ya', okColor:'amber' };
+  const detail = `
+    <div class="cd-row"><span class="cd-label">Peserta</span><span class="cd-val">${esc(bio.nama||'—')}</span></div>
+    <div class="cd-row"><span class="cd-label">Paket</span><span class="cd-val">Paket ${esc(row.x_03||'—')}</span></div>
+    <div class="cd-row"><span class="cd-label">Nominal</span><span class="cd-val">Rp ${Number(row.x_04||0).toLocaleString('id-ID')}</span></div>
+    <div class="cd-row"><span class="cd-label">Status Baru</span><span class="cd-val" style="color:var(--green);">${newStatus === 'lunas' ? 'Lunas ✓' : 'Laporan Dikirim ✓'}</span></div>`;
+  showConfirm({ ...cfg, detail });
+  _confirmCallback = async () => {
+    const resp = await fetch(`${API}?id_x=${id}&table=${TABLE}`, {
+      method: 'PUT',
+      headers: { 'Content-Type':'application/json', 'X-Table-Name': TABLE },
+      body: JSON.stringify({ x_05: newStatus }),
+    });
+    const result = await resp.json();
+    if (result.success) {
+      row.x_05 = newStatus; updateStats(); renderTable();
+      showToast(newStatus === 'lunas' ? 'Pembayaran berhasil dikonfirmasi!' : 'Laporan ditandai sudah dikirim!', 'success');
+    } else { showToast('Gagal update status: ' + (result.message||'error'), 'error'); }
+  };
+}
+
+// ══════════════════════════════════════════════════════════════
+//  CONFIRM DIALOG
+// ══════════════════════════════════════════════════════════════
+let _confirmCallback = null;
+function showConfirm({ title, desc, icon, iconColor, okLabel, okColor, detail }) {
+  document.getElementById('confirm-title').textContent   = title || 'Konfirmasi';
+  document.getElementById('confirm-desc').textContent    = desc  || 'Apakah Anda yakin?';
+  document.getElementById('confirm-icon').className      = 'fas ' + (icon || 'fa-question-circle');
+  document.getElementById('confirm-icon-wrap').className = 'confirm-icon-wrap ' + (iconColor || 'amber');
+  document.getElementById('confirm-ok-label').innerHTML  = okLabel || '<i class="fas fa-check"></i> Ya, Lanjutkan';
+  const okBtn = document.getElementById('confirm-ok-btn');
+  okBtn.className = 'btn-confirm-ok ' + (okColor || 'amber');
+  const detailEl = document.getElementById('confirm-detail');
+  if (detail) { detailEl.innerHTML = detail; detailEl.style.display = 'block'; }
+  else { detailEl.style.display = 'none'; }
+  document.getElementById('confirm-modal').classList.add('show');
+}
+function closeConfirm() {
+  document.getElementById('confirm-modal').classList.remove('show');
+  _confirmCallback = null;
+  const btn = document.getElementById('confirm-ok-btn');
+  btn.classList.remove('loading'); btn.disabled = false;
+}
+async function execConfirm() {
+  if (!_confirmCallback) return;
+  const btn = document.getElementById('confirm-ok-btn');
+  btn.classList.add('loading'); btn.disabled = true;
+  try { await _confirmCallback(); } finally {
+    btn.classList.remove('loading'); btn.disabled = false;
+    closeConfirm();
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  HELPERS
+// ══════════════════════════════════════════════════════════════
+function parseBiodata(raw) { try { return typeof raw === 'string' ? JSON.parse(raw) : (raw || {}); } catch(e) { return {}; } }
+function parseInfo(raw)    { try { return typeof raw === 'string' ? JSON.parse(raw) : (raw || {}); } catch(e) { return {}; } }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function pad(n) { return String(n).padStart(2,'0'); }
+
+// ══════════════════════════════════════════════════════════════
+//  SEND WA
+// ══════════════════════════════════════════════════════════════
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour >= 5  && hour < 11) return 'Selamat pagi';
+  if (hour >= 11 && hour < 15) return 'Selamat siang';
+  if (hour >= 15 && hour < 18) return 'Selamat sore';
+  return 'Selamat malam';
+}
+function formatWANumber(hp) {
+  let num = hp.replace(/[\s\-()]/g, '');
+  if (num.startsWith('0')) num = '62' + num.slice(1);
+  num = num.replace(/^\+/, '');
+  return num;
+}
+function sendWA(hp, nama, paket) {
+  if (!hp) { showToast('Nomor WA tidak tersedia.', 'error'); return; }
+  const paketLabel = { gratis:'Gratis', Dasar:'Dasar', Lengkap:'Lengkap', Komprehensif:'Komprehensif' }[paket] || paket;
+  const greeting = getGreeting();
+  const msg =
+`${greeting}, ${nama || 'Kak'} 👋
+
+Terima kasih telah mendaftar Tes Minat Pekerjaan Paket *${paketLabel}* di Lidan Psikologi.
+
+Berikut detail pelaksanaan tes Anda:
+📌 *Kode Token:* yyy
+🗓 *Pelaksanaan:* Selasa, 17 Maret 2026 pukul *10.00 WIB*
+🔗 *Link Zoom:* xxx
+
+Harap bergabung *15 menit sebelumnya* agar tes dapat dimulai tepat waktu.
+
+Jika ada pertanyaan, jangan ragu untuk menghubungi kami. Semoga lancar! 🙏`;
+  const waNum = formatWANumber(hp);
+  const url = `https://wa.me/${waNum}?text=${encodeURIComponent(msg)}`;
+  window.open(url, '_blank');
+}
+
+// ══════════════════════════════════════════════════════════════
+//  BADGE HELPERS
+// ══════════════════════════════════════════════════════════════
+function paketBadge(paket) {
+  const map = {
+    gratis:       ['gratis',       'Gratis'],
+    Dasar:        ['dasar',        'Dasar'],
+    Lengkap:      ['lengkap',      'Lengkap'],
+    Komprehensif: ['komprehensif', 'Komprehensif'],
+  };
+  const [cls, label] = map[paket] || ['gratis','Gratis'];
+  return `<span class="badge ${cls}"><span class="bdot"></span>${label}</span>`;
+}
+function statusBadge(status, paket) {
+  if (paket === 'gratis') return `<span class="sbadge gratis-s"><i class="fas fa-gift" style="font-size:10px;"></i> Gratis</span>`;
+  const map = {
+    menunggu_pembayaran: ['menunggu',    '<i class="fas fa-clock" style="font-size:10px;"></i> Menunggu Bayar'],
+    lunas:               ['lunas',       '<i class="fas fa-check-circle" style="font-size:10px;"></i> Lunas'],
+    laporan_dikirim:     ['laporan-kirim','<i class="fas fa-paper-plane" style="font-size:10px;"></i> Laporan Dikirim'],
+  };
+  const [cls, label] = map[status] || ['menunggu','Menunggu'];
+  return `<span class="sbadge ${cls}">${label}</span>`;
+}
+function tesBadge(status) {
+  if (status === 'hadir')
+    return `<span class="sbadge lunas"><i class="fas fa-user-check" style="font-size:10px;"></i> Hadir</span>`;
+  return `<span class="sbadge pending-tes"><i class="fas fa-hourglass-half" style="font-size:10px;"></i> Belum</span>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+//  TOAST
+// ══════════════════════════════════════════════════════════════
+let toastTimer;
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.className = 'toast ' + type;
+  document.getElementById('toast-msg').textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>
