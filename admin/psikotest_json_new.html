@@ -682,6 +682,7 @@ table.dataTable { min-width: 500px; }
     <div class="nav-tab" onclick="switchPage('pagePrint')">🖨 Print QR</div>
     <div class="nav-tab" onclick="switchPage('pageAll')">📊 Semua Data</div>
     <div class="nav-tab" onclick="switchPage('pagePerPaket')">🗂 Data Per Paket</div>
+    <div class="nav-tab" onclick="bukaTransfer()" style="background:rgba(255,217,61,0.2); color:#ffd93d;">🔄 Transfer</div>
 </nav>
 
 <div class="main">
@@ -977,6 +978,15 @@ const CHARS      = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz01234567
 const TOKEN_LEN  = 12;
 
 // x_02 sekarang format JSON: {"nama":"...","usia":"...","pendidikan":"...","jenis_kelamin":"...","tgl_tes":"YYYY-MM-DD"}
+
+// Buka halaman transfer dengan tabel sumber nilai1_json
+function bukaTransfer() {
+    const tbl = document.getElementById('allTableInput')?.value?.trim() || 'nilai1_json';
+    window.open(
+        'index_transfer_json.html?src=' + encodeURIComponent(tbl) + '&dst=rekap_nilai1',
+        '_blank'
+    );
+}
 
 /* ══════════════════════════════════════════════════════════════════
    STATE
