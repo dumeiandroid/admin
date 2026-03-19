@@ -37,12 +37,11 @@ body {
     background: rgba(255,255,255,0.12);
     backdrop-filter: blur(10px);
     border-bottom: 1px solid rgba(255,255,255,0.2);
-    padding: 0 20px;
+    padding: 0 0 0 20px;
     display: flex;
     align-items: center;
     gap: 0;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    overflow: hidden;
     white-space: nowrap;
     position: sticky;
     top: 0;
@@ -238,22 +237,22 @@ body {
 .pf-btn-all { border-color: #6c757d; color: #6c757d; }
 .pf-btn-all:hover, .pf-btn-all.active { background: #6c757d; color: #fff; border-color: #6c757d; }
 
-/* ── DATATABLES header fix ── */
+/* ── DATATABLES ── */
 .dataTables_wrapper { overflow-x: auto; width: 100%; }
-table.dataTable { width: 100% !important; table-layout: auto; }
-table.dataTable thead th, table.dataTable tbody td { white-space: nowrap; }
-/* Kolom Skor, Skor 1, Skor 2 boleh wrap */
-table.dataTable tbody td:nth-child(4),
-table.dataTable tbody td:nth-child(6),
-table.dataTable tbody td:nth-child(7) { white-space: normal; vertical-align: top; }
-
-/* ── DATATABLES custom ── */
-table.dataTable { width: 100% !important; border-collapse: collapse; font-size: 13px; }
+table.dataTable {
+    width: 100% !important; border-collapse: collapse;
+    font-size: 13px; min-width: 500px; table-layout: auto;
+}
 table.dataTable thead th {
     background: linear-gradient(135deg, var(--primary), var(--purple));
     color: white; padding: 10px 8px; font-weight: 700;
     border: none; white-space: nowrap; font-size: 13px;
 }
+table.dataTable thead th, table.dataTable tbody td { white-space: nowrap; }
+/* Kolom Biodata, Skor 1, Skor 2 boleh wrap */
+table.dataTable tbody td:nth-child(4),
+table.dataTable tbody td:nth-child(6),
+table.dataTable tbody td:nth-child(7) { white-space: normal; vertical-align: top; }
 table.dataTable tbody td {
     padding: 9px 8px; border-bottom: 1px solid #eef0f6;
     vertical-align: middle; font-size: 13px;
@@ -274,8 +273,6 @@ table.dataTable tbody tr:nth-child(even) { background: #fafbff; }
     background: linear-gradient(135deg, var(--primary), var(--purple)); color: white !important; border: none;
 }
 .dataTables_wrapper .dataTables_info { font-size: 12px; }
-.dataTables_wrapper { overflow-x: auto; }
-table.dataTable { min-width: 500px; }
 
 /* ── STATUS BADGE ── */
 .badge {
@@ -660,6 +657,13 @@ table.dataTable { min-width: 500px; }
     margin-bottom: 12px;
 }
 .reset-err { color: #dc2626; font-size: 13px; min-height: 18px; margin-top: 6px; }
+/* ── Tombol Aktifkan peserta ── */
+.btn-aktifkan {
+    border: none; padding: 4px 12px; border-radius: 6px;
+    font-size: 12px; font-weight: 700; cursor: pointer; transition: background .2s; color: white;
+}
+.btn-aktifkan:hover { opacity: .85; }
+
 /* ── Styles ── */
 @media print {
     body { background: white !important; padding: 0 !important; }
@@ -677,12 +681,11 @@ table.dataTable { min-width: 500px; }
 <!-- TOP NAV -->
 <nav class="topnav">
     <div class="topnav-brand">🧠 Psikotest</div>
-    <div class="nav-tab active" onclick="switchPage('pageToday')">📅 Hari Ini</div>
-    <div class="nav-tab" onclick="switchPage('pageEmpty')">📋 Token Kosong</div>
-    <div class="nav-tab" onclick="switchPage('pagePrint')">🖨 Print QR</div>
-    <div class="nav-tab" onclick="switchPage('pageAll')">📊 Semua Data</div>
-    <div class="nav-tab" onclick="switchPage('pagePerPaket')">🗂 Data Per Paket</div>
-    <div class="nav-tab" onclick="bukaTransfer()" style="background:rgba(255,217,61,0.2); color:#ffd93d;">🔄 Transfer</div>
+    <div id="nav-tabs-container" style="display:flex;flex-direction:row;flex:1;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-ms-overflow-style:none;-webkit-overflow-scrolling:touch;"></div>
+    <div style="padding:8px 14px;display:flex;align-items:center;gap:8px;flex-shrink:0;border-left:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);">
+        <span style="font-size:12px;color:rgba(255,255,255,.8);font-weight:600;white-space:nowrap;">Tes Global:</span>
+        <button id="btnKontrolGlobal" onclick="toggleKontrolGlobal()" style="padding:5px 14px;border:none;border-radius:99px;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap;">⏳ Memuat...</button>
+    </div>
 </nav>
 
 <div class="main">
@@ -966,6 +969,106 @@ table.dataTable { min-width: 500px; }
 </div>
 
 <script>
+// =========================================================
+// KONSTANTA & HELPER BERSAMA
+// =========================================================
+const REPORT_URL = 'https://psikogram.lidan.co.id/index_json_new';
+
+// Config language DataTable — dipakai semua tabel
+const DT_LANG = {
+    search:'🔍', searchPlaceholder:'Cari...',
+    lengthMenu:'Tampilkan _MENU_',
+    info:'_START_–_END_ dari _TOTAL_',
+    infoEmpty:'0 data', infoFiltered:'(dari _MAX_)',
+    paginate:{first:'«',last:'»',next:'›',previous:'‹'},
+    zeroRecords:'Tidak ada data', emptyTable:'Tidak ada data'
+};
+const DT_LENGTH = [[10,25,50,100,-1],[10,25,50,100,'Semua']];
+
+// Buat link ID ke halaman laporan
+function makeIdLink(idX, token) {
+    if (!idX) return idX;
+    let url = `${REPORT_URL}?id_x=${encodeURIComponent(idX)}`;
+    if (token) url += `&x_01=${encodeURIComponent(token)}`;
+    return `<a href="${url}" target="_blank" style="color:#2563eb;font-weight:700;text-decoration:none">${idX}</a>`;
+}
+
+// Buat row data standar dari raw row (dipakai allUpdate, todayUpdateFromCache, renderPerPaketTable)
+function makeRowData(row) {
+    const idX   = String(row.id_x || '');
+    const token = row.x_01 || '';
+    const dateStr = getDateFromX02(row.x_02);
+    const isToday = dateStr === todayString();
+    return {
+        id_x: makeIdLink(idX, token),
+        x_01: makeTruncate(token),
+        x_02: renderJsonBio(row.x_02),
+        x_05: renderSkorField(row.x_05),
+        x_04: renderTimer(row.id_x, row.x_04 || ''),
+        x_06: renderJsonField(row.x_06),
+        x_07: renderJsonField(row.x_07),
+        x_09: renderViolation(row.x_09 || ''),
+        tgl:  isToday
+            ? `<span class="badge badge-active">📅 Hari Ini</span>`
+            : (dateStr ? `<span style="font-size:12px;color:var(--muted)">${dateStr}</span>` : '')
+    };
+}
+
+// Buat DataTable standar (kolom utama sama di semua tab data)
+const DT_STD_COLS = [
+    { data:'id_x', orderable:true },
+    { data:'x_01' },
+    { data:'x_02' },
+    { data:'x_05' },
+    { data:'x_04', orderable:false },
+    { data:'x_06' },
+    { data:'x_07' },
+    { data:'x_09', title:'🔄 Tab', orderable:false, defaultContent:'—' },
+    { data:'tgl',  orderable:false }
+];
+const DT_STD_HEADS = '<th>ID</th><th>Token</th><th>Biodata</th><th>Skor</th><th>⏱ Timer</th><th>Skor 1</th><th>Skor 2</th><th>🔄 Tab</th><th>Tgl Tes</th>';
+
+function makeDT(containerId, tableId, heads, cols, rows, opts = {}) {
+    document.getElementById(containerId).innerHTML = `
+        <table id="${tableId}" class="display nowrap" style="width:100%">
+            <thead><tr>${heads}</tr></thead><tbody></tbody>
+        </table>`;
+    return $(`#${tableId}`).DataTable({
+        data: rows,
+        columns: cols,
+        pageLength: opts.pageLength || 25,
+        lengthMenu: DT_LENGTH,
+        order: opts.order || [[0,'desc']],
+        language: { ...DT_LANG, searchPlaceholder: opts.searchPlaceholder || 'Cari...' },
+        autoWidth: false,
+        ...(opts.extra || {})
+    });
+}
+
+// Render tombol paket filter (dipakai empty & print)
+async function renderPaketButtons(groupId, loadingId, selectedIdX, onAllClick, onPaketClick, countMap) {
+    await loadFilterPaketData();
+    const loading = document.getElementById(loadingId);
+    if (loading) loading.style.display = 'none';
+    const group = document.getElementById(groupId);
+    if (!group) return;
+    group.innerHTML = '';
+    const allBtn = document.createElement('button');
+    allBtn.className = 'pf-btn pf-btn-all' + (selectedIdX === null ? ' active' : '');
+    allBtn.textContent = 'Semua';
+    allBtn.onclick = () => onAllClick(allBtn);
+    group.appendChild(allBtn);
+    filterPaketData.forEach(p => {
+        const idX  = String(p.id_x || '').trim();
+        const nama = (p.x_01 || '').trim();
+        const cnt  = countMap ? (countMap[idX] || 0) : '';
+        const btn  = document.createElement('button');
+        btn.className = 'pf-btn' + (selectedIdX === idX ? ' active' : '');
+        btn.innerHTML = `${escHtml(nama || idX)}-${escHtml(idX)}` + (countMap ? ` <span style="font-size:11px;font-weight:700">(${cnt})</span>` : '');
+        btn.onclick = () => onPaketClick(idX, nama, btn);
+        group.appendChild(btn);
+    });
+}
 /* v20260309_0804 */
 /* ══════════════════════════════════════════════════════════════════
    CONSTANTS
@@ -979,14 +1082,59 @@ const TOKEN_LEN  = 12;
 
 // x_02 sekarang format JSON: {"nama":"...","usia":"...","pendidikan":"...","jenis_kelamin":"...","tgl_tes":"YYYY-MM-DD"}
 
-// Buka halaman transfer dengan tabel sumber nilai1_json
+// =========================================================
+// KONFIGURASI NAV TABS
+// Tambah/kurangi tab cukup edit array ini saja
+// page   : switchPage internal
+// url    : buka link (lokal atau https://)
+// action : panggil fungsi JS tertentu
+// target : '_blank' atau '_self' (default '_self')
+// style  : 'yellow' untuk warna kuning
+// =========================================================
+const NAV_TABS = [
+    { label: '📅 Hari Ini',       page: 'pageToday'   },
+    { label: '📋 Token Kosong',   page: 'pageEmpty'    },
+    { label: '🖨 Print QR',       page: 'pagePrint'    },
+    { label: '📊 Semua Data',     page: 'pageAll'      },
+    { label: '🗂 Data Per Paket', page: 'pagePerPaket' },
+    { label: '🔄 Transfer',       url: 'https://psikogram.lidan.co.id/index_transfer_json', style: 'yellow' , target: '_blank' },
+    { label: '📅 Soal Paket',       url: 'https://lidan.co.id/psikotest/?p=app', target: '_blank' },
+    { label: '📅 Soal Gratis1',       url: 'https://lidan.co.id/test/tes-iq', target: '_blank' },
+    { label: '📅 Soal Gratis2',       url: 'https://lidan.co.id/test/tes-minat', target: '_blank' },,
+    { label: '📅 Tambah Paket',       url: 'https://admin.lidan.co.id/admin-paket', target: '_blank' },
+    { label: '📋 Hasil Akhir',       url: 'https://psikogram.lidan.co.id/psikogram_db/index_rekap' , target: '_blank' }
+    // Contoh tambah tab baru:
+    // { label: '📝 Laporan', url: 'https://laporan.lidan.co.id/', target: '_blank' },
+];
+
 function bukaTransfer() {
     const tbl = document.getElementById('allTableInput')?.value?.trim() || 'nilai1_json';
-    window.open(
-        'index_transfer_json.html?src=' + encodeURIComponent(tbl) + '&dst=rekap_nilai1',
-        '_blank'
-    );
+    window.open('index_transfer_json.html?src=' + encodeURIComponent(tbl) + '&dst=rekap_nilai1', '_blank');
 }
+
+function renderNav() {
+    const container = document.getElementById('nav-tabs-container');
+    container.innerHTML = '';
+    NAV_TABS.forEach(function(tab, i) {
+        const el = document.createElement('div');
+        el.className = 'nav-tab' + (i === 0 ? ' active' : '');
+        el.textContent = tab.label;
+        el.style.whiteSpace = 'nowrap';
+        if (tab.style === 'yellow') {
+            el.style.background = 'rgba(255,217,61,0.2)';
+            el.style.color = '#ffd93d';
+        }
+        if (tab.page) {
+            el.onclick = function() { switchPage(tab.page); };
+        } else if (tab.url) {
+            el.onclick = function() { window.open(tab.url, tab.target || '_self'); };
+        } else if (tab.action) {
+            el.onclick = function() { window[tab.action](); };
+        }
+        container.appendChild(el);
+    });
+}
+renderNav();
 
 /* ══════════════════════════════════════════════════════════════════
    STATE
@@ -1008,7 +1156,10 @@ function switchPage(id) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
     document.getElementById(id).classList.add('active');
-    event.currentTarget.classList.add('active');
+    const tabs = document.querySelectorAll('.nav-tab');
+    NAV_TABS.forEach(function(tab, i) {
+        if (tab.page === id && tabs[i]) tabs[i].classList.add('active');
+    });
 
     if (id === 'pageEmpty') {
         // Jika tabel belum ada, inisialisasi. Jika sudah ada, cukup update dari cache.
@@ -1074,12 +1225,6 @@ function makeTruncate(text, maxLen=30) {
 
 function escHtml(s) {
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-function formatPipes(text) {
-    if (!text) return '';
-    // Format lama (pipe) — fallback
-    return text.split('|').map((p,i) => p.trim() ? `v${i+1}` : null).filter(Boolean).join(' ');
 }
 
 function renderJsonField(raw) {
@@ -1177,13 +1322,6 @@ function renderViolation(x09Raw) {
     }).join('<span style="color:#ccc"> · </span>');
 
     return `<div title="Total: ${total}x &#10;${tooltip}" style="cursor:default;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${summary}</div>`;
-}
-
-function buildQrUrl(token) {
-    const target = PSIKOTEST_URL + '?token=' + encodeURIComponent(token);
-    // Tetap pakai URL eksternal untuk preview saja (tidak di-capture html2canvas)
-    const qr = 'https://api.qrserver.com/v1/create-qr-code/?data=' + encodeURIComponent(target) + '&size=200x200';
-    return { target, qr };
 }
 
 // Ambil tanggal dari x_02 JSON
@@ -1361,29 +1499,12 @@ async function allUpdate() {
         if (!dataChanged && allTable) return;
 
         const rows = data.map(row => {
-            const idX   = String(row.id_x || '');
-            const token = row.x_01 || '';
-            let idLink  = idX;
-            if (idX) {
-                let url = 'https://psikogram.lidan.co.id/index_json_new?id_x=' + encodeURIComponent(idX);
-                if (token) url += '&x_01=' + encodeURIComponent(token);
-                idLink = `<a href="${url}" target="_blank" style="color:#2563eb;font-weight:700;text-decoration:none">${idX}</a>`;
-            }
             const dateStr = getDateFromX02(row.x_02);
-            const isToday = dateStr === todayString();
-            return {
-                id_x:  idLink,
-                x_01:  makeTruncate(token),
-                x_02:  renderJsonBio(row.x_02),
-                x_05:  renderSkorField(row.x_05),
-                x_04:  renderTimer(row.id_x, row.x_04 || ''),
-                x_06:  renderJsonField(row.x_06),
-                x_07:  renderJsonField(row.x_07),
-                x_09:  renderViolation(row.x_09 || ''),
-                tgl:   isToday
-                    ? `<span class="badge badge-active">📅 Hari Ini</span>`
-                    : (dateStr ? `<span style="font-size:12px;color:var(--muted)">${dateStr}</span>` : '')
-            };
+            const d = makeRowData(row);
+            d.tgl = dateStr === todayString()
+                ? `<span class="badge badge-active">📅 Hari Ini</span>`
+                : (dateStr ? `<span style="font-size:12px;color:var(--muted)">${dateStr}</span>` : '');
+            return d;
         });
 
         if (allTable) {
@@ -1397,46 +1518,14 @@ async function allUpdate() {
 }
 
 function allInitTable(rows) {
-    document.getElementById('allContainer').innerHTML = `
-        <table id="allDataTable" class="display nowrap" style="width:100%">
-            <thead><tr>
-                <th>ID</th><th>Token</th><th>Biodata</th><th>Skor</th>
-                <th>⏱ Timer</th><th>Skor 1</th><th>Skor 2</th><th>🔄 Tab</th><th>Tgl Tes</th>
-            </tr></thead><tbody></tbody>
-        </table>`;
-    allTable = $('#allDataTable').DataTable({
-        data: rows,
-        columns: [
-            { data:'id_x',  orderable:true },
-            { data:'x_01' },
-            { data:'x_02' },
-            { data:'x_05' },
-            { data:'x_04', orderable:false },
-            { data:'x_06' },
-            { data:'x_07' },
-            { data:'x_09', title:'🔄 Tab', orderable:false, defaultContent:'—' },
-            { data:'tgl',  orderable:false }
-        ],
-        pageLength: 25,
-        lengthMenu: [[10,25,50,100,-1],[10,25,50,100,'Semua']],
-        order: [[0,'desc']],
-        language: {
-            search:'🔍', searchPlaceholder:'Cari...',
-            lengthMenu:'Tampilkan _MENU_',
-            info:'_START_–_END_ dari _TOTAL_',
-            infoEmpty:'0 data', infoFiltered:'(dari _MAX_)',
-            paginate:{first:'«',last:'»',next:'›',previous:'‹'},
-            zeroRecords:'Tidak ada data', emptyTable:'Tidak ada data'
-        },
-        autoWidth: false
-    });
+    allTable = makeDT('allContainer', 'allDataTable', DT_STD_HEADS, DT_STD_COLS, rows);
 }
 
 /* ══════════════════════════════════════════════════════════════════
    PAGE 2 — TOKEN KOSONG
    Tidak fetch sendiri — pakai shared cache rawDataAll dari allUpdate
 ══════════════════════════════════════════════════════════════════ */
-let emptyTableName       = 'nilai1';
+let emptyTableName       = 'nilai1_json';
 let emptySelectedPaketIdX  = null;   // filter paket token kosong
 
 function emptyLoadTable() {
@@ -1524,31 +1613,13 @@ function openEmptyQR(idx) {
 }
 
 async function renderEmptyPaketButtons(allEmptyTokens) {
-    await loadFilterPaketData();
-    const loading = document.getElementById('emptyPaketLoading');
-    if (loading) loading.style.display = 'none';
-    const group = document.getElementById('emptyPaketBtnGroup');
-    if (!group) return;
-
     const countMap = countTokenPerPaket(allEmptyTokens);
-    group.innerHTML = '';
-
-    const allBtn = document.createElement('button');
-    allBtn.className = 'pf-btn pf-btn-all' + (emptySelectedPaketIdX === null ? ' active' : '');
-    allBtn.textContent = 'Semua';
-    allBtn.onclick = () => selectEmptyPaket(null, allBtn);
-    group.appendChild(allBtn);
-
-    filterPaketData.forEach(p => {
-        const idX  = String(p.id_x || '').trim();
-        const nama = (p.x_01 || '').trim();
-        const cnt  = countMap[idX] || 0;
-        const btn  = document.createElement('button');
-        btn.className = 'pf-btn' + (emptySelectedPaketIdX === idX ? ' active' : '');
-        btn.innerHTML = `${escHtml(nama || idX)}-${escHtml(idX)} <span style="font-size:11px;font-weight:700">(${cnt})</span>`;
-        btn.onclick = () => selectEmptyPaket(idX, btn);
-        group.appendChild(btn);
-    });
+    await renderPaketButtons(
+        'emptyPaketBtnGroup', 'emptyPaketLoading', emptySelectedPaketIdX,
+        (btn) => selectEmptyPaket(null, btn),
+        (idX, nama, btn) => selectEmptyPaket(idX, btn),
+        countMap
+    );
 }
 
 function selectEmptyPaket(idX, clickedBtn) {
@@ -1559,38 +1630,18 @@ function selectEmptyPaket(idX, clickedBtn) {
 }
 
 function emptyInitTable(rows) {
-    document.getElementById('emptyContainer').innerHTML = `
-        <table id="emptyDataTable" class="display" style="width:100%">
-            <thead><tr>
-                <th>ID</th><th>Token</th><th>QR Code</th>
-            </tr></thead><tbody></tbody>
-        </table>`;
-    emptyTable = $('#emptyDataTable').DataTable({
-        data: rows,
-        columns: [
-            { data:'id_x',  width:'60px' },
-            { data:'x_01', width:'180px' },
-            { data:'qr_btn', orderable:false, width:'120px' }
-        ],
-        pageLength: 25,
-        lengthMenu: [[10,25,50,100,-1],[10,25,50,100,'Semua']],
-        order: [[0,'asc']],
-        language: {
-            search:'🔍', searchPlaceholder:'Cari token...',
-            lengthMenu:'Tampilkan _MENU_',
-            info:'_START_–_END_ dari _TOTAL_',
-            infoEmpty:'0 data', infoFiltered:'(dari _MAX_)',
-            paginate:{first:'«',last:'»',next:'›',previous:'‹'},
-            zeroRecords:'Tidak ada data', emptyTable:'Tidak ada data'
-        }
-    });
+    emptyTable = makeDT('emptyContainer', 'emptyDataTable',
+        '<th>ID</th><th>Token</th><th>QR Code</th>',
+        [{ data:'id_x', width:'60px' }, { data:'x_01', width:'180px' }, { data:'qr_btn', orderable:false, width:'120px' }],
+        rows, { order:[[0,'asc']], searchPlaceholder:'Cari token...' }
+    );
 }
 
 /* ══════════════════════════════════════════════════════════════════
    PAGE 3 — PESERTA HARI INI
    Tidak fetch sendiri — filter dari shared cache rawDataAll
 ══════════════════════════════════════════════════════════════════ */
-let todayTableName = 'nilai1';
+let todayTableName = 'nilai1_json';
 
 function todayLoadTable() {
     todayTableName = document.getElementById('todayTableInput').value.trim() || 'nilai1';
@@ -1637,26 +1688,16 @@ function todayUpdateFromCache() {
         const token = row.x_01 || '';
         let nama = '';
         try { nama = JSON.parse(row.x_02 || '{}').nama || ''; } catch(e) {}
-        let idLink  = idX;
-        if (idX) {
-            let url = 'https://psikogram.lidan.co.id/index_json_new?id_x=' + encodeURIComponent(idX);
-            if (token) url += '&x_01=' + encodeURIComponent(token);
-            idLink = `<a href="${url}" target="_blank" style="color:#2563eb;font-weight:700;text-decoration:none">${idX}</a>`;
-        }
-        const namaEsc = escHtml(nama);
-        const testUrl = token ? 'https://psikotest.lidan.co.id/?token=' + encodeURIComponent(token) : 'https://psikotest.lidan.co.id/';
-        return {
-            chk:  `<input type="checkbox" class="row-checkbox" data-idx="${idX}" data-nama="${namaEsc}" onchange="onRowCheck()">`,
-            id_x: idLink,
-            x_01: makeTruncate(token),
-            x_02: renderJsonBio(row.x_02),
-            x_05: renderSkorField(row.x_05),
-            x_04: renderTimer(row.id_x, row.x_04 || ''),
-            x_06: renderJsonField(row.x_06),
-            x_07: renderJsonField(row.x_07),
-            x_09: renderViolation(row.x_09 || ''),
-            tgl:  `<span style="font-size:12px;color:var(--muted)">${getDateFromX02(row.x_02)}</span>`
-        };
+        let status = 'nonaktif';
+        try { status = JSON.parse(row.x_02 || '{}').status || 'nonaktif'; } catch(e) {}
+        const isAktif = status === 'aktif';
+        const d = makeRowData(row);
+        d.tgl  = `<span style="font-size:12px;color:var(--muted)">${getDateFromX02(row.x_02)}</span>`;
+        d.chk  = `<input type="checkbox" class="row-checkbox" data-idx="${idX}" data-nama="${escHtml(nama)}" onchange="onRowCheck()">`;
+        d.aktif = isAktif
+            ? `<button class="btn-aktifkan" style="background:#dc2626;" onclick="aktivasiPeserta('${idX}','nonaktif')">⛔ Nonaktifkan</button>`
+            : `<button class="btn-aktifkan" style="background:#16a34a;" onclick="aktivasiPeserta('${idX}','aktif')">▶ Aktifkan</button>`;
+        return d;
     });
 
     if (todayTable) {
@@ -1672,41 +1713,9 @@ async function todayRefresh() {
 }
 
 function todayInitTable(rows) {
-    document.getElementById('todayContainer').innerHTML = `
-        <table id="todayDataTable" class="display nowrap" style="width:100%">
-            <thead><tr>
-                <th><input type="checkbox" id="selectAllToday" onclick="toggleSelectAll(this)" title="Pilih semua"></th>
-                <th>ID</th><th>Token</th><th>Biodata</th><th>Skor</th>
-                <th>⏱ Timer</th><th>Skor 1</th><th>Skor 2</th><th>🔄 Tab</th><th>Tgl Tes</th>
-            </tr></thead><tbody></tbody>
-        </table>`;
-    todayTable = $('#todayDataTable').DataTable({
-        data: rows,
-        columns: [
-            { data:'chk',   orderable:false, width:'30px' },
-            { data:'id_x',  orderable:true },
-            { data:'x_01' },
-            { data:'x_02' },
-            { data:'x_05' },
-            { data:'x_04', orderable:false },
-            { data:'x_06' },
-            { data:'x_07' },
-            { data:'x_09', title:'🔄 Tab', orderable:false, defaultContent:'—' },
-            { data:'tgl',  orderable:false }
-        ],
-        pageLength: 25,
-        lengthMenu: [[10,25,50,100,-1],[10,25,50,100,'Semua']],
-        order: [[1,'desc']],
-        language: {
-            search:'🔍', searchPlaceholder:'Cari...',
-            lengthMenu:'Tampilkan _MENU_',
-            info:'_START_–_END_ dari _TOTAL_',
-            infoEmpty:'0 data', infoFiltered:'(dari _MAX_)',
-            paginate:{first:'«',last:'»',next:'›',previous:'‹'},
-            zeroRecords:'Tidak ada data', emptyTable:'Tidak ada data'
-        },
-        autoWidth: false
-    });
+    const heads = `<th><input type="checkbox" id="selectAllToday" onclick="toggleSelectAll(this)" title="Pilih semua"></th>${DT_STD_HEADS}<th>Aktifkan</th>`;
+    const cols  = [{ data:'chk', orderable:false, width:'30px' }, ...DT_STD_COLS, { data:'aktif', orderable:false }];
+    todayTable  = makeDT('todayContainer', 'todayDataTable', heads, cols, rows, { order:[[1,'desc']] });
 }
 
 /* ── Copy URL halaman tes ── */
@@ -1985,13 +1994,108 @@ async function doGenerateToken() {
    INIT
 ══════════════════════════════════════════════════════════════════ */
 document.getElementById('todayDateInput').value = todayString();
-// Tampilkan tab Hari Ini sebagai default aktif
 document.getElementById('pageToday').classList.add('active');
-// Mulai fetch data (shared cache — semua tab ikut terupdate)
 allLoadTable();
-</script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script>
+
+/* ══════════════════════════════════════════════════════════════════
+   AKTIVASI PESERTA — toggle aktif/nonaktif
+══════════════════════════════════════════════════════════════════ */
+async function aktivasiPeserta(idX, newStatus = 'aktif') {
+    const row = rawDataAll.find(r => String(r.id_x) === String(idX));
+    if (!row) { alert('Data peserta tidak ditemukan.'); return; }
+    const label = newStatus === 'aktif' ? 'Aktifkan' : 'Nonaktifkan';
+    if (!confirm(`${newStatus === 'aktif' ? '✅' : '⛔'} ${label} peserta ini?`)) return;
+    let bioObj = {};
+    try { bioObj = JSON.parse(row.x_02 || '{}'); } catch(e) {}
+    bioObj.status = newStatus;
+    const tbl = document.getElementById('todayTableInput').value.trim() || 'nilai1_json';
+    try {
+        const res = await fetch(`${API_INSERT}?table=${tbl}&id_x=${idX}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'X-Custom-Auth': AUTH_KEY },
+            body: JSON.stringify({ x_02: JSON.stringify(bioObj) })
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message || 'Gagal');
+        allLastHash = null;
+        await allUpdate();
+    } catch(e) {
+        alert(`Gagal ${label.toLowerCase()}: ` + e.message);
+    }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   KONTROL GLOBAL TES
+══════════════════════════════════════════════════════════════════ */
+let statusKontrolGlobal = null;
+
+async function loadKontrolGlobal() {
+    try {
+        const res = await fetch(`${API_BASE}?table=admin_kontrol&id_x=1`, {
+            headers: { 'X-Custom-Auth': AUTH_KEY }
+        });
+        const data = await res.json();
+        if (data.success && data.data) {
+            statusKontrolGlobal = (data.data.x_01 || '').trim();
+        } else {
+            statusKontrolGlobal = 'nonaktif';
+        }
+    } catch(e) {
+        statusKontrolGlobal = null;
+    }
+    renderBtnKontrol();
+}
+
+function renderBtnKontrol() {
+    const btn = document.getElementById('btnKontrolGlobal');
+    if (!btn) return;
+    if (statusKontrolGlobal === 'aktif') {
+        btn.textContent = '✅ Tes Aktif';
+        btn.style.background = '#16a34a';
+        btn.style.color = 'white';
+    } else if (statusKontrolGlobal === 'nonaktif') {
+        btn.textContent = '⛔ Tes Nonaktif';
+        btn.style.background = '#dc2626';
+        btn.style.color = 'white';
+    } else {
+        btn.textContent = '⚠ Gagal Muat';
+        btn.style.background = '#f59e0b';
+        btn.style.color = 'white';
+    }
+}
+
+async function toggleKontrolGlobal() {
+    if (statusKontrolGlobal === null) { await loadKontrolGlobal(); return; }
+    const newStatus = statusKontrolGlobal === 'aktif' ? 'nonaktif' : 'aktif';
+    const konfirmasi = confirm(`${newStatus === 'aktif' ? '✅ Aktifkan' : '⛔ Nonaktifkan'} tes secara global?`);
+    if (!konfirmasi) return;
+    const btn = document.getElementById('btnKontrolGlobal');
+    btn.disabled = true; btn.textContent = '⏳ Menyimpan...';
+    try {
+        const resPut = await fetch(`${API_INSERT}?table=admin_kontrol&id_x=1`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'X-Custom-Auth': AUTH_KEY },
+            body: JSON.stringify({ x_01: newStatus })
+        });
+        const dataPut = await resPut.json();
+        if (!dataPut.success) {
+            await fetch(`${API_INSERT}?table=admin_kontrol`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-Custom-Auth': AUTH_KEY },
+                body: JSON.stringify({ x_01: newStatus })
+            });
+        }
+        statusKontrolGlobal = newStatus;
+    } catch(e) {
+        alert('Gagal mengubah status: ' + e.message);
+    }
+    btn.disabled = false;
+    renderBtnKontrol();
+}
+
+// Panggil saat halaman dimuat
+loadKontrolGlobal();
+
 /* ══════════════════════════════════════════════════════════════════
    PAGE 4 — PRINT QR VOUCHER
 ══════════════════════════════════════════════════════════════════ */
@@ -2087,7 +2191,8 @@ function generateQRCanvas(text) {
     });
 }
 
-async function printRenderVouchers(data) {
+// Satu fungsi render voucher — baseUrl opsional (untuk paket dengan URL berbeda)
+async function printRenderVouchers(data, baseUrl = null) {
     const grid = document.getElementById('voucherGrid');
     grid.innerHTML = '';
     document.getElementById('printStatus').textContent = '⏳ Membuat QR Code...';
@@ -2095,15 +2200,12 @@ async function printRenderVouchers(data) {
     for (const row of data) {
         const token  = row.x_01 || '';
         const idX    = row.id_x || '';
-        const target = PSIKOTEST_URL + '?token=' + encodeURIComponent(token);
-
-        // ✅ Generate QR sebagai canvas, lalu masukkan langsung ke DOM (sama seperti index.html berhasil)
-        const qrCanvas = await generateQRCanvas(target);
+        const url    = (baseUrl || PSIKOTEST_URL) + '?token=' + encodeURIComponent(token);
+        const qrCanvas = await generateQRCanvas(url);
 
         const div = document.createElement('div');
         div.className = 'voucher-card';
 
-        // Buat struktur mirip index.html yang berhasil — img langsung tanpa wrapper <a>
         const titleDiv = document.createElement('div');
         titleDiv.className = 'voucher-card-title';
         titleDiv.innerHTML = `ID: ${escHtml(String(idX))} &nbsp;|&nbsp; ${escHtml(printTableName)}`;
@@ -2113,8 +2215,6 @@ async function printRenderVouchers(data) {
 
         const qrWrap = document.createElement('div');
         qrWrap.className = 'voucher-qr-wrap';
-
-        // ✅ Masukkan canvas QR langsung ke DOM (html2canvas bisa baca canvas tanpa masalah CORS)
         if (qrCanvas) {
             qrCanvas.style.cssText = 'display:block;margin:0 auto;border:2px solid #007BFF;border-radius:8px;padding:3px;';
             qrWrap.appendChild(qrCanvas);
@@ -2122,7 +2222,7 @@ async function printRenderVouchers(data) {
 
         const urlDiv = document.createElement('div');
         urlDiv.className = 'voucher-url';
-        urlDiv.textContent = 'URL: ' + PSIKOTEST_URL;
+        urlDiv.textContent = 'URL: ' + (baseUrl || PSIKOTEST_URL);
 
         const codeDiv = document.createElement('div');
         codeDiv.className = 'voucher-code';
@@ -2133,7 +2233,6 @@ async function printRenderVouchers(data) {
         div.appendChild(qrWrap);
         div.appendChild(urlDiv);
         div.appendChild(codeDiv);
-
         grid.appendChild(div);
     }
 }
@@ -2170,28 +2269,13 @@ function countTokenPerPaket(allTokens) {
 }
 
 async function renderPrintPaketButtons(allTokens) {
-    await loadFilterPaketData();
-    document.getElementById('printPaketLoading').style.display = 'none';
-    const group    = document.getElementById('printPaketBtnGroup');
     const countMap = countTokenPerPaket(allTokens);
-    group.innerHTML = '';
-
-    const allBtn = document.createElement('button');
-    allBtn.className = 'pf-btn pf-btn-all' + (printSelectedPaketIdX === null ? ' active' : '');
-    allBtn.textContent = 'Semua';
-    allBtn.onclick = () => selectPrintPaket(null, null, allBtn, allTokens);
-    group.appendChild(allBtn);
-
-    filterPaketData.forEach(p => {
-        const idX  = String(p.id_x || '').trim();
-        const nama = (p.x_01 || '').trim();
-        const cnt  = countMap[idX] || 0;
-        const btn  = document.createElement('button');
-        btn.className = 'pf-btn' + (printSelectedPaketIdX === idX ? ' active' : '');
-        btn.innerHTML = `${escHtml(nama || idX)}-${escHtml(idX)} <span style="font-size:11px;font-weight:700">(${cnt})</span>`;
-        btn.onclick = () => selectPrintPaket(idX, nama, btn, allTokens);
-        group.appendChild(btn);
-    });
+    await renderPaketButtons(
+        'printPaketBtnGroup', 'printPaketLoading', printSelectedPaketIdX,
+        (btn) => selectPrintPaket(null, null, btn, allTokens),
+        (idX, nama, btn) => selectPrintPaket(idX, nama, btn, allTokens),
+        countMap
+    );
 }
 
 function selectPrintPaket(idX, nama, clickedBtn, allTokens) {
@@ -2228,78 +2312,24 @@ async function printRenderFiltered(allTokens) {
     }
 
     const page = filtered.slice(0, limit);
-    await printRenderVouchersPaket(page);
+    const baseUrl = printSelectedPaketNama
+        ? 'https://lidan.co.id/psikotest/' + encodeURIComponent(printSelectedPaketNama)
+        : null;
+    await printRenderVouchers(page, baseUrl);
     document.getElementById('printCount').textContent  = page.length + ' voucher';
     document.getElementById('printStatus').textContent = `1–${page.length} dari ${filtered.length}`;
     document.getElementById('btnPrintPrev').disabled = true;
     document.getElementById('btnPrintNext').disabled = (page.length >= filtered.length);
 }
 
-async function printRenderVouchersPaket(data) {
-    const grid = document.getElementById('voucherGrid');
-    grid.innerHTML = '';
-    document.getElementById('printStatus').textContent = '⏳ Membuat QR Code...';
-
-    for (const row of data) {
-        const token = row.x_01 || '';
-        const idX   = row.id_x || '';
-        let baseUrl = PSIKOTEST_URL;
-        if (printSelectedPaketNama) {
-            baseUrl = 'https://lidan.co.id/psikotest/' + encodeURIComponent(printSelectedPaketNama);
-        }
-        const target   = baseUrl + '?token=' + encodeURIComponent(token);
-        const qrCanvas = await generateQRCanvas(target);
-
-        const div      = document.createElement('div');
-        div.className  = 'voucher-card';
-
-        const titleDiv = document.createElement('div');
-        titleDiv.className = 'voucher-card-title';
-        titleDiv.innerHTML = `ID: ${escHtml(String(idX))} &nbsp;|&nbsp; ${escHtml(printTableName)}`;
-
-        const qrLabel = document.createElement('div');
-        qrLabel.textContent = 'QR Code:';
-
-        const qrWrap = document.createElement('div');
-        qrWrap.className = 'voucher-qr-wrap';
-        if (qrCanvas) {
-            qrCanvas.style.cssText = 'display:block;margin:0 auto;border:2px solid #007BFF;border-radius:8px;padding:3px;';
-            qrWrap.appendChild(qrCanvas);
-        }
-
-        const urlDiv = document.createElement('div');
-        urlDiv.className = 'voucher-url';
-        urlDiv.textContent = 'URL: ' + baseUrl;
-
-        const codeDiv = document.createElement('div');
-        codeDiv.className = 'voucher-code';
-        codeDiv.textContent = 'Token : ' + (token || '-');
-
-        div.appendChild(titleDiv);
-        div.appendChild(qrLabel);
-        div.appendChild(qrWrap);
-        div.appendChild(urlDiv);
-        div.appendChild(codeDiv);
-        grid.appendChild(div);
-    }
-}
-
 /* ── Data Per Paket ── */
 async function renderPerPaketButtons() {
-    await loadFilterPaketData();
-    document.getElementById('perPaketLoading').style.display = 'none';
-    const group = document.getElementById('perPaketBtnGroup');
-    group.innerHTML = '';
-
-    filterPaketData.forEach(p => {
-        const idX  = String(p.id_x || '').trim();
-        const nama = (p.x_01 || '').trim();
-        const btn  = document.createElement('button');
-        btn.className = 'pf-btn' + (ppSelectedPaketIdX === idX ? ' active' : '');
-        btn.innerHTML = `${escHtml(nama || idX)}-${escHtml(idX)}`;
-        btn.onclick = () => selectPerPaket(idX, nama, btn);
-        group.appendChild(btn);
-    });
+    await renderPaketButtons(
+        'perPaketBtnGroup', 'perPaketLoading', ppSelectedPaketIdX,
+        null,
+        (idX, nama, btn) => selectPerPaket(idX, nama, btn),
+        null
+    );
 }
 
 function selectPerPaket(idX, nama, clickedBtn) {
@@ -2318,31 +2348,7 @@ function renderPerPaketTable() {
 
     document.getElementById('perPaketCount').textContent = filtered.length + ' data';
 
-    const rows = filtered.map(row => {
-        const idX   = String(row.id_x || '');
-        const token = row.x_01 || '';
-        let idLink  = idX;
-        if (idX) {
-            let url = 'https://psikogram.lidan.co.id/index_json_new?id_x=' + encodeURIComponent(idX);
-            if (token) url += '&x_01=' + encodeURIComponent(token);
-            idLink = `<a href="${url}" target="_blank" style="color:#2563eb;font-weight:700;text-decoration:none">${idX}</a>`;
-        }
-        const dateStr = getDateFromX02(row.x_02);
-        const isToday = dateStr === todayString();
-        return {
-            id_x: idLink,
-            x_01: makeTruncate(token),
-            x_02: renderJsonBio(row.x_02),
-            x_05: renderSkorField(row.x_05),
-            x_04: renderTimer(row.id_x, row.x_04 || ''),
-            x_06: renderJsonField(row.x_06),
-            x_07: renderJsonField(row.x_07),
-            x_09: renderViolation(row.x_09 || ''),
-            tgl:  isToday
-                ? `<span class="badge badge-active">📅 Hari Ini</span>`
-                : (dateStr ? `<span style="font-size:12px;color:var(--muted)">${dateStr}</span>` : '')
-        };
-    });
+    const rows = filtered.map(row => makeRowData(row));
 
     const container = document.getElementById('perPaketContainer');
     if (ppTable) { ppTable.destroy(); ppTable = null; }
@@ -2355,40 +2361,7 @@ function renderPerPaketTable() {
         return;
     }
 
-    container.innerHTML = `
-        <table id="perPaketTable" class="display nowrap" style="width:100%">
-            <thead><tr>
-                <th>ID</th><th>Token</th><th>Biodata</th><th>Skor</th>
-                <th>⏱ Timer</th><th>Skor 1</th><th>Skor 2</th><th>🔄 Tab</th><th>Tgl Tes</th>
-            </tr></thead><tbody></tbody>
-        </table>`;
-
-    ppTable = $('#perPaketTable').DataTable({
-        data: rows,
-        columns: [
-            { data:'id_x',  orderable:true },
-            { data:'x_01' },
-            { data:'x_02' },
-            { data:'x_05' },
-            { data:'x_04', orderable:false },
-            { data:'x_06' },
-            { data:'x_07' },
-            { data:'x_09', title:'🔄 Tab', orderable:false, defaultContent:'—' },
-            { data:'tgl',  orderable:false }
-        ],
-        pageLength: 25,
-        lengthMenu: [[10,25,50,100,-1],[10,25,50,100,'Semua']],
-        order: [[0,'desc']],
-        language: {
-            search:'🔍', searchPlaceholder:'Cari...',
-            lengthMenu:'Tampilkan _MENU_',
-            info:'_START_–_END_ dari _TOTAL_',
-            infoEmpty:'0 data', infoFiltered:'(dari _MAX_)',
-            paginate:{first:'«',last:'»',next:'›',previous:'‹'},
-            zeroRecords:'Tidak ada data', emptyTable:'Tidak ada data'
-        },
-        autoWidth: false
-    });
+    ppTable = makeDT('perPaketContainer', 'perPaketTable', DT_STD_HEADS, DT_STD_COLS, rows);
 }
 
 /* ══════════════════════════════════════════════════════════════════

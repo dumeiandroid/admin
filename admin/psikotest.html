@@ -584,11 +584,7 @@ table.dataTable { min-width: 500px; }
 <!-- TOP NAV -->
 <nav class="topnav">
     <div class="topnav-brand">🧠 Psikotest</div>
-    <div class="nav-tab active" onclick="switchPage('pageToday')">📅 Hari Ini</div>
-    <div class="nav-tab" onclick="switchPage('pageEmpty')">📋 Token Kosong</div>
-    <div class="nav-tab" onclick="switchPage('pagePrint')">🖨 Print QR</div>
-    <div class="nav-tab" onclick="switchPage('pageAll')">📊 Semua Data</div>
-    <div class="nav-tab" onclick="bukaTransfer()" style="background:rgba(255,217,61,0.2); color:#ffd93d;">🔄 Transfer</div>
+    <div id="nav-tabs-container" style="display:flex; flex-direction:row; overflow-x:auto; scrollbar-width:none; -ms-overflow-style:none;"></div>
 </nav>
 
 <div class="main">
@@ -837,14 +833,55 @@ const TOKEN_LEN  = 12;
 // Format x_02: "biodata_pipe0|pipe1|pipe2|pipe3|YYYY-MM-DD"
 const DATE_PIPE_INDEX = 4;
 
-// Buka halaman transfer dengan tabel sumber nilai1
+// =========================================================
+// KONFIGURASI NAV TABS
+// Tambah/kurangi tab cukup edit array ini saja
+// page   : switchPage internal
+// url    : buka link (lokal atau https://)
+// action : panggil fungsi JS tertentu
+// target : '_blank' atau '_self' (default '_self')
+// style  : 'yellow' untuk warna kuning
+// =========================================================
+const NAV_TABS = [
+    { label: '📅 Hari Ini',     page: 'pageToday' },
+    { label: '📋 Token Kosong', page: 'pageEmpty'  },
+    { label: '🖨 Print QR',     page: 'pagePrint'  },
+    { label: '📊 Semua Data',   page: 'pageAll'    },
+    { label: '🔄 Transfer',       url: 'https://psikogram.lidan.co.id/index_transfer', style: 'yellow' , target: '_blank' },
+    { label: '📅 Soal',       url: 'https://psikotest.lidan.co.id/', target: '_blank' },
+    { label: '📋 Hasil Akhir',       url: 'https://psikogram.lidan.co.id/psikogram_db/index_rekap' , target: '_blank' }
+    // Contoh tambah tab baru:
+    // { label: '📝 Laporan', url: 'https://laporan.lidan.co.id/', target: '_blank' },
+];
+
 function bukaTransfer() {
     const tbl = document.getElementById('allTableInput')?.value?.trim() || 'nilai1';
-    window.open(
-        'index_transfer.html?src=' + encodeURIComponent(tbl) + '&dst=rekap_nilai1',
-        '_blank'
-    );
+    window.open('index_transfer.html?src=' + encodeURIComponent(tbl) + '&dst=rekap_nilai1', '_blank');
 }
+
+function renderNav() {
+    const container = document.getElementById('nav-tabs-container');
+    container.innerHTML = '';
+    NAV_TABS.forEach(function(tab, i) {
+        const el = document.createElement('div');
+        el.className = 'nav-tab' + (i === 0 ? ' active' : '');
+        el.textContent = tab.label;
+        el.style.whiteSpace = 'nowrap';
+        if (tab.style === 'yellow') {
+            el.style.background = 'rgba(255,217,61,0.2)';
+            el.style.color = '#ffd93d';
+        }
+        if (tab.page) {
+            el.onclick = function() { switchPage(tab.page); };
+        } else if (tab.url) {
+            el.onclick = function() { window.open(tab.url, tab.target || '_self'); };
+        } else if (tab.action) {
+            el.onclick = function() { window[tab.action](); };
+        }
+        container.appendChild(el);
+    });
+}
+renderNav();
 
 /* ══════════════════════════════════════════════════════════════════
    STATE
@@ -866,7 +903,10 @@ function switchPage(id) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
     document.getElementById(id).classList.add('active');
-    event.currentTarget.classList.add('active');
+    const tabs = document.querySelectorAll('.nav-tab');
+    NAV_TABS.forEach(function(tab, i) {
+        if (tab.page === id && tabs[i]) tabs[i].classList.add('active');
+    });
 
     if (id === 'pageEmpty') {
         // Jika tabel belum ada, inisialisasi. Jika sudah ada, cukup update dari cache.

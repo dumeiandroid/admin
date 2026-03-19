@@ -37,12 +37,11 @@ body {
     background: rgba(255,255,255,0.12);
     backdrop-filter: blur(10px);
     border-bottom: 1px solid rgba(255,255,255,0.2);
-    padding: 0 20px;
+    padding: 0 0 0 20px;
     display: flex;
     align-items: center;
     gap: 0;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    overflow: hidden;
     white-space: nowrap;
     position: sticky;
     top: 0;
@@ -677,7 +676,11 @@ table.dataTable { min-width: 500px; }
 <!-- TOP NAV -->
 <nav class="topnav">
     <div class="topnav-brand">🧠 Psikotest</div>
-    <div id="nav-tabs-container" style="display:flex; flex-direction:row; overflow-x:auto; scrollbar-width:none; -ms-overflow-style:none;"></div>
+    <div id="nav-tabs-container" style="display:flex;flex-direction:row;overflow-x:auto;overflow-y:hidden;flex:1;scrollbar-width:none;-ms-overflow-style:none;-webkit-overflow-scrolling:touch;"></div>
+    <div style="padding:8px 14px;display:flex;align-items:center;gap:8px;flex-shrink:0;border-left:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);">
+        <span style="font-size:12px;color:rgba(255,255,255,.8);font-weight:600;white-space:nowrap;">Tes Global:</span>
+        <button id="btnKontrolGlobal" onclick="toggleKontrolGlobal()" style="padding:5px 14px;border:none;border-radius:99px;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap;">⏳ Memuat...</button>
+    </div>
 </nav>
 
 <div class="main">
@@ -989,7 +992,12 @@ const NAV_TABS = [
     { label: '🖨 Print QR',       page: 'pagePrint'    },
     { label: '📊 Semua Data',     page: 'pageAll'      },
     { label: '🗂 Data Per Paket', page: 'pagePerPaket' },
-    { label: '🔄 Transfer',       url: 'https://psikogram.lidan.co.id/index_transfer_json', style: 'yellow' , target: '_blank' }
+    { label: '🔄 Transfer',       url: 'https://psikogram.lidan.co.id/index_transfer_json', style: 'yellow' , target: '_blank' },
+    { label: '📅 Soal Paket',       url: 'https://lidan.co.id/psikotest/?p=app', target: '_blank' },
+    { label: '📅 Soal Gratis1',       url: 'https://lidan.co.id/test/tes-iq', target: '_blank' },
+    { label: '📅 Soal Gratis2',       url: 'https://lidan.co.id/test/tes-minat', target: '_blank' },,
+    { label: '📅 Tambah Paket',       url: 'https://admin.lidan.co.id/admin-paket', target: '_blank' },
+    { label: '📋 Hasil Akhir',       url: 'https://psikogram.lidan.co.id/psikogram_db/index_rekap' , target: '_blank' }
     // Contoh tambah tab baru:
     // { label: '📝 Laporan', url: 'https://laporan.lidan.co.id/', target: '_blank' },
 ];
@@ -1683,6 +1691,9 @@ function todayUpdateFromCache() {
         }
         const namaEsc = escHtml(nama);
         const testUrl = token ? 'https://psikotest.lidan.co.id/?token=' + encodeURIComponent(token) : 'https://psikotest.lidan.co.id/';
+        let status = 'nonaktif';
+        try { status = JSON.parse(row.x_02 || '{}').status || 'nonaktif'; } catch(e) {}
+        const isAktif = status === 'aktif';
         return {
             chk:  `<input type="checkbox" class="row-checkbox" data-idx="${idX}" data-nama="${namaEsc}" onchange="onRowCheck()">`,
             id_x: idLink,
@@ -1693,7 +1704,10 @@ function todayUpdateFromCache() {
             x_06: renderJsonField(row.x_06),
             x_07: renderJsonField(row.x_07),
             x_09: renderViolation(row.x_09 || ''),
-            tgl:  `<span style="font-size:12px;color:var(--muted)">${getDateFromX02(row.x_02)}</span>`
+            tgl:  `<span style="font-size:12px;color:var(--muted)">${getDateFromX02(row.x_02)}</span>`,
+            aktif: isAktif
+                ? `<button class="btn-aktifkan" style="background:#dc2626;" onclick="aktivasiPeserta('${idX}', 'nonaktif')">⛔ Nonaktifkan</button>`
+                : `<button class="btn-aktifkan" onclick="aktivasiPeserta('${idX}', 'aktif')">▶ Aktifkan</button>`
         };
     });
 
@@ -1715,7 +1729,7 @@ function todayInitTable(rows) {
             <thead><tr>
                 <th><input type="checkbox" id="selectAllToday" onclick="toggleSelectAll(this)" title="Pilih semua"></th>
                 <th>ID</th><th>Token</th><th>Biodata</th><th>Skor</th>
-                <th>⏱ Timer</th><th>Skor 1</th><th>Skor 2</th><th>🔄 Tab</th><th>Tgl Tes</th>
+                <th>⏱ Timer</th><th>Skor 1</th><th>Skor 2</th><th>🔄 Tab</th><th>Tgl Tes</th><th>Aktifkan</th>
             </tr></thead><tbody></tbody>
         </table>`;
     todayTable = $('#todayDataTable').DataTable({
@@ -1730,7 +1744,8 @@ function todayInitTable(rows) {
             { data:'x_06' },
             { data:'x_07' },
             { data:'x_09', title:'🔄 Tab', orderable:false, defaultContent:'—' },
-            { data:'tgl',  orderable:false }
+            { data:'tgl',  orderable:false },
+            { data:'aktif', orderable:false }
         ],
         pageLength: 25,
         lengthMenu: [[10,25,50,100,-1],[10,25,50,100,'Semua']],
@@ -2023,12 +2038,117 @@ async function doGenerateToken() {
    INIT
 ══════════════════════════════════════════════════════════════════ */
 document.getElementById('todayDateInput').value = todayString();
-// Tampilkan tab Hari Ini sebagai default aktif
 document.getElementById('pageToday').classList.add('active');
-// Mulai fetch data (shared cache — semua tab ikut terupdate)
 allLoadTable();
 </script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+.btn-aktifkan {
+    background: #16a34a; color: white; border: none;
+    padding: 4px 12px; border-radius: 6px; font-size: 12px;
+    font-weight: 700; cursor: pointer; transition: background .2s;
+}
+.btn-aktifkan:hover { background: #15803d; }
+</style>
+<script>
+/* ══════════════════════════════════════════════════════════════════
+   AKTIVASI PESERTA
+══════════════════════════════════════════════════════════════════ */
+async function aktivasiPeserta(idX, newStatus = 'aktif') {
+    const row = rawDataAll.find(r => String(r.id_x) === String(idX));
+    if (!row) { alert('Data peserta tidak ditemukan.'); return; }
+    const label = newStatus === 'aktif' ? 'mengaktifkan' : 'menonaktifkan';
+    if (!confirm(`${newStatus === 'aktif' ? '✅ Aktifkan' : '⛔ Nonaktifkan'} peserta ini?`)) return;
+    let bioObj = {};
+    try { bioObj = JSON.parse(row.x_02 || '{}'); } catch(e) {}
+    bioObj.status = newStatus;
+    const tbl = document.getElementById('todayTableInput').value.trim() || 'nilai1_json';
+    try {
+        const res = await fetch(`${API_INSERT}?table=${tbl}&id_x=${idX}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'X-Custom-Auth': AUTH_KEY },
+            body: JSON.stringify({ x_02: JSON.stringify(bioObj) })
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message || 'Gagal');
+        allLastHash = null;
+        await allUpdate();
+    } catch(e) {
+        alert('Gagal ' + label + ': ' + e.message);
+    }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   KONTROL GLOBAL TES
+══════════════════════════════════════════════════════════════════ */
+let statusKontrolGlobal = null;
+
+async function loadKontrolGlobal() {
+    try {
+        const res = await fetch(`${API_BASE}?table=admin_kontrol&id_x=1`, {
+            headers: { 'X-Custom-Auth': AUTH_KEY }
+        });
+        const data = await res.json();
+        if (data.success && data.data) {
+            statusKontrolGlobal = (data.data.x_01 || '').trim();
+        } else {
+            statusKontrolGlobal = 'nonaktif';
+        }
+    } catch(e) {
+        statusKontrolGlobal = null;
+    }
+    renderBtnKontrol();
+}
+
+function renderBtnKontrol() {
+    const btn = document.getElementById('btnKontrolGlobal');
+    if (!btn) return;
+    if (statusKontrolGlobal === 'aktif') {
+        btn.textContent = '✅ Tes Aktif';
+        btn.style.background = '#16a34a';
+        btn.style.color = 'white';
+    } else if (statusKontrolGlobal === 'nonaktif') {
+        btn.textContent = '⛔ Tes Nonaktif';
+        btn.style.background = '#dc2626';
+        btn.style.color = 'white';
+    } else {
+        btn.textContent = '⚠ Gagal Muat';
+        btn.style.background = '#f59e0b';
+        btn.style.color = 'white';
+    }
+}
+
+async function toggleKontrolGlobal() {
+    if (statusKontrolGlobal === null) { await loadKontrolGlobal(); return; }
+    const newStatus = statusKontrolGlobal === 'aktif' ? 'nonaktif' : 'aktif';
+    const konfirmasi = confirm(`${newStatus === 'aktif' ? '✅ Aktifkan' : '⛔ Nonaktifkan'} tes secara global?`);
+    if (!konfirmasi) return;
+    const btn = document.getElementById('btnKontrolGlobal');
+    btn.disabled = true; btn.textContent = '⏳ Menyimpan...';
+    try {
+        const resPut = await fetch(`${API_INSERT}?table=admin_kontrol&id_x=1`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'X-Custom-Auth': AUTH_KEY },
+            body: JSON.stringify({ x_01: newStatus })
+        });
+        const dataPut = await resPut.json();
+        if (!dataPut.success) {
+            await fetch(`${API_INSERT}?table=admin_kontrol`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-Custom-Auth': AUTH_KEY },
+                body: JSON.stringify({ x_01: newStatus })
+            });
+        }
+        statusKontrolGlobal = newStatus;
+    } catch(e) {
+        alert('Gagal mengubah status: ' + e.message);
+    }
+    btn.disabled = false;
+    renderBtnKontrol();
+}
+
+// Panggil saat halaman dimuat
+loadKontrolGlobal();
+</script>
 <script>
 /* ══════════════════════════════════════════════════════════════════
    PAGE 4 — PRINT QR VOUCHER
