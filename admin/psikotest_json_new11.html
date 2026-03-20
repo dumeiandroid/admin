@@ -683,9 +683,8 @@ table.dataTable tbody tr:nth-child(even) { background: #fafbff; }
     <div class="topnav-brand">🧠 Psikotest</div>
     <div id="nav-tabs-container" style="display:flex;flex-direction:row;flex:1;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-ms-overflow-style:none;-webkit-overflow-scrolling:touch;"></div>
     <div style="padding:8px 14px;display:flex;align-items:center;gap:8px;flex-shrink:0;border-left:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);">
-        <span style="font-size:12px;color:rgba(255,255,255,.8);font-weight:600;white-space:nowrap;">Soal Gr</span>
         <span style="font-size:12px;color:rgba(255,255,255,.8);font-weight:600;white-space:nowrap;">Tes Global:</span>
-        <button id="btnKontrolGlobal" onclick="openJadwalModal()" style="padding:5px 14px;border:none;border-radius:99px;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap;">⏳ Memuat...</button>
+        <button id="btnKontrolGlobal" onclick="toggleKontrolGlobal()" style="padding:5px 14px;border:none;border-radius:99px;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap;">⏳ Memuat...</button>
     </div>
 </nav>
 
@@ -876,73 +875,6 @@ table.dataTable tbody tr:nth-child(even) { background: #fafbff; }
 
 <!-- ── TOOLTIP ── -->
 <div class="tooltip-custom" id="tooltipEl"></div>
-
-<!-- ══════════════════════════════════
-     MODAL: JADWAL TES PER PAKET
-══════════════════════════════════ -->
-<div class="modal-overlay" id="modalJadwal" style="z-index:10100;">
-  <div class="modal-box" style="max-width:680px;width:96%;">
-    <button class="modal-close" onclick="closeModal('modalJadwal')">×</button>
-    <h2>🗓 Jadwal & Kontrol Tes</h2>
-    <p class="sub">Atur status aktif, waktu mulai, dan link per paket.</p>
-    <div id="jadwalLoading" style="text-align:center;padding:30px;color:var(--muted);">
-      <div class="spinner" style="margin:0 auto 10px;"></div>Memuat paket...
-    </div>
-    <div id="jadwalList" style="display:none;display:flex;flex-direction:column;gap:12px;max-height:65vh;overflow-y:auto;padding-right:4px;"></div>
-    <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end;">
-      <button class="btn btn-outline" onclick="closeModal('modalJadwal')">Tutup</button>
-      <button class="btn btn-primary" onclick="saveAllJadwal()" id="btnSaveJadwal">💾 Simpan Semua</button>
-    </div>
-  </div>
-</div>
-
-<style>
-/* ── JADWAL PAKET CARD ── */
-.jp-card {
-    border: 2px solid var(--border);
-    border-radius: 14px;
-    padding: 16px;
-    background: #fafbff;
-    transition: border-color .2s;
-}
-.jp-card.aktif { border-color: #16a34a; background: #f0fdf4; }
-.jp-card.nonaktif { border-color: #dc2626; background: #fff5f5; }
-.jp-header {
-    display: flex; align-items: center; justify-content: space-between;
-    gap: 10px; margin-bottom: 12px; flex-wrap: wrap;
-}
-.jp-nama { font-size: 14px; font-weight: 700; color: var(--text); }
-.jp-toggle-wrap { display: flex; align-items: center; gap: 8px; }
-.jp-toggle {
-    position: relative; width: 46px; height: 24px;
-    flex-shrink: 0;
-}
-.jp-toggle input { opacity: 0; width: 0; height: 0; }
-.jp-slider {
-    position: absolute; inset: 0; background: #dc2626;
-    border-radius: 99px; cursor: pointer; transition: background .2s;
-}
-.jp-slider::before {
-    content: ''; position: absolute;
-    width: 18px; height: 18px; left: 3px; top: 3px;
-    background: white; border-radius: 50%; transition: transform .2s;
-}
-.jp-toggle input:checked + .jp-slider { background: #16a34a; }
-.jp-toggle input:checked + .jp-slider::before { transform: translateX(22px); }
-.jp-toggle-label { font-size: 12px; font-weight: 700; }
-.jp-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-@media(max-width:520px) { .jp-fields { grid-template-columns: 1fr; } }
-.jp-field label {
-    display: block; font-size: 11px; font-weight: 700;
-    color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .04em;
-}
-.jp-field input {
-    width: 100%; padding: 8px 12px; border: 2px solid var(--border);
-    border-radius: 8px; font-size: 13px; outline: none; transition: border-color .2s;
-    background: white; font-family: inherit;
-}
-.jp-field input:focus { border-color: var(--primary); }
-</style>
 
 <!-- ══════════════════════════════════
      MODAL: TAMBAH TOKEN
@@ -2093,210 +2025,72 @@ async function aktivasiPeserta(idX, newStatus = 'aktif') {
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   KONTROL JADWAL TES PER PAKET
-   Struktur data di admin_kontrol id_x=1, field x_01 (JSON):
-   {
-     "paket": [
-       { "nama": "tes-iq-gratis", "status": "nonaktif", "waktu_mulai": "2025-06-01T08:00", "link": "https://zoom.us/..." },
-       ...
-     ]
-   }
+   KONTROL GLOBAL TES
 ══════════════════════════════════════════════════════════════════ */
-let jadwalData = [];        // array paket dari admin_kontrol
-let jadwalLoaded = false;
+let statusKontrolGlobal = null;
 
-// ── Hitung berapa paket yg aktif → update tombol navbar
-function renderBtnKontrol() {
-    const btn = document.getElementById('btnKontrolGlobal');
-    if (!btn) return;
-    const aktifCount = jadwalData.filter(p => p.status === 'aktif').length;
-    const total = jadwalData.length;
-    if (!jadwalLoaded) {
-        btn.textContent = '⏳ Memuat...';
-        btn.style.background = '#94a3b8';
-        btn.style.color = 'white';
-    } else if (aktifCount === 0) {
-        btn.textContent = '⛔ Tes Nonaktif';
-        btn.style.background = '#dc2626';
-        btn.style.color = 'white';
-    } else if (aktifCount === total) {
-        btn.textContent = `✅ Semua Aktif (${total})`;
-        btn.style.background = '#16a34a';
-        btn.style.color = 'white';
-    } else {
-        btn.textContent = `🟡 ${aktifCount}/${total} Aktif`;
-        btn.style.background = '#f59e0b';
-        btn.style.color = 'white';
-    }
-}
-
-// ── Load data jadwal dari API
 async function loadKontrolGlobal() {
     try {
         const res = await fetch(`${API_BASE}?table=admin_kontrol&id_x=1`, {
             headers: { 'X-Custom-Auth': AUTH_KEY }
         });
         const data = await res.json();
-        let raw = {};
-        if (data.success && data.data && data.data.x_01) {
-            try { raw = JSON.parse(data.data.x_01); } catch(e) {}
+        if (data.success && data.data) {
+            statusKontrolGlobal = (data.data.x_01 || '').trim();
+        } else {
+            statusKontrolGlobal = 'nonaktif';
         }
-        jadwalData = Array.isArray(raw.paket) ? raw.paket : [];
     } catch(e) {
-        jadwalData = [];
+        statusKontrolGlobal = null;
     }
-    jadwalLoaded = true;
     renderBtnKontrol();
 }
 
-// ── Simpan data jadwal ke API
-async function saveJadwalToAPI(dataArr) {
-    const payload = { x_01: JSON.stringify({ paket: dataArr }) };
-    // Coba PUT dulu, jika gagal POST
+function renderBtnKontrol() {
+    const btn = document.getElementById('btnKontrolGlobal');
+    if (!btn) return;
+    if (statusKontrolGlobal === 'aktif') {
+        btn.textContent = '✅ Tes Aktif';
+        btn.style.background = '#16a34a';
+        btn.style.color = 'white';
+    } else if (statusKontrolGlobal === 'nonaktif') {
+        btn.textContent = '⛔ Tes Nonaktif';
+        btn.style.background = '#dc2626';
+        btn.style.color = 'white';
+    } else {
+        btn.textContent = '⚠ Gagal Muat';
+        btn.style.background = '#f59e0b';
+        btn.style.color = 'white';
+    }
+}
+
+async function toggleKontrolGlobal() {
+    if (statusKontrolGlobal === null) { await loadKontrolGlobal(); return; }
+    const newStatus = statusKontrolGlobal === 'aktif' ? 'nonaktif' : 'aktif';
+    const konfirmasi = confirm(`${newStatus === 'aktif' ? '✅ Aktifkan' : '⛔ Nonaktifkan'} tes secara global?`);
+    if (!konfirmasi) return;
+    const btn = document.getElementById('btnKontrolGlobal');
+    btn.disabled = true; btn.textContent = '⏳ Menyimpan...';
     try {
         const resPut = await fetch(`${API_INSERT}?table=admin_kontrol&id_x=1`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json', 'X-Custom-Auth': AUTH_KEY },
-            body: JSON.stringify(payload)
+            body: JSON.stringify({ x_01: newStatus })
         });
-        const d = await resPut.json();
-        if (!d.success) throw new Error('PUT failed');
+        const dataPut = await resPut.json();
+        if (!dataPut.success) {
+            await fetch(`${API_INSERT}?table=admin_kontrol`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-Custom-Auth': AUTH_KEY },
+                body: JSON.stringify({ x_01: newStatus })
+            });
+        }
+        statusKontrolGlobal = newStatus;
     } catch(e) {
-        await fetch(`${API_INSERT}?table=admin_kontrol`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-Custom-Auth': AUTH_KEY },
-            body: JSON.stringify({ ...payload, id_x: 1 })
-        });
+        alert('Gagal mengubah status: ' + e.message);
     }
-}
-
-// ── Buka modal jadwal
-async function openJadwalModal() {
-    document.getElementById('modalJadwal').classList.add('open');
-    document.getElementById('jadwalLoading').style.display = 'block';
-    document.getElementById('jadwalList').style.display = 'none';
-
-    // Muat paket dari alat_tes
-    let paketList = [];
-    try {
-        const res = await fetch(`${API_BASE}?table=alat_tes`, { headers: { 'X-Custom-Auth': AUTH_KEY } });
-        const d = await res.json();
-        paketList = (d.success && d.data) ? d.data : [];
-    } catch(e) {}
-
-    // Reload jadwalData terbaru
-    await loadKontrolGlobal();
-
-    // Merge: paket dari alat_tes + data jadwal yg sudah tersimpan
-    const merged = paketList.map(p => {
-        const nama = (p.x_01 || '').trim();
-        const existing = jadwalData.find(j => j.nama === nama) || {};
-        return {
-            nama,
-            label: p.x_02 || nama,
-            status: existing.status || 'nonaktif',
-            waktu_mulai: existing.waktu_mulai || '',
-            link: existing.link || ''
-        };
-    });
-
-    // Render kartu per paket
-    const list = document.getElementById('jadwalList');
-    list.innerHTML = '';
-    if (merged.length === 0) {
-        list.innerHTML = '<p style="color:var(--muted);text-align:center;padding:20px;">Tidak ada paket ditemukan di tabel alat_tes.</p>';
-    } else {
-        merged.forEach((p, i) => {
-            const isAktif = p.status === 'aktif';
-            const card = document.createElement('div');
-            card.className = `jp-card ${isAktif ? 'aktif' : 'nonaktif'}`;
-            card.dataset.idx = i;
-            card.innerHTML = `
-                <div class="jp-header">
-                    <div>
-                        <div class="jp-nama">📦 ${escHtml(p.label)}</div>
-                        <div style="font-size:11px;color:var(--muted);font-family:'Courier New',monospace;margin-top:2px;">${escHtml(p.nama)}</div>
-                    </div>
-                    <div class="jp-toggle-wrap">
-                        <label class="jp-toggle">
-                            <input type="checkbox" ${isAktif ? 'checked' : ''} onchange="toggleJpCard(this,${i})">
-                            <span class="jp-slider"></span>
-                        </label>
-                        <span class="jp-toggle-label" id="jpLabel_${i}" style="color:${isAktif ? '#16a34a' : '#dc2626'}">
-                            ${isAktif ? '✅ Aktif' : '⛔ Nonaktif'}
-                        </span>
-                    </div>
-                </div>
-                <div class="jp-fields">
-                    <div class="jp-field">
-                        <label>⏰ Waktu Mulai</label>
-                        <input type="datetime-local" id="jpWaktu_${i}" value="${escHtml(p.waktu_mulai)}" placeholder="Kosongkan jika tidak ada jadwal">
-                    </div>
-                    <div class="jp-field">
-                        <label>🔗 Link (Zoom / Meet)</label>
-                        <input type="url" id="jpLink_${i}" value="${escHtml(p.link)}" placeholder="https://zoom.us/j/...">
-                    </div>
-                </div>
-            `;
-            list.appendChild(card);
-        });
-    }
-
-    // Simpan merged ke state sementara modal
-    list.dataset.merged = JSON.stringify(merged);
-    document.getElementById('jadwalLoading').style.display = 'none';
-    list.style.display = 'flex';
-    list.style.flexDirection = 'column';
-    list.style.gap = '12px';
-}
-
-// ── Toggle aktif/nonaktif card
-function toggleJpCard(checkbox, idx) {
-    const card = document.querySelector(`.jp-card[data-idx="${idx}"]`);
-    const label = document.getElementById(`jpLabel_${idx}`);
-    if (checkbox.checked) {
-        card.className = 'jp-card aktif';
-        label.textContent = '✅ Aktif';
-        label.style.color = '#16a34a';
-    } else {
-        card.className = 'jp-card nonaktif';
-        label.textContent = '⛔ Nonaktif';
-        label.style.color = '#dc2626';
-    }
-}
-
-// ── Simpan semua paket
-async function saveAllJadwal() {
-    const list = document.getElementById('jadwalList');
-    let merged = [];
-    try { merged = JSON.parse(list.dataset.merged || '[]'); } catch(e) {}
-    if (!merged.length) { alert('Tidak ada data untuk disimpan.'); return; }
-
-    const btn = document.getElementById('btnSaveJadwal');
-    btn.disabled = true; btn.textContent = '⏳ Menyimpan...';
-
-    const newData = merged.map((p, i) => {
-        const cb = list.querySelector(`input[type=checkbox][onchange*="${i}"]`);
-        const waktu = document.getElementById(`jpWaktu_${i}`);
-        const link  = document.getElementById(`jpLink_${i}`);
-        return {
-            nama: p.nama,
-            status: (cb && cb.checked) ? 'aktif' : 'nonaktif',
-            waktu_mulai: waktu ? waktu.value : '',
-            link: link ? link.value.trim() : ''
-        };
-    });
-
-    try {
-        await saveJadwalToAPI(newData);
-        jadwalData = newData;
-        renderBtnKontrol();
-        btn.textContent = '✅ Tersimpan!';
-        setTimeout(() => { btn.disabled = false; btn.textContent = '💾 Simpan Semua'; }, 1800);
-    } catch(e) {
-        alert('Gagal menyimpan: ' + e.message);
-        btn.disabled = false; btn.textContent = '💾 Simpan Semua';
-    }
+    btn.disabled = false;
+    renderBtnKontrol();
 }
 
 // Panggil saat halaman dimuat
