@@ -883,13 +883,8 @@ table.dataTable tbody tr:nth-child(even) { background: #fafbff; }
 <div class="modal-overlay" id="modalJadwal" style="z-index:10100;">
   <div class="modal-box" style="max-width:680px;width:96%;">
     <button class="modal-close" onclick="closeModal('modalJadwal')">×</button>
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:2px;">
-      <h2 style="margin:0;">🗓 Jadwal & Kontrol Tes</h2>
-      <input type="text" id="jadwalSearch" placeholder="🔍 Cari paket..." oninput="filterJadwalCards(this.value)"
-        style="padding:7px 12px;border:2px solid var(--border);border-radius:8px;font-size:.88em;outline:none;width:200px;font-family:inherit;transition:border .2s;"
-        onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--border)'">
-    </div>
-    <p class="sub" style="margin-top:4px;">Atur status aktif, waktu mulai, dan link per paket.</p>
+    <h2>🗓 Jadwal & Kontrol Tes</h2>
+    <p class="sub">Atur status aktif, waktu mulai, dan link per paket.</p>
     <div id="jadwalLoading" style="text-align:center;padding:30px;color:var(--muted);">
       <div class="spinner" style="margin:0 auto 10px;"></div>Memuat paket...
     </div>
@@ -1170,12 +1165,11 @@ const NAV_TABS = [
     { label: '🖨 Print QR',       page: 'pagePrint'    },
     { label: '📊 Semua Data',     page: 'pageAll'      },
     { label: '🗂 Data Per Paket', page: 'pagePerPaket' },
-    { label: '📋 Dashboard Tester',       url: 'https://pkl.lidan.co.id/check_tester' , target: '_blank' },
     { label: '🔄 Transfer',       url: 'https://psikogram.lidan.co.id/index_transfer_json', style: 'yellow' , target: '_blank' },
     { label: '📅 Soal Paket',       url: 'https://lidan.co.id/psikotest/?p=app', target: '_blank' },
-    { label: '🎯 Soal via Zoom',      action: 'openSoalZoomModal' },
+    { label: '📅 Soal Gratis1',       url: 'https://lidan.co.id/test/tes-iq', target: '_blank' },
+    { label: '📅 Soal Gratis2',       url: 'https://lidan.co.id/test/tes-minat', target: '_blank' },,
     { label: '📅 Tambah Paket',       url: 'https://admin.lidan.co.id/admin-paket', target: '_blank' },
-    { label: '📋 Dashboard Tester',       url: 'https://pkl.lidan.co.id/check_tester' , target: '_blank' },
     { label: '📋 Hasil Akhir',       url: 'https://psikogram.lidan.co.id/psikogram_db/index_rekap' , target: '_blank' }
     // Contoh tambah tab baru:
     // { label: '📝 Laporan', url: 'https://laporan.lidan.co.id/', target: '_blank' },
@@ -1209,26 +1203,6 @@ function renderNav() {
     });
 }
 renderNav();
-
-function openSoalZoomModal() {
-    document.getElementById('modalSoalZoom').classList.add('open');
-}
-
-function copyLink(url, btn) {
-    navigator.clipboard.writeText(url).then(() => {
-        const ori = btn.innerHTML;
-        btn.innerHTML = '✅ Disalin!';
-        btn.style.color = '#16a34a';
-        btn.style.borderColor = '#86efac';
-        setTimeout(() => {
-            btn.innerHTML = ori;
-            btn.style.color = '';
-            btn.style.borderColor = '';
-        }, 1800);
-    }).catch(() => {
-        prompt('Salin link berikut:', url);
-    });
-}
 
 /* ══════════════════════════════════════════════════════════════════
    STATE
@@ -2201,9 +2175,6 @@ async function openJadwalModal() {
     document.getElementById('modalJadwal').classList.add('open');
     document.getElementById('jadwalLoading').style.display = 'block';
     document.getElementById('jadwalList').style.display = 'none';
-    // Reset search
-    const srch = document.getElementById('jadwalSearch');
-    if (srch) srch.value = '';
 
     // Muat paket dari alat_tes
     let paketList = [];
@@ -2225,8 +2196,7 @@ async function openJadwalModal() {
             label: p.x_02 || nama,
             status: existing.status || 'nonaktif',
             waktu_mulai: existing.waktu_mulai || '',
-            link: existing.link || '',
-            logout_aktif: existing.logout_aktif || false
+            link: existing.link || ''
         };
     });
 
@@ -2241,7 +2211,6 @@ async function openJadwalModal() {
             const card = document.createElement('div');
             card.className = `jp-card ${isAktif ? 'aktif' : 'nonaktif'}`;
             card.dataset.idx = i;
-            card.dataset.search = (p.nama + ' ' + p.label).toLowerCase();
             card.innerHTML = `
                 <div class="jp-header">
                     <div>
@@ -2266,16 +2235,6 @@ async function openJadwalModal() {
                     <div class="jp-field">
                         <label>🔗 Link (Zoom / Meet)</label>
                         <input type="url" id="jpLink_${i}" value="${escHtml(p.link)}" placeholder="https://zoom.us/j/...">
-                    </div>
-                    <div class="jp-field" style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--border);margin-top:4px;">
-                        <label style="margin:0;font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap;">🔓 Izinkan Logout</label>
-                        <label class="jp-toggle" style="margin:0;">
-                            <input type="checkbox" id="jpLogout_${i}" ${p.logout_aktif ? 'checked' : ''} onchange="toggleJpLogout(this,${i})">
-                            <span class="jp-slider"></span>
-                        </label>
-                        <span id="jpLogoutLabel_${i}" style="font-size:12px;font-weight:700;color:${p.logout_aktif ? '#16a34a' : '#94a3b8'};">
-                            ${p.logout_aktif ? '✅ Aktif' : '—'}
-                        </span>
                     </div>
                 </div>
             `;
@@ -2306,41 +2265,6 @@ function toggleJpCard(checkbox, idx) {
     }
 }
 
-// ── Toggle logout per paket
-function toggleJpLogout(checkbox, idx) {
-    const label = document.getElementById(`jpLogoutLabel_${idx}`);
-    if (checkbox.checked) {
-        label.textContent = '✅ Aktif';
-        label.style.color = '#16a34a';
-    } else {
-        label.textContent = '—';
-        label.style.color = '#94a3b8';
-    }
-}
-
-// ── Filter kartu paket berdasarkan kata kunci
-function filterJadwalCards(keyword) {
-    const q = (keyword || '').toLowerCase().trim();
-    const cards = document.querySelectorAll('#jadwalList .jp-card');
-    let visible = 0;
-    cards.forEach(card => {
-        const haystack = card.dataset.search || '';
-        const show = !q || haystack.includes(q);
-        card.style.display = show ? '' : 'none';
-        if (show) visible++;
-    });
-    // Tampilkan pesan jika tidak ada hasil
-    let emptyMsg = document.getElementById('jadwalSearchEmpty');
-    if (!emptyMsg) {
-        emptyMsg = document.createElement('p');
-        emptyMsg.id = 'jadwalSearchEmpty';
-        emptyMsg.style.cssText = 'color:var(--muted);text-align:center;padding:20px;display:none;';
-        emptyMsg.textContent = 'Tidak ada paket yang cocok.';
-        document.getElementById('jadwalList').appendChild(emptyMsg);
-    }
-    emptyMsg.style.display = (q && visible === 0) ? 'block' : 'none';
-}
-
 // ── Simpan semua paket
 async function saveAllJadwal() {
     const list = document.getElementById('jadwalList');
@@ -2353,15 +2277,13 @@ async function saveAllJadwal() {
 
     const newData = merged.map((p, i) => {
         const cb = list.querySelector(`input[type=checkbox][onchange*="${i}"]`);
-        const waktu  = document.getElementById(`jpWaktu_${i}`);
-        const link   = document.getElementById(`jpLink_${i}`);
-        const logout = document.getElementById(`jpLogout_${i}`);
+        const waktu = document.getElementById(`jpWaktu_${i}`);
+        const link  = document.getElementById(`jpLink_${i}`);
         return {
             nama: p.nama,
             status: (cb && cb.checked) ? 'aktif' : 'nonaktif',
             waktu_mulai: waktu ? waktu.value : '',
-            link: link ? link.value.trim() : '',
-            logout_aktif: logout ? logout.checked : false
+            link: link ? link.value.trim() : ''
         };
     });
 
@@ -2687,101 +2609,5 @@ async function downloadVouchers() {
 }
 </script>
 <script src="https://login.lidan.co.id/login_admin.js"></script>
-<!-- ══ MODAL SOAL VIA ZOOM ══ -->
-<div class="modal-overlay" id="modalSoalZoom" style="z-index:10200;">
-  <div class="modal-box" style="max-width:480px;width:96%;">
-    <button class="modal-close" onclick="closeModal('modalSoalZoom')">×</button>
-    <h2>🎯 Soal via Zoom</h2>
-    <p class="sub">Buka halaman tes atau salin link untuk dibagikan ke peserta.</p>
-
-    <!-- SEKSI FREE -->
-    <div style="margin-bottom:18px;">
-      <div style="font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#16a34a;margin-bottom:10px;display:flex;align-items:center;gap:6px;">
-        <span style="background:#dcfce7;border:1px solid #86efac;border-radius:99px;padding:2px 10px;">🆓 FREE</span>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:8px;">
-
-        <!-- IQ Free -->
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 14px;background:#f8fafc;border:1.5px solid var(--border);border-radius:10px;">
-          <span style="font-size:.9em;font-weight:600;color:var(--text);">🧠 IQ</span>
-          <div style="display:flex;gap:6px;">
-            <a href="https://lidan.co.id/test/tes-iq-free" target="_blank"
-              style="display:inline-flex;align-items:center;gap:5px;padding:6px 12px;background:var(--primary);color:#fff;border-radius:7px;font-size:.8em;font-weight:700;text-decoration:none;white-space:nowrap;">
-              🔗 Buka
-            </a>
-            <button onclick="copyLink('https://lidan.co.id/test/tes-iq-free', this)"
-              style="display:inline-flex;align-items:center;gap:5px;padding:6px 12px;background:#fff;color:var(--muted);border:1.5px solid var(--border);border-radius:7px;font-size:.8em;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">
-              📋 Salin
-            </button>
-          </div>
-        </div>
-
-        <!-- IQ Komprehensif Free -->
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 14px;background:#f8fafc;border:1.5px solid var(--border);border-radius:10px;">
-          <span style="font-size:.9em;font-weight:600;color:var(--text);">🧠 IQ Komprehensif</span>
-          <div style="display:flex;gap:6px;">
-            <a href="https://lidan.co.id/test/tes-iq-komprehensif-free" target="_blank"
-              style="display:inline-flex;align-items:center;gap:5px;padding:6px 12px;background:var(--primary);color:#fff;border-radius:7px;font-size:.8em;font-weight:700;text-decoration:none;white-space:nowrap;">
-              🔗 Buka
-            </a>
-            <button onclick="copyLink('https://lidan.co.id/test/tes-iq-komprehensif-free', this)"
-              style="display:inline-flex;align-items:center;gap:5px;padding:6px 12px;background:#fff;color:var(--muted);border:1.5px solid var(--border);border-radius:7px;font-size:.8em;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">
-              📋 Salin
-            </button>
-          </div>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- DIVIDER -->
-    <div style="height:1px;background:var(--border);margin-bottom:18px;"></div>
-
-    <!-- SEKSI PREMIUM -->
-    <div style="margin-bottom:8px;">
-      <div style="font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#7c3aed;margin-bottom:10px;display:flex;align-items:center;gap:6px;">
-        <span style="background:#ede9fe;border:1px solid #c4b5fd;border-radius:99px;padding:2px 10px;">⭐ PREMIUM</span>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:8px;">
-
-        <!-- IQ Premium -->
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 14px;background:#f8fafc;border:1.5px solid var(--border);border-radius:10px;">
-          <span style="font-size:.9em;font-weight:600;color:var(--text);">🧠 IQ</span>
-          <div style="display:flex;gap:6px;">
-            <a href="https://lidan.co.id/test/tes-iq-premium" target="_blank"
-              style="display:inline-flex;align-items:center;gap:5px;padding:6px 12px;background:#7c3aed;color:#fff;border-radius:7px;font-size:.8em;font-weight:700;text-decoration:none;white-space:nowrap;">
-              🔗 Buka
-            </a>
-            <button onclick="copyLink('https://lidan.co.id/test/tes-iq-premium', this)"
-              style="display:inline-flex;align-items:center;gap:5px;padding:6px 12px;background:#fff;color:var(--muted);border:1.5px solid var(--border);border-radius:7px;font-size:.8em;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">
-              📋 Salin
-            </button>
-          </div>
-        </div>
-
-        <!-- IQ Komprehensif Premium -->
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 14px;background:#f8fafc;border:1.5px solid var(--border);border-radius:10px;">
-          <span style="font-size:.9em;font-weight:600;color:var(--text);">🧠 IQ Komprehensif</span>
-          <div style="display:flex;gap:6px;">
-            <a href="https://lidan.co.id/test/tes-iq-komprehensif-premium" target="_blank"
-              style="display:inline-flex;align-items:center;gap:5px;padding:6px 12px;background:#7c3aed;color:#fff;border-radius:7px;font-size:.8em;font-weight:700;text-decoration:none;white-space:nowrap;">
-              🔗 Buka
-            </a>
-            <button onclick="copyLink('https://lidan.co.id/test/tes-iq-komprehensif-premium', this)"
-              style="display:inline-flex;align-items:center;gap:5px;padding:6px 12px;background:#fff;color:var(--muted);border:1.5px solid var(--border);border-radius:7px;font-size:.8em;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">
-              📋 Salin
-            </button>
-          </div>
-        </div>
-
-      </div>
-    </div>
-
-    <div style="margin-top:16px;display:flex;justify-content:flex-end;">
-      <button class="btn btn-outline" onclick="closeModal('modalSoalZoom')">Tutup</button>
-    </div>
-  </div>
-</div>
-
 </body>
 </html>
