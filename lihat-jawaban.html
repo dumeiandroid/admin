@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lihat Jawaban – Admin Lidan Psikologi</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{--primary:#2563eb;--primary-dark:#1d4ed8;--success:#16a34a;--bg:#f1f5f9;--card:#fff;--text:#1e293b;--muted:#64748b;--border:#e2e8f0;--danger:#dc2626}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:24px 16px}
+.card{background:var(--card);border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,.07);padding:32px;max-width:900px;margin:0 auto}
+.page-title{font-size:1.4em;font-weight:700;color:var(--primary);margin-bottom:4px}
+.page-sub{color:var(--muted);font-size:.88em;margin-bottom:24px}
+.search-row{display:flex;gap:10px;margin-bottom:20px}
+.search-row input{flex:1;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-size:.95em;outline:none;transition:border .2s;font-family:inherit;background:#f8fafc}
+.search-row input:focus{border-color:var(--primary);background:#fff}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 22px;border:none;border-radius:10px;font-size:.9em;font-weight:700;cursor:pointer;transition:all .2s;font-family:inherit}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-primary{background:var(--primary);color:#fff}.btn-primary:hover:not(:disabled){background:var(--primary-dark)}
+.btn-pdf{background:var(--success);color:#fff}.btn-pdf:hover:not(:disabled){background:#15803d;transform:translateY(-1px);box-shadow:0 4px 12px rgba(22,163,74,.25)}
+.spinner{width:18px;height:18px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.err-box{background:#fef2f2;border:1.5px solid #fecaca;border-radius:10px;padding:12px 16px;color:var(--danger);font-size:.85em;font-weight:600;margin-bottom:16px;display:none}
+.err-box.show{display:block}
+
+/* Bio */
+.bio-box{background:#f0f9ff;border:1.5px solid #bae6fd;border-radius:12px;padding:16px 20px;margin-bottom:24px}
+.bio-title{font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#0369a1;margin-bottom:10px}
+.bio-grid{display:flex;flex-wrap:wrap;gap:16px}
+.bio-item{display:flex;flex-direction:column;gap:2px;min-width:120px}
+.bio-label{font-size:.7em;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.bio-val{font-size:.9em;font-weight:700;color:var(--text)}
+
+/* Kolom header */
+.kolom-header{display:flex;align-items:center;gap:10px;margin:24px 0 16px}
+.kolom-badge{background:var(--primary);color:#fff;font-size:.75em;font-weight:700;padding:3px 12px;border-radius:99px;letter-spacing:.06em;text-transform:uppercase}
+.kolom-divider{flex:1;height:2px;background:linear-gradient(to right,var(--primary),transparent)}
+
+/* Sub-tes block */
+.subtes-block{margin-bottom:24px}
+.subtes-title{font-size:.95em;font-weight:700;color:var(--primary);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.subtes-title::before{content:'';display:inline-block;width:4px;height:16px;background:var(--primary);border-radius:2px}
+.subtes-count{font-size:.75em;font-weight:600;color:var(--muted);background:#f1f5f9;padding:2px 8px;border-radius:6px}
+
+/* Grid jawaban */
+.jaw-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:7px}
+.jaw-item{background:#f8fafc;border:1.5px solid var(--border);border-radius:8px;padding:8px 6px;text-align:center}
+.jaw-num{font-size:.65em;color:var(--muted);font-weight:600;margin-bottom:3px}
+.jaw-val{font-size:1em;font-weight:800;color:var(--text)}
+
+/* Action row download */
+.action-row{display:flex;justify-content:flex-end;margin-bottom:16px}
+
+.empty-kolom{color:var(--muted);font-size:.88em;padding:8px 0;font-style:italic}
+.result-wrap{display:none}.result-wrap.show{display:block}
+.no-data{text-align:center;color:var(--muted);font-size:.9em;padding:32px 0;display:none}.no-data.show{display:block}
+
+@media(max-width:540px){
+  .search-row{flex-direction:column}.card{padding:20px 14px}
+  .jaw-grid{grid-template-columns:repeat(auto-fill,minmax(58px,1fr))}
+  .action-row{justify-content:stretch}.btn-pdf{width:100%}
+}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="page-title">🔍 Lihat Jawaban Peserta</div>
+  <p class="page-sub">Masukkan ID peserta (id_x) untuk melihat jawaban x_06 dan x_07.</p>
+
+  <div class="search-row">
+    <input type="text" id="inputId" placeholder="Masukkan id_x peserta..." autocomplete="off"
+      onkeydown="if(event.key==='Enter') cariData()">
+    <button class="btn btn-primary" id="btnCari" onclick="cariData()">🔎 Cari</button>
+  </div>
+
+  <div class="err-box" id="errBox"></div>
+  <div class="no-data" id="noData">Tidak ada data ditemukan untuk ID tersebut.</div>
+
+  <div class="result-wrap" id="resultWrap">
+
+    <!-- Tombol Download PDF -->
+    <div class="action-row">
+      <button class="btn btn-pdf" id="btnPdf" onclick="downloadPDF()">⬇ Download PDF</button>
+    </div>
+
+    <!-- Bio -->
+    <div class="bio-box">
+      <div class="bio-title">📋 Data Peserta</div>
+      <div class="bio-grid" id="bioGrid"></div>
+    </div>
+
+    <!-- x_06 -->
+    <div class="kolom-header">
+      <span class="kolom-badge">x_06</span>
+      <div class="kolom-divider"></div>
+    </div>
+    <div id="hasil06"></div>
+
+    <!-- x_07 -->
+    <div class="kolom-header">
+      <span class="kolom-badge">x_07</span>
+      <div class="kolom-divider"></div>
+    </div>
+    <div id="hasil07"></div>
+
+  </div>
+</div>
+
+<script>
+const API_R = 'https://lidan-co-id.pages.dev/api/contacts_filter_dinamis7';
+const TBL   = 'nilai1_json';
+const AUTH  = 'admin';
+
+// Simpan data mentah untuk keperluan PDF
+let dataPDF = { bio: {}, x06: {}, x07: {}, idPeserta: '' };
+
+function setBtn(loading) {
+  const btn = document.getElementById('btnCari');
+  btn.disabled = loading;
+  btn.innerHTML = loading
+    ? '<span class="spinner"></span> Mencari...'
+    : '🔎 Cari';
+}
+
+function showErr(msg) {
+  const eb = document.getElementById('errBox');
+  eb.textContent = msg;
+  eb.classList.add('show');
+}
+
+function clearUI() {
+  document.getElementById('errBox').classList.remove('show');
+  document.getElementById('noData').classList.remove('show');
+  document.getElementById('resultWrap').classList.remove('show');
+  document.getElementById('hasil06').innerHTML = '';
+  document.getElementById('hasil07').innerHTML = '';
+  document.getElementById('bioGrid').innerHTML = '';
+  dataPDF = { bio: {}, x06: {}, x07: {}, idPeserta: '' };
+}
+
+// Render bio dari x_02
+function renderBio(x02Raw) {
+  const grid = document.getElementById('bioGrid');
+  let bio = {};
+  try { bio = JSON.parse(x02Raw || '{}'); } catch {}
+  dataPDF.bio = bio;
+  const fields = [
+    ['nama','Nama'], ['usia','Usia'], ['pendidikan','Pendidikan'],
+    ['jenis_kelamin','Jenis Kelamin'], ['telepon','Telepon'], ['tgl_tes','Tgl Tes'], ['status','Status']
+  ];
+  grid.innerHTML = '';
+  for (const [k, label] of fields) {
+    if (bio[k] != null && bio[k] !== '') {
+      grid.innerHTML += `<div class="bio-item"><span class="bio-label">${label}</span><span class="bio-val">${bio[k]}</span></div>`;
+    }
+  }
+}
+
+// Render satu kolom ke layar
+function renderKolom(raw, targetId) {
+  const target = document.getElementById(targetId);
+  target.innerHTML = '';
+
+  if (!raw || raw === '{}' || raw === '') {
+    target.innerHTML = '<div class="empty-kolom">— Tidak ada data —</div>';
+    return;
+  }
+
+  let obj = {};
+  try { obj = JSON.parse(raw); } catch {
+    target.innerHTML = '<div class="empty-kolom">— Format tidak dikenali —</div>';
+    return;
+  }
+
+  // Simpan ke dataPDF
+  if (targetId === 'hasil06') dataPDF.x06 = obj;
+  if (targetId === 'hasil07') dataPDF.x07 = obj;
+
+  for (const [subtes, nilaiStr] of Object.entries(obj)) {
+    const jawaban = String(nilaiStr).split(';').filter(s => s.trim() !== '');
+
+    const block = document.createElement('div');
+    block.className = 'subtes-block';
+    block.innerHTML = `
+      <div class="subtes-title">
+        ${subtes}
+        <span class="subtes-count">${jawaban.length} jawaban</span>
+      </div>
+    `;
+
+    const grid = document.createElement('div');
+    grid.className = 'jaw-grid';
+    jawaban.forEach((jwb, i) => {
+      const item = document.createElement('div');
+      item.className = 'jaw-item';
+      item.innerHTML = `<div class="jaw-num">No. ${i + 1}</div><div class="jaw-val">${jwb.trim()}</div>`;
+      grid.appendChild(item);
+    });
+
+    block.appendChild(grid);
+    target.appendChild(block);
+  }
+}
+
+// ─── DOWNLOAD PDF ──────────────────────────────────────────
+function downloadPDF() {
+  const btn = document.getElementById('btnPdf');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Membuat PDF...';
+
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+    const pageW = 210, pageH = 297;
+    const marginL = 16, marginR = 16, marginT = 18, marginB = 16;
+    const contentW = pageW - marginL - marginR;
+    let y = marginT;
+
+    const COLOR_PRIMARY  = [37, 99, 235];
+    const COLOR_TEXT     = [30, 41, 59];
+    const COLOR_MUTED    = [100, 116, 139];
+    const COLOR_BORDER   = [226, 232, 240];
+    const COLOR_BG_LIGHT = [248, 250, 252];
+    const COLOR_SUCCESS  = [22, 163, 74];
+
+    // ── Helper: cek apakah perlu halaman baru
+    function checkPage(needed) {
+      if (y + needed > pageH - marginB) {
+        doc.addPage();
+        y = marginT;
+        drawPageBorder();
+      }
+    }
+
+    function drawPageBorder() {
+      doc.setDrawColor(...COLOR_BORDER);
+      doc.setLineWidth(0.3);
+      doc.rect(10, 10, pageW - 20, pageH - 20);
+    }
+
+    // ── Header halaman pertama
+    drawPageBorder();
+    doc.setFillColor(...COLOR_PRIMARY);
+    doc.rect(marginL, y, contentW, 12, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(255, 255, 255);
+    doc.text('LIDAN PSIKOLOGI – Data Jawaban Peserta', marginL + 4, y + 8);
+    y += 16;
+
+    // ID Peserta
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(...COLOR_MUTED);
+    doc.text(`ID Peserta: ${dataPDF.idPeserta}   |   Dicetak: ${new Date().toLocaleString('id-ID')}`, marginL, y);
+    y += 8;
+
+    // ── Bio Peserta
+    const bioFields = [
+      ['nama','Nama'], ['usia','Usia'], ['pendidikan','Pendidikan'],
+      ['jenis_kelamin','Jenis Kelamin'], ['telepon','Telepon'], ['tgl_tes','Tgl Tes'], ['status','Status']
+    ];
+    const bioData = bioFields.filter(([k]) => dataPDF.bio[k] != null && dataPDF.bio[k] !== '');
+
+    if (bioData.length) {
+      checkPage(8 + bioData.length * 6 + 4);
+
+      // Box bio
+      const boxH = 6 + bioData.length * 6 + 4;
+      doc.setFillColor(240, 249, 255);
+      doc.setDrawColor(186, 230, 253);
+      doc.setLineWidth(0.4);
+      doc.roundedRect(marginL, y, contentW, boxH, 3, 3, 'FD');
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7);
+      doc.setTextColor(3, 105, 161);
+      doc.text('DATA PESERTA', marginL + 4, y + 5);
+      y += 7;
+
+      const col1W = contentW / 2;
+      let col = 0;
+      let rowStartY = y;
+
+      for (const [k, label] of bioData) {
+        const cx = marginL + 4 + (col * col1W);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7);
+        doc.setTextColor(...COLOR_MUTED);
+        doc.text(label + ':', cx, y);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(...COLOR_TEXT);
+        doc.text(String(dataPDF.bio[k]), cx + 28, y);
+        col++;
+        if (col === 2) { col = 0; y += 6; }
+      }
+      if (col !== 0) y += 6;
+      y += 5;
+    }
+
+    // ── Fungsi render satu kolom ke PDF
+    function renderKolomPDF(label, objData) {
+      if (!objData || Object.keys(objData).length === 0) return;
+
+      // Header kolom
+      checkPage(12);
+      doc.setFillColor(...COLOR_PRIMARY);
+      doc.rect(marginL, y, contentW, 8, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(255, 255, 255);
+      doc.text(label, marginL + 4, y + 5.5);
+      y += 12;
+
+      for (const [subtes, nilaiStr] of Object.entries(objData)) {
+        const jawaban = String(nilaiStr).split(';').filter(s => s.trim() !== '');
+        if (!jawaban.length) continue;
+
+        // Sub-tes title
+        checkPage(10);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8.5);
+        doc.setTextColor(...COLOR_PRIMARY);
+        doc.setFillColor(...COLOR_PRIMARY);
+        doc.rect(marginL, y, 2.5, 5, 'F');
+        doc.text(subtes + `  (${jawaban.length} jawaban)`, marginL + 5, y + 4);
+        y += 8;
+
+        // Jawaban dalam grid: 10 kolom
+        const cols    = 10;
+        const cellW   = contentW / cols;
+        const cellH   = 9;
+
+        for (let i = 0; i < jawaban.length; i++) {
+          const col = i % cols;
+          if (col === 0) {
+            checkPage(cellH + 2);
+          }
+          const row = Math.floor(i % (cols * Math.ceil(jawaban.length / cols)) / cols);
+          const cx  = marginL + col * cellW;
+          const cy  = y + Math.floor(i / cols) * (cellH + 2);
+
+          // Cell background
+          doc.setFillColor(...COLOR_BG_LIGHT);
+          doc.setDrawColor(...COLOR_BORDER);
+          doc.setLineWidth(0.3);
+          doc.roundedRect(cx, cy, cellW - 1, cellH, 1.5, 1.5, 'FD');
+
+          // Nomor
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(6);
+          doc.setTextColor(...COLOR_MUTED);
+          doc.text(String(i + 1), cx + cellW / 2, cy + 3.2, { align: 'center' });
+
+          // Jawaban
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(8);
+          doc.setTextColor(...COLOR_TEXT);
+          doc.text(jawaban[i].trim(), cx + cellW / 2, cy + 7.2, { align: 'center' });
+        }
+
+        const totalRows = Math.ceil(jawaban.length / cols);
+        y += totalRows * (cellH + 2) + 8;
+      }
+    }
+
+    renderKolomPDF('x_06', dataPDF.x06);
+    renderKolomPDF('x_07', dataPDF.x07);
+
+    // Footer semua halaman
+    const totalPages = doc.getNumberOfPages();
+    for (let p = 1; p <= totalPages; p++) {
+      doc.setPage(p);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      doc.setTextColor(...COLOR_MUTED);
+      doc.text(`Halaman ${p} / ${totalPages}`, pageW / 2, pageH - 8, { align: 'center' });
+      doc.text('Lidan Psikologi – Confidential', marginL, pageH - 8);
+    }
+
+    const nama = dataPDF.bio.nama ? dataPDF.bio.nama.replace(/\s+/g, '_') : dataPDF.idPeserta;
+    doc.save(`jawaban_${nama}.pdf`);
+
+  } catch (e) {
+    alert('Gagal membuat PDF: ' + e.message);
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '⬇ Download PDF';
+  }
+}
+
+// ─── AMBIL DATA ──────────────────────────────────────────
+async function cariData() {
+  const idVal = document.getElementById('inputId').value.trim();
+  if (!idVal) { showErr('⚠ Masukkan id_x terlebih dahulu.'); return; }
+
+  clearUI();
+  setBtn(true);
+
+  try {
+    const res = await fetch(`${API_R}?table=${TBL}&id_x=${encodeURIComponent(idVal)}`, {
+      headers: { 'X-Custom-Auth': AUTH }
+    });
+    const d = await res.json();
+
+    if (!d.success || !d.data) {
+      document.getElementById('noData').classList.add('show');
+      return;
+    }
+
+    const row = Array.isArray(d.data) ? d.data[0] : d.data;
+    if (!row) { document.getElementById('noData').classList.add('show'); return; }
+
+    dataPDF.idPeserta = idVal;
+
+    renderBio(row.x_02 || '');
+    renderKolom(row.x_06 || '', 'hasil06');
+    renderKolom(row.x_07 || '', 'hasil07');
+
+    document.getElementById('resultWrap').classList.add('show');
+
+  } catch (e) {
+    showErr('⚠ Gagal mengambil data: ' + e.message);
+  } finally {
+    setBtn(false);
+  }
+}
+</script>
+</body>
+</html>
