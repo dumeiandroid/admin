@@ -1807,21 +1807,11 @@ function todayUpdateFromCache() {
         d.aktif = isAktif
             ? `<button class="btn-aktifkan" style="background:#dc2626;" onclick="aktivasiPeserta('${idX}','nonaktif')">⛔ Nonaktifkan</button>`
             : `<button class="btn-aktifkan" style="background:#16a34a;" onclick="aktivasiPeserta('${idX}','aktif')">▶ Aktifkan</button>`;
-        d.paket       = renderTodayPaket(row.x_02);
-        d.harga       = renderTodayHarga(row.x_02);
-        d.bayar       = renderBayar(idX, row.x_02);
-        d._hargaNum   = parseTodayHargaNum(row.x_02);
-        d._idXRaw     = idX;
-        // _sudahBayar: baca dari x_02 dulu, fallback localStorage
-        const _m = getBayarMap();
-        try {
-            const _obj = JSON.parse(row.x_02 || '{}');
-            if (_obj.payment !== undefined) {
-                d._sudahBayar = (_obj.payment === 'done');
-            } else {
-                d._sudahBayar = !!_m[idX]; // fallback localStorage
-            }
-        } catch(e) { d._sudahBayar = !!_m[idX]; }
+        d.paket    = renderTodayPaket(row.x_02);
+        d.harga    = renderTodayHarga(row.x_02);
+        d.bayar    = renderBayar(idX, row.x_02);
+        d._hargaNum = parseTodayHargaNum(row.x_02);
+        d._idXRaw  = idX;
         return d;
     });
 
@@ -1859,37 +1849,17 @@ function renderTodayHarga(x02Raw) {
     return `<span style="font-weight:700;color:#0f5132">Rp ${n.toLocaleString('id-ID')}</span>`;
 }
 
-// ── Pembayaran — simpan ke x_02 via API + backup localStorage ──
+// ── Pembayaran (simpan di localStorage per id_x) ──
 const BAYAR_KEY = 'today_bayar';
 function getBayarMap() { try { return JSON.parse(localStorage.getItem(BAYAR_KEY) || '{}'); } catch(e) { return {}; } }
 function setBayarMap(m) { localStorage.setItem(BAYAR_KEY, JSON.stringify(m)); }
 
-// Baca status bayar: prioritas dari x_02 JSON (field "payment"), fallback localStorage
-function isSudahBayarFromX02(x02Raw) {
-    try {
-        const obj = JSON.parse(x02Raw || '{}');
-        if (obj.payment === 'done')    return true;
-        if (obj.payment === 'pending') return false;
-    } catch(e) {}
-    // fallback localStorage jika field belum ada di JSON
-    return false;
-}
-
 function renderBayar(idX, x02Raw) {
-    // Cek dari x_02 dulu, fallback ke localStorage
-    let sudah = isSudahBayarFromX02(x02Raw);
     const m = getBayarMap();
-    // Jika x_02 belum punya field payment, pakai localStorage sebagai fallback
-    try {
-        const obj = JSON.parse(x02Raw || '{}');
-        if (obj.payment === undefined) sudah = !!m[idX];
-    } catch(e) { sudah = !!m[idX]; }
-
+    const sudah = !!m[idX];
     const n = parseTodayHargaNum(x02Raw);
     if (!n) return '<span style="color:#ccc;font-size:12px">—</span>';
-    const bayarVal = sudah
-        ? `<span style="font-weight:700;color:#16a34a">Rp ${n.toLocaleString('id-ID')}</span>`
-        : `<span style="color:#ccc;font-size:12px">Rp 0</span>`;
+    const bayarVal = sudah ? `<span style="font-weight:700;color:#16a34a">Rp ${n.toLocaleString('id-ID')}</span>` : `<span style="color:#ccc;font-size:12px">Rp 0</span>`;
     const btnLabel = sudah ? '✅ Sudah Bayar' : '💳 Belum Bayar';
     const btnClass = sudah ? 'btn-bayar sudah-bayar' : 'btn-bayar';
     const btnTitle = sudah ? 'Klik untuk batalkan' : 'Klik jika sudah bayar';
@@ -1899,69 +1869,21 @@ function renderBayar(idX, x02Raw) {
     </div>`;
 }
 
-// Status in-progress per idX supaya tombol tidak double-klik
-const _bayarPending = {};
-
-async function toggleBayar(idX, btn) {
-    if (_bayarPending[idX]) return; // cegah double klik
-    _bayarPending[idX] = true;
-    const origText = btn.textContent;
-    btn.textContent = '⏳...';
-    btn.disabled = true;
-
-    // Tentukan status baru dari rawDataAll (cache server)
-    const row = rawDataAll.find(r => String(r.id_x) === String(idX));
-    let x02Obj = {};
-    try { x02Obj = JSON.parse((row && row.x_02) || '{}'); } catch(e) {}
-
-    const currentPayment = x02Obj.payment;
-    // Toggle: done ↔ pending
-    const newPayment = (currentPayment === 'done') ? 'pending' : 'done';
-    x02Obj.payment = newPayment;
-
-    const table = document.getElementById('todayTableInput').value.trim() || 'nilai1_json';
-
-    // 1. Update localStorage backup dulu (instan)
+function toggleBayar(idX, btn) {
     const m = getBayarMap();
-    if (newPayment === 'done') { m[idX] = true; } else { delete m[idX]; }
+    if (m[idX]) { delete m[idX]; } else { m[idX] = true; }
     setBayarMap(m);
-
-    // 2. Update rawDataAll cache lokal supaya UI langsung berubah
-    if (row) row.x_02 = JSON.stringify(x02Obj);
-
-    // Render ulang UI dari cache
+    // Re-render hanya baris ini
     todayUpdateFromCache();
-
-    // 3. Kirim ke API (PUT hanya field payment dalam x_02)
-    try {
-        const res = await fetch(`${API_INSERT}?table=${table}&id_x=${idX}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json', 'X-Custom-Auth': AUTH_KEY },
-            body: JSON.stringify({ x_02: JSON.stringify(x02Obj) })
-        });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        // Paksa refresh cache dari server
-        allLastHash = null;
-        await allUpdate();
-    } catch(e) {
-        // Rollback jika API gagal
-        x02Obj.payment = currentPayment;
-        if (row) row.x_02 = JSON.stringify(x02Obj);
-        if (currentPayment === 'done') { m[idX] = true; } else { delete m[idX]; }
-        setBayarMap(m);
-        todayUpdateFromCache();
-        alert('⚠ Gagal update ke server: ' + e.message + '\n(Status lokal dikembalikan)');
-    } finally {
-        delete _bayarPending[idX];
-    }
 }
 
 // ── Total Row Hari Ini ──
 function updateTodayTotalRow(rows) {
     const tr = document.getElementById('todayTotalRow');
     if (!tr) return;
+    const m = getBayarMap();
     const totalHarga = rows.reduce((s, r) => s + (r._hargaNum || 0), 0);
-    const totalBayar = rows.reduce((s, r) => s + (r._sudahBayar ? (r._hargaNum || 0) : 0), 0);
+    const totalBayar = rows.reduce((s, r) => s + (m[r._idXRaw] ? (r._hargaNum || 0) : 0), 0);
     const colCount = tr.closest('tfoot').closest('table').querySelectorAll('thead th').length;
     // kolom: chk, std cols (9), aktif, paket, harga, pembayaran = total varies
     // kita pakai colspan dinamis
