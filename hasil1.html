@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hasil Tes Kepemimpinan – Lidan Psikologi</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{
+  --primary:#2563eb;--primary-dark:#1d4ed8;--primary-light:#eff6ff;
+  --success:#16a34a;--success-bg:#f0fdf4;--success-border:#86efac;
+  --warning:#b45309;--warning-bg:#fffbeb;--warning-border:#fde68a;
+  --danger:#dc2626;--danger-bg:#fef2f2;--danger-border:#fca5a5;
+  --info:#0369a1;--info-bg:#f0f9ff;--info-border:#bae6fd;
+  --bg:#f1f5f9;--card:#fff;--text:#1e293b;--muted:#64748b;--border:#e2e8f0;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:24px 16px}
+
+.card{background:var(--card);border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,.07);padding:32px;max-width:860px;margin:0 auto}
+
+/* Header */
+.page-header{background:linear-gradient(135deg,#1e40af,#2563eb,#3b82f6);border-radius:12px;padding:24px;margin-bottom:28px;color:#fff}
+.page-header h1{font-size:1.35em;font-weight:700;margin-bottom:4px}
+.page-header p{font-size:.85em;opacity:.8}
+
+/* Search */
+.search-row{display:flex;gap:10px;margin-bottom:16px}
+.search-row input{flex:1;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-size:.95em;outline:none;transition:border .2s;font-family:inherit;background:#f8fafc}
+.search-row input:focus{border-color:var(--primary);background:#fff}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:11px 22px;border:none;border-radius:10px;font-size:.9em;font-weight:700;cursor:pointer;transition:all .2s;font-family:inherit}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-primary{background:var(--primary);color:#fff}.btn-primary:hover:not(:disabled){background:var(--primary-dark)}
+.btn-pdf{background:var(--success);color:#fff}.btn-pdf:hover:not(:disabled){background:#15803d;transform:translateY(-1px)}
+.spinner{width:16px;height:16px;border:2.5px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.err-box{background:var(--danger-bg);border:1.5px solid var(--danger-border);border-radius:10px;padding:12px 16px;color:var(--danger);font-size:.85em;font-weight:600;margin-bottom:14px;display:none}
+.err-box.show{display:block}
+.no-data{text-align:center;color:var(--muted);font-size:.9em;padding:32px 0;display:none}.no-data.show{display:block}
+.result-wrap{display:none}.result-wrap.show{display:block}
+
+/* Bio */
+.bio-box{background:var(--info-bg);border:1.5px solid var(--info-border);border-radius:12px;padding:16px 20px;margin-bottom:28px}
+.bio-title{font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--info);margin-bottom:10px}
+.bio-grid{display:flex;flex-wrap:wrap;gap:14px}
+.bio-item{display:flex;flex-direction:column;gap:2px;min-width:110px}
+.bio-label{font-size:.68em;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.bio-val{font-size:.9em;font-weight:700;color:var(--text)}
+
+/* Section divider */
+.sec-header{display:flex;align-items:center;gap:10px;margin:28px 0 16px}
+.sec-badge{background:var(--primary);color:#fff;font-size:.75em;font-weight:700;padding:4px 14px;border-radius:99px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+.sec-line{flex:1;height:2px;background:linear-gradient(to right,var(--primary),transparent)}
+
+/* Skor besar */
+.score-hero{display:flex;align-items:center;gap:20px;background:#f8fafc;border:1.5px solid var(--border);border-radius:12px;padding:18px 22px;margin-bottom:16px}
+.score-circle{width:72px;height:72px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;font-weight:800;line-height:1.1}
+.score-circle .sc-num{font-size:1.6em}
+.score-circle .sc-max{font-size:.68em;opacity:.7}
+.score-info{}
+.score-title{font-size:1.05em;font-weight:700;margin-bottom:4px}
+.score-sub{font-size:.82em;color:var(--muted)}
+
+/* Kriteria box */
+.kriteria-box{border-radius:12px;padding:18px 20px;border:1.5px solid;margin-bottom:8px}
+.kriteria-box.success{background:var(--success-bg);border-color:var(--success-border)}
+.kriteria-box.warning{background:var(--warning-bg);border-color:var(--warning-border)}
+.kriteria-box.danger {background:var(--danger-bg); border-color:var(--danger-border)}
+.kriteria-box.info   {background:var(--info-bg);   border-color:var(--info-border)}
+.kriteria-label{font-size:.7em;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;opacity:.7}
+.kriteria-title{font-size:1.1em;font-weight:800;margin-bottom:6px}
+.kriteria-desc{font-size:.875em;line-height:1.7;opacity:.85}
+
+/* Gaya Kepemimpinan – bar chart */
+.gaya-grid{display:grid;gap:10px;margin-bottom:14px}
+.gaya-row{display:flex;align-items:center;gap:12px}
+.gaya-label{width:210px;font-size:.82em;font-weight:600;flex-shrink:0}
+.gaya-bar-wrap{flex:1;background:#e2e8f0;border-radius:99px;height:18px;overflow:hidden}
+.gaya-bar{height:100%;border-radius:99px;transition:width .5s ease;min-width:0}
+.gaya-count{width:36px;text-align:right;font-size:.82em;font-weight:800;flex-shrink:0}
+.gaya-dominant{display:inline-flex;align-items:center;gap:6px;background:var(--primary-light);border:1.5px solid #bfdbfe;border-radius:8px;padding:6px 14px;font-size:.85em;font-weight:700;color:var(--primary);margin-bottom:12px}
+
+/* Jawaban raw (toggle) */
+.raw-toggle{font-size:.78em;color:var(--primary);cursor:pointer;font-weight:600;margin-top:10px;display:inline-block;user-select:none}
+.raw-toggle:hover{text-decoration:underline}
+.raw-box{display:none;margin-top:8px;background:#f8fafc;border:1px solid var(--border);border-radius:8px;padding:12px}
+.raw-box.open{display:block}
+.jaw-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(58px,1fr));gap:6px}
+.jaw-item{background:#fff;border:1.5px solid var(--border);border-radius:7px;padding:7px 4px;text-align:center}
+.jaw-item.jaw-a{border-color:#86efac;background:#f0fdf4}
+.jaw-item.jaw-b{border-color:#fca5a5;background:#fef2f2}
+.jaw-num{font-size:.6em;color:var(--muted);font-weight:600;margin-bottom:2px}
+.jaw-val{font-size:.95em;font-weight:800;color:var(--text)}
+
+.action-row{display:flex;justify-content:flex-end;margin-bottom:18px;gap:10px}
+.note-box{background:#f8fafc;border:1px dashed var(--border);border-radius:8px;padding:10px 14px;font-size:.8em;color:var(--muted);margin-top:10px;line-height:1.6}
+
+@media(max-width:540px){
+  .search-row{flex-direction:column}.card{padding:20px 14px}
+  .score-hero{flex-direction:column;text-align:center}
+  .gaya-label{width:130px;font-size:.75em}
+  .action-row{flex-direction:column}.btn-pdf{width:100%}
+}
+</style>
+</head>
+<body>
+<div class="card">
+
+  <div class="page-header">
+    <h1>🏆 Hasil Tes Kepemimpinan</h1>
+    <p>Lidan Psikologi — Masukkan ID peserta untuk melihat hasil analisis kepemimpinan</p>
+  </div>
+
+  <div class="search-row">
+    <input type="text" id="inputId" placeholder="Masukkan id_x peserta..." autocomplete="off"
+      onkeydown="if(event.key==='Enter') cariData()">
+    <button class="btn btn-primary" id="btnCari" onclick="cariData()">🔎 Cari</button>
+  </div>
+
+  <div class="err-box" id="errBox"></div>
+  <div class="no-data" id="noData">Tidak ada data ditemukan untuk ID tersebut.</div>
+
+  <div class="result-wrap" id="resultWrap">
+
+    <div class="action-row">
+      <button class="btn btn-pdf" id="btnPdf" onclick="downloadPDF()">⬇ Download PDF</button>
+    </div>
+
+    <!-- Bio -->
+    <div class="bio-box">
+      <div class="bio-title">📋 Data Peserta</div>
+      <div class="bio-grid" id="bioGrid"></div>
+    </div>
+
+    <!-- TES 1: Jiwa Kepemimpinan -->
+    <div class="sec-header">
+      <span class="sec-badge">Tes 1</span>
+      <div class="sec-line"></div>
+      <span style="font-size:.82em;color:var(--muted);white-space:nowrap;font-weight:600">Jiwa Kepemimpinan</span>
+    </div>
+    <div id="hasil21"></div>
+
+    <!-- TES 2: Gaya Kepemimpinan -->
+    <div class="sec-header">
+      <span class="sec-badge">Tes 2</span>
+      <div class="sec-line"></div>
+      <span style="font-size:.82em;color:var(--muted);white-space:nowrap;font-weight:600">Gaya Kepemimpinan</span>
+    </div>
+    <div id="hasil22"></div>
+
+    <!-- TES 3: Motivasi Kepemimpinan -->
+    <div class="sec-header">
+      <span class="sec-badge">Tes 3</span>
+      <div class="sec-line"></div>
+      <span style="font-size:.82em;color:var(--muted);white-space:nowrap;font-weight:600">Motivasi Kepemimpinan</span>
+    </div>
+    <div id="hasil23"></div>
+
+  </div>
+</div>
+
+<!-- Engine: semua logika scoring, render, fetch, dan PDF -->
+<script src="who_engine.js"></script>
+</body>
+</html>
