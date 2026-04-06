@@ -924,12 +924,8 @@
               <input type="text" id="fNama" placeholder="misal: minat, psikotes_full, cfit_only">
             </div>
             <div class="form-group">
-              <label>Awal — Form Biodata (x_03.biodata)</label>
-              <input type="text" id="fAwal" placeholder="misal: biodata-2.html atau https://...">
-            </div>
-            <div class="form-group">
-              <label>Akhir — Halaman Penutup (x_03.penutup)</label>
-              <input type="text" id="fAkhir" placeholder="misal: penutup-2.html atau https://...">
+              <label>Keterangan (x_03)</label>
+              <input type="text" id="fKet" placeholder="misal: Paket lengkap CFIT + EPPS + RMIB">
             </div>
           </div>
         </div>
@@ -1321,11 +1317,7 @@ function selectPaket(p) {
   document.getElementById('btnHapus').style.display = '';
 
   document.getElementById('fNama').value = p.x_01 || '';
-  // Parse x_03 JSON untuk fAwal & fAkhir
-  let x03obj = {};
-  try { x03obj = JSON.parse(p.x_03 || '{}'); } catch(e) {}
-  document.getElementById('fAwal').value  = x03obj.biodata || 'biodata-2.html';
-  document.getElementById('fAkhir').value = x03obj.penutup || 'penutup-2.html';
+  document.getElementById('fKet').value  = p.x_03 || '';
 
   // Parse x_02 ke pilihList
   const items = (p.x_02 || '').split('|').map(s => s.trim()).filter(Boolean);
@@ -1351,9 +1343,8 @@ function newPaket() {
   document.getElementById('editorForm').style.display = 'flex';
   document.getElementById('btnHapus').style.display = 'none';
 
-  document.getElementById('fNama').value  = '';
-  document.getElementById('fAwal').value  = 'biodata-2.html';
-  document.getElementById('fAkhir').value = 'penutup-2.html';
+  document.getElementById('fNama').value = '';
+  document.getElementById('fKet').value  = '';
   pilihList = [];
   renderDnD();
   setMsg('');
@@ -1625,16 +1616,14 @@ function updateX02Preview() {
    SIMPAN
 ══════════════════════════════════════════════════════════ */
 async function simpanPaket() {
-  const nama  = document.getElementById('fNama').value.trim();
-  const fAwal = document.getElementById('fAwal').value.trim() || 'biodata-2.html';
-  const fAkhir= document.getElementById('fAkhir').value.trim() || 'penutup-2.html';
+  const nama = document.getElementById('fNama').value.trim();
+  const ket  = document.getElementById('fKet').value.trim();
 
   if (!nama) { toast('Nama paket (x_01) wajib diisi.', 'err'); return; }
   if (pilihList.length === 0) { toast('Pilih minimal 1 subtes.', 'err'); return; }
 
   const x02 = pilihList.map(p => p.id).join('|');
-  const x03 = JSON.stringify({ biodata: fAwal, penutup: fAkhir });
-  const body = { x_01: nama, x_02: x02, x_03: x03 };
+  const body = { x_01: nama, x_02: x02, x_03: ket };
 
   const btn = document.getElementById('btnSimpan');
   btn.disabled = true;
