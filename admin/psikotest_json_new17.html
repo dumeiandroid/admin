@@ -812,10 +812,6 @@ table.dataTable tbody tr:nth-child(even) { background: #fafbff; }
                 style="background:#dc2626;color:white;border:none;border-radius:8px;padding:6px 14px;font-weight:700;cursor:pointer">
                 🗑 Reset yang Dipilih
             </button>
-            <button class="btn btn-sm" onclick="bulkDeleteSelected()"
-                style="background:#7c3aed;color:white;border:none;border-radius:8px;padding:6px 14px;font-weight:700;cursor:pointer">
-                🗑️ Hapus Permanen
-            </button>
             <button class="btn btn-outline btn-sm" onclick="clearAllChecks()">✕ Batal Pilih</button>
         </div>
         <p style="font-size:12px;color:var(--muted);margin-bottom:12px">
@@ -982,38 +978,6 @@ table.dataTable tbody tr:nth-child(even) { background: #fafbff; }
 </style>
 
 <!-- ══════════════════════════════════
-     MODAL: HAPUS PERMANEN PESERTA
-══════════════════════════════════ -->
-<div class="modal-overlay" id="modalHapusPeserta">
-    <div class="reset-confirm-box">
-        <button class="modal-close" onclick="closeModal('modalHapusPeserta')">×</button>
-        <h2 style="font-size:18px;margin-bottom:6px;color:#dc2626" id="hapusModalTitle">🗑️ Hapus Permanen</h2>
-        <p style="font-size:12px;color:var(--muted);margin-bottom:8px">
-            ⚠️ Baris akan <strong>dihapus selamanya</strong> dari database. Tindakan ini <strong>tidak bisa dibatalkan</strong>.
-        </p>
-        <div class="reset-list-preview" id="hapusListPreview"></div>
-        <p style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px;text-align:center">
-            Ketik kode ini untuk konfirmasi:
-        </p>
-        <div class="reset-code-display" id="hapusCodeDisplay">0000</div>
-        <input type="text" id="hapusCodeInput"
-            placeholder="Ketik 4 angka di atas..."
-            maxlength="4"
-            style="width:100%;padding:10px 14px;border:2px solid var(--border);border-radius:10px;font-size:18px;font-weight:700;text-align:center;outline:none;letter-spacing:4px"
-            onkeydown="if(event.key==='Enter') doHapusPeserta()"
-            oninput="document.getElementById('hapusErrMsg').textContent=''">
-        <div class="reset-err" id="hapusErrMsg"></div>
-        <div class="modal-actions" style="margin-top:14px">
-            <button class="btn btn-outline" onclick="closeModal('modalHapusPeserta')">Batal</button>
-            <button class="btn" id="btnHapusSubmit" onclick="doHapusPeserta()"
-                style="background:#7c3aed;color:white;border:none;padding:10px 20px;border-radius:10px;font-weight:700;cursor:pointer">
-                🗑️ Hapus Selamanya
-            </button>
-        </div>
-    </div>
-</div>
-
-<!-- ══════════════════════════════════
      MODAL: TAMBAH TOKEN
 ══════════════════════════════════ -->
 <div class="modal-overlay" id="modalToken">
@@ -1136,34 +1100,18 @@ function makeRowData(row) {
     const token = row.x_01 || '';
     const dateStr = getDateFromX02(row.x_02);
     const isToday = dateStr === todayString();
-    // Status aktif
-    let status = 'nonaktif';
-    try { status = JSON.parse(row.x_02 || '{}').status || 'nonaktif'; } catch(e) {}
-    const isAktif = status === 'aktif';
-    const aktifBtn = isAktif
-        ? `<button class="btn-aktifkan" style="background:#dc2626;" onclick="aktivasiPeserta('${idX}','nonaktif')">⛔ Nonaktifkan</button>`
-        : `<button class="btn-aktifkan" style="background:#16a34a;" onclick="aktivasiPeserta('${idX}','aktif')">▶ Aktifkan</button>`;
-    // Status logout
-    let bioObjLogout = {};
-    try { bioObjLogout = JSON.parse(row.x_02 || '{}'); } catch(e) {}
-    const logoutAktif = bioObjLogout.logout === true;
-    const logoutBtn = logoutAktif
-        ? `<button class="btn-aktifkan" style="background:#f59e0b;font-size:11px;padding:4px 8px;" onclick="toggleLogout('${idX}', false)">🔓 Nonaktifkan Logout</button>`
-        : `<button class="btn-aktifkan" style="background:#6366f1;font-size:11px;padding:4px 8px;" onclick="toggleLogout('${idX}', true)">🔓 Aktifkan Logout</button>`;
     return {
-        id_x:   makeIdLink(idX, token),
-        x_01:   makeTokenClickable(token),
-        x_02:   renderJsonBio(row.x_02),
-        x_05:   renderSkorField(row.x_05),
-        x_04:   renderTimer(row.id_x, row.x_04 || ''),
-        x_06:   renderJsonField(row.x_06),
-        x_07:   renderJsonField(row.x_07),
-        x_09:   renderViolation(row.x_09 || ''),
-        tgl:    isToday
+        id_x: makeIdLink(idX, token),
+        x_01: makeTokenClickable(token),
+        x_02: renderJsonBio(row.x_02),
+        x_05: renderSkorField(row.x_05),
+        x_04: renderTimer(row.id_x, row.x_04 || ''),
+        x_06: renderJsonField(row.x_06),
+        x_07: renderJsonField(row.x_07),
+        x_09: renderViolation(row.x_09 || ''),
+        tgl:  isToday
             ? `<span class="badge badge-active">📅 Hari Ini</span>`
-            : (dateStr ? `<span style="font-size:12px;color:var(--muted)">${dateStr}</span>` : ''),
-        aktif:  aktifBtn,
-        logout: logoutBtn
+            : (dateStr ? `<span style="font-size:12px;color:var(--muted)">${dateStr}</span>` : '')
     };
 }
 
@@ -1952,13 +1900,7 @@ async function allUpdate() {
 }
 
 function allInitTable(rows) {
-    const heads = DT_STD_HEADS + '<th>Aktifkan</th><th>Logout</th>';
-    const cols  = [
-        ...DT_STD_COLS,
-        { data:'aktif',  orderable:false },
-        { data:'logout', orderable:false }
-    ];
-    allTable = makeDT('allContainer', 'allDataTable', heads, cols, rows);
+    allTable = makeDT('allContainer', 'allDataTable', DT_STD_HEADS, DT_STD_COLS, rows);
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -2137,13 +2079,6 @@ function todayUpdateFromCache() {
         d.aktif = isAktif
             ? `<button class="btn-aktifkan" style="background:#dc2626;" onclick="aktivasiPeserta('${idX}','nonaktif')">⛔ Nonaktifkan</button>`
             : `<button class="btn-aktifkan" style="background:#16a34a;" onclick="aktivasiPeserta('${idX}','aktif')">▶ Aktifkan</button>`;
-        // Tombol logout per baris
-        let bioObjLogout = {};
-        try { bioObjLogout = JSON.parse(row.x_02 || '{}'); } catch(e) {}
-        const logoutAktif = bioObjLogout.logout === true;
-        d.logout = logoutAktif
-            ? `<button class="btn-aktifkan" style="background:#f59e0b;font-size:11px;padding:4px 8px;" onclick="toggleLogout('${idX}', false)">🔓 Nonaktifkan Logout</button>`
-            : `<button class="btn-aktifkan" style="background:#6366f1;font-size:11px;padding:4px 8px;" onclick="toggleLogout('${idX}', true)">🔓 Aktifkan Logout</button>`;
         d.paket       = renderTodayPaket(row.x_02);
         d.harga       = renderTodayHarga(row.x_02);
         d.bayar       = renderBayar(idX, row.x_02);
@@ -2163,20 +2098,8 @@ function todayUpdateFromCache() {
     });
 
     if (todayTable) {
-        // Simpan ID yang sedang dicentang sebelum redraw
-        const savedChecked = new Set(
-            Array.from(document.querySelectorAll('#todayDataTable .row-checkbox:checked'))
-                 .map(cb => cb.dataset.idx)
-        );
         todayTable.clear(); todayTable.rows.add(rows); todayTable.draw(false);
         updateTodayTotalRow(rows);
-        // Kembalikan centang setelah redraw
-        if (savedChecked.size > 0) {
-            document.querySelectorAll('#todayDataTable .row-checkbox').forEach(cb => {
-                if (savedChecked.has(cb.dataset.idx)) cb.checked = true;
-            });
-            onRowCheck();
-        }
     } else {
         todayInitTable(rows);
     }
@@ -2324,15 +2247,14 @@ function updateTodayTotalRow(rows) {
 }
 
 function todayInitTable(rows) {
-    const heads = `<th><input type="checkbox" id="selectAllToday" onclick="toggleSelectAll(this)" title="Pilih semua"></th>${DT_STD_HEADS}<th>Aktifkan</th><th>Logout</th><th>Paket</th><th>Harga</th><th>Pembayaran</th>`;
+    const heads = `<th><input type="checkbox" id="selectAllToday" onclick="toggleSelectAll(this)" title="Pilih semua"></th>${DT_STD_HEADS}<th>Aktifkan</th><th>Paket</th><th>Harga</th><th>Pembayaran</th>`;
     const cols  = [
-        { data:'chk',    orderable:false, width:'30px' },
+        { data:'chk',   orderable:false, width:'30px' },
         ...DT_STD_COLS,
-        { data:'aktif',  orderable:false },
-        { data:'logout', orderable:false },
-        { data:'paket',  orderable:false },
-        { data:'harga',  orderable:false },
-        { data:'bayar',  orderable:false }
+        { data:'aktif', orderable:false },
+        { data:'paket', orderable:false },
+        { data:'harga', orderable:false },
+        { data:'bayar', orderable:false }
     ];
     document.getElementById('todayContainer').innerHTML = `
         <table id="todayDataTable" class="display nowrap" style="width:100%">
@@ -2422,63 +2344,6 @@ let _resetIdX  = null;
 let _resetNama = null;
 let _resetBulkItems = null;
 let _resetConfirmCode = '';
-
-/* ── Hapus permanen (bulk) ── */
-let _hapusBulkItems = null;
-let _hapusConfirmCode = '';
-
-function bulkDeleteSelected() {
-    const checked = document.querySelectorAll('#todayDataTable .row-checkbox:checked');
-    if (!checked.length) return;
-    const items = Array.from(checked).map(cb => ({ idX: cb.dataset.idx, nama: cb.dataset.nama }));
-    _hapusBulkItems = items;
-    const code = Math.floor(1000 + Math.random() * 9000).toString();
-    _hapusConfirmCode = code;
-    document.getElementById('hapusCodeDisplay').textContent = code;
-    document.getElementById('hapusCodeInput').value = '';
-    document.getElementById('hapusErrMsg').textContent = '';
-    document.getElementById('btnHapusSubmit').disabled = false;
-    document.getElementById('btnHapusSubmit').textContent = '🗑️ Hapus Selamanya';
-    const preview = items.map(i => '• ' + (i.nama || '(tanpa nama)')).join('\n');
-    document.getElementById('hapusListPreview').textContent = preview;
-    document.getElementById('hapusListPreview').style.display = '';
-    document.getElementById('hapusModalTitle').textContent = `🗑️ Hapus Permanen ${items.length} Baris`;
-    openModal('modalHapusPeserta');
-}
-
-async function doHapusPeserta() {
-    const typed = document.getElementById('hapusCodeInput').value.trim();
-    const errEl = document.getElementById('hapusErrMsg');
-    if (typed !== _hapusConfirmCode) {
-        errEl.textContent = '❌ Kode salah, coba lagi.';
-        document.getElementById('hapusCodeInput').focus();
-        return;
-    }
-    errEl.textContent = '';
-    const btn = document.getElementById('btnHapusSubmit');
-    btn.disabled = true;
-    btn.textContent = '⏳ Menghapus...';
-
-    const tbl = document.getElementById('todayTableInput').value.trim() || 'nilai1_json';
-    const items = _hapusBulkItems || [];
-
-    try {
-        await Promise.all(items.map(item =>
-            fetch(`${API_INSERT}?table=${tbl}&id_x=${item.idX}`, {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json', 'X-Custom-Auth': AUTH_KEY }
-            })
-        ));
-        closeModal('modalHapusPeserta');
-        clearAllChecks();
-        allLastHash = null;
-        await allUpdate();
-    } catch(e) {
-        errEl.textContent = '⚠ Gagal: ' + e.message;
-        btn.disabled = false;
-        btn.textContent = '🗑️ Hapus Selamanya';
-    }
-}
 
 function confirmResetPeserta(idX, nama) {
     _resetIdX   = idX;
@@ -2691,35 +2556,6 @@ allLoadTable();
 /* ══════════════════════════════════════════════════════════════════
    AKTIVASI PESERTA — toggle aktif/nonaktif
 ══════════════════════════════════════════════════════════════════ */
-async function toggleLogout(idX, aktifkan) {
-    const row = rawDataAll.find(r => String(r.id_x) === String(idX));
-    if (!row) { alert('Data peserta tidak ditemukan.'); return; }
-    if (aktifkan) {
-        let bioObjNama = {};
-        try { bioObjNama = JSON.parse(row.x_02 || '{}'); } catch(e) {}
-        const namaPeserta = bioObjNama.nama || 'ID ' + idX;
-        const konfirmasi = confirm('⚠️ Konfirmasi Logout Peserta\n\nAnda akan memaksa logout:\n👤 ' + namaPeserta + '\n\nPeserta akan otomatis keluar dalam ~5 detik.\nLanjutkan?');
-        if (!konfirmasi) return;
-    }
-    let bioObj = {};
-    try { bioObj = JSON.parse(row.x_02 || '{}'); } catch(e) {}
-    bioObj.logout = aktifkan;
-    const tbl = document.getElementById('todayTableInput').value.trim() || 'nilai1_json';
-    try {
-        const res = await fetch(`${API_INSERT}?table=${tbl}&id_x=${idX}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json', 'X-Custom-Auth': AUTH_KEY },
-            body: JSON.stringify({ x_02: JSON.stringify(bioObj) })
-        });
-        const data = await res.json();
-        if (!data.success) throw new Error(data.message || 'Gagal');
-        allLastHash = null;
-        await allUpdate();
-    } catch(e) {
-        alert('Gagal mengubah status logout: ' + e.message);
-    }
-}
-
 async function aktivasiPeserta(idX, newStatus = 'aktif') {
     const row = rawDataAll.find(r => String(r.id_x) === String(idX));
     if (!row) { alert('Data peserta tidak ditemukan.'); return; }
