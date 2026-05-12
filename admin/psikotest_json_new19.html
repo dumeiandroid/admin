@@ -1716,58 +1716,25 @@ function renderJsonBio(raw) {
     }
 }
 
-// ── renderTimer — hitung mundur murni lokal, 0 request D1 ──
-// Format baru : "START:NamaSubtes:ISO:durasi_detik"
-// Format lama : "NamaSubtes|COUNTDOWN:detik" (statis)
 function renderTimer(idX, x04Raw) {
-    if (!x04Raw || x04Raw.trim() === '') return '<span style="color:#ccc;font-size:12px">—</span>';
-
-    // ── Format baru: START:NamaSubtes:ISO:durasi ──
-    if (x04Raw.startsWith('START:')) {
-        // Ambil durasi dari bagian paling akhir (setelah ':' terakhir)
-        const lastColon  = x04Raw.lastIndexOf(':');
-        const durasi     = parseInt(x04Raw.substring(lastColon + 1));
-        // ISO ada di antara ':' ke-3 dan ':' terakhir
-        // Format: START:Nama:2026-05-12T00:32:48.812Z:300
-        // Cari ':' pertama (setelah START), lalu ':' berikutnya (setelah nama)
-        const firstColon  = x04Raw.indexOf(':');           // setelah START
-        const secondColon = x04Raw.indexOf(':', firstColon + 1); // setelah nama
-        const namaTest    = x04Raw.substring(firstColon + 1, secondColon);
-        const isoStr      = x04Raw.substring(secondColon + 1, lastColon);
-        const mulai       = new Date(isoStr);
-        if (isNaN(mulai.getTime())) return '<span style="color:#ccc;font-size:12px">—</span>';
-
+    if (!x04Raw || !x04Raw.includes('|')) return '<span style="color:#ccc;font-size:12px">—</span>';
+    const pipeIdx  = x04Raw.indexOf('|');
+    const namaTest = x04Raw.substring(0, pipeIdx);
+    const modeStr  = x04Raw.substring(pipeIdx + 1);
+    const colonIdx = modeStr.indexOf(':');
+    const mode     = modeStr.substring(0, colonIdx);
+    const val      = parseInt(modeStr.substring(colonIdx + 1));
+    if (isNaN(val)) return '<span style="color:#ccc;font-size:12px">—</span>';
+    // Hanya tampilkan COUNTDOWN — tes tanpa timer (STOPWATCH) tidak ditampilkan
+    if (mode === 'COUNTDOWN') {
         const stopBtn = `<button class="btn-stop-timer" onclick="stopPeserta('${idX}')">⏹</button>`;
-
-        // Tanpa timer (durasi 0 atau NaN) — subtes stopwatch
-        if (!durasi || isNaN(durasi)) {
-            const berlalu = Math.floor((new Date() - mulai) / 1000);
-            return `<span class="timer-live stopwatch" title="${escHtml(namaTest)}">${berlalu}s</span>${stopBtn}`;
-        }
-
-        // Hitung sisa
-        const selesai = new Date(mulai.getTime() + durasi * 1000);
-        const sisa    = Math.floor((selesai - new Date()) / 1000);
-        if (sisa <= 0) return `<span class="timer-live done" title="${escHtml(namaTest)}">Habis</span>${stopBtn}`;
-        const cls = sisa <= 60 ? 'timer-live danger' : 'timer-live';
-        return `<span class="${cls}" title="${escHtml(namaTest)} — selesai ${selesai.toLocaleTimeString('id-ID')}">${sisa}s</span>${stopBtn}`;
+        if (val <= 0) return `<span class="timer-live done" title="${escHtml(namaTest)}">Habis</span>`;
+        const m = String(Math.floor(val/60)).padStart(2,'0');
+        const s = String(val%60).padStart(2,'0');
+        const cls = val <= 60 ? ' danger' : '';
+        return `<span class="timer-live${cls}" title="${escHtml(namaTest)}">${m}:${s}</span>${stopBtn}`;
     }
-
-    // ── Format lama: NamaSubtes|COUNTDOWN:detik (statis dari DB) ──
-    if (x04Raw.includes('|')) {
-        const pipe     = x04Raw.indexOf('|');
-        const namaTest = x04Raw.substring(0, pipe);
-        const rest     = x04Raw.substring(pipe + 1);
-        const colon    = rest.indexOf(':');
-        const mode     = rest.substring(0, colon);
-        const val      = parseInt(rest.substring(colon + 1));
-        if (isNaN(val) || mode !== 'COUNTDOWN') return '<span style="color:#ccc;font-size:12px">—</span>';
-        const stopBtn = `<button class="btn-stop-timer" onclick="stopPeserta('${idX}')">⏹</button>`;
-        if (val <= 0) return `<span class="timer-live done" title="${escHtml(namaTest)}">Habis</span>${stopBtn}`;
-        const cls = val <= 60 ? 'timer-live danger' : 'timer-live';
-        return `<span class="${cls}" title="${escHtml(namaTest)} (nilai statis)">${val}s</span>${stopBtn}`;
-    }
-
+    // STOPWATCH (RMIB, EPPS) — tampilkan tanda dash saja
     return '<span style="color:#ccc;font-size:12px">—</span>';
 }
 
