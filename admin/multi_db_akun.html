@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multi-DB Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+:root {
+  --bg:#0d0f14; --surface:#161922; --s2:#1e2230; --border:#252b3b;
+  --a1:#4f9cf9; --a2:#a78bfa; --a3:#34d399; --text:#e2e8f0; --muted:#64748b; --danger:#f87171;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden;}
+
+/* LOGIN */
+#loginSection{display:flex;align-items:center;justify-content:center;height:100vh;background:radial-gradient(ellipse at 30% 40%,#1a1040 0%,var(--bg) 65%);}
+.login-box{width:360px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:40px;box-shadow:0 24px 64px rgba(0,0,0,.6);}
+.login-logo{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:6px;}
+.login-logo span{color:var(--a1);}
+.login-sub{color:var(--muted);font-size:13px;margin-bottom:16px;}
+/* SERVER SWITCHER */
+.server-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:8px;}
+.server-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:20px;}
+.srv-btn{background:var(--s2);border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:7px 10px;font-size:11px;font-family:'DM Mono',monospace;cursor:pointer;transition:all .2s;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.srv-btn:hover{border-color:var(--a1);color:var(--text);}
+.srv-btn.active{background:rgba(79,156,249,.15);border-color:var(--a1);color:var(--a1);font-weight:600;}
+/* TOPBAR SERVER SWITCHER */
+.srv-switcher{display:flex;align-items:center;gap:6px;flex:1;overflow-x:auto;scrollbar-width:none;padding:0 4px;}
+.srv-switcher::-webkit-scrollbar{display:none;}
+.srv-chip{background:var(--s2);border:1px solid var(--border);color:var(--muted);border-radius:20px;padding:3px 11px;font-size:11px;font-family:'DM Mono',monospace;cursor:pointer;white-space:nowrap;transition:all .2s;flex-shrink:0;}
+.srv-chip:hover{border-color:var(--a1);color:var(--text);}
+.srv-chip.active{background:rgba(79,156,249,.15);border-color:var(--a1);color:var(--a1);font-weight:600;}
+.srv-dot{width:6px;height:6px;border-radius:50%;background:var(--a3);display:inline-block;margin-right:4px;flex-shrink:0;}
+.srv-dot.offline{background:var(--danger);}
+.lbl{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:6px;}
+.inp{width:100%;background:var(--s2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 14px;font-size:14px;font-family:inherit;transition:border-color .2s;}
+.inp:focus{outline:none;border-color:var(--a1);}
+.fg{margin-bottom:16px;}
+.btn-login{width:100%;padding:12px;background:var(--a1);color:#000;font-weight:700;font-size:14px;border:none;border-radius:8px;cursor:pointer;font-family:'Syne',sans-serif;margin-top:8px;transition:opacity .2s;}
+.btn-login:hover{opacity:.85;}
+.login-err{background:rgba(248,113,113,.12);border:1px solid var(--danger);color:var(--danger);font-size:13px;padding:10px 14px;border-radius:8px;margin-top:12px;display:none;}
+
+/* APP SHELL */
+#appSection{display:none;height:100vh;flex-direction:column;}
+
+/* topbar */
+.topbar{height:50px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:12px;flex-shrink:0;}
+.brand{font-family:'Syne',sans-serif;font-weight:800;font-size:16px;}
+.brand span{color:var(--a1);}
+.topbar-right{margin-left:auto;display:flex;gap:8px;}
+.btn-icon{background:var(--s2);border:1px solid var(--border);color:var(--muted);width:32px;height:32px;border-radius:7px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;transition:all .2s;}
+.btn-icon:hover{border-color:var(--danger);color:var(--danger);}
+
+/* body layout */
+.app-body{display:flex;flex:1;overflow:hidden;}
+
+/* SIDEBAR */
+.sidebar{width:224px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+.sidebar-scroll{flex:1;overflow-y:auto;}
+.sidebar-scroll::-webkit-scrollbar{width:3px;}
+.sidebar-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+.sidebar-footer{padding:10px;border-top:1px solid var(--border);flex-shrink:0;}
+.new-tbl-lbl{font-size:10px;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;font-family:'DM Mono',monospace;margin-bottom:6px;}
+.new-tbl-row{display:flex;gap:5px;}
+.new-tbl-sel{background:var(--s2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 4px;font-size:11px;font-family:'DM Mono',monospace;cursor:pointer;flex-shrink:0;}
+.new-tbl-inp{flex:1;background:var(--s2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 7px;font-size:11px;font-family:'DM Mono',monospace;min-width:0;}
+.new-tbl-inp:focus{outline:none;border-color:var(--a1);}
+.new-tbl-btn{background:var(--a1);color:#000;border:none;border-radius:6px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;}
+
+/* db group */
+.db-group{border-bottom:1px solid var(--border);}
+.db-grp-hdr{display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:pointer;font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);user-select:none;transition:background .15s;}
+.db-grp-hdr:hover{background:var(--s2);color:var(--text);}
+.db-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.grp-name{flex:1;}
+.grp-cnt{font-family:'DM Mono',monospace;font-size:10px;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:1px 6px;}
+.grp-chev{font-size:10px;transition:transform .2s;}
+.db-group.collapsed .grp-chev{transform:rotate(-90deg);}
+.tbl-list{overflow:hidden;}
+.db-group.collapsed .tbl-list{display:none;}
+.tbl-item{display:flex;align-items:center;gap:5px;padding:6px 8px 6px 26px;cursor:pointer;font-size:12px;font-family:'DM Mono',monospace;color:var(--muted);transition:all .15s;position:relative;}
+.tbl-item:hover{background:var(--s2);color:var(--text);}
+.tbl-item.active{background:rgba(79,156,249,.1);color:var(--a1);border-right:2px solid var(--a1);}
+.tbl-item .tbl-icon{font-size:9px;flex-shrink:0;}
+.tbl-item .tbl-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.tbl-actions{display:flex;gap:2px;flex-shrink:0;opacity:0;transition:opacity .15s;}
+.tbl-item:hover .tbl-actions{opacity:1;}
+.tbl-act-btn{background:transparent;border:1px solid transparent;color:var(--muted);border-radius:4px;width:20px;height:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:9px;transition:all .15s;}
+.tbl-act-btn.clear:hover{color:#fbbf24;border-color:#fbbf24;background:rgba(251,191,36,.1);}
+.tbl-act-btn.drop:hover{color:var(--danger);border-color:var(--danger);background:rgba(248,113,113,.1);}
+.tbl-act-btn.backup:hover{color:#60a5fa;border-color:#60a5fa;background:rgba(96,165,250,.1);}
+.tbl-search-wrap{padding:6px 8px;border-bottom:1px solid var(--border);}
+.tbl-search-inp{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 8px 5px 26px;font-size:11px;font-family:'DM Mono',monospace;}
+.tbl-search-inp:focus{outline:none;border-color:var(--a1);}
+.tbl-search-wrap{position:relative;}
+.tbl-search-wrap i{position:absolute;left:16px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:10px;pointer-events:none;}
+.tbl-msg{padding:7px 12px 7px 26px;font-size:11px;font-family:'DM Mono',monospace;font-style:italic;color:var(--muted);}
+.tbl-err{color:var(--danger);}
+/* confirm modal */
+.confirm-box{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px;width:380px;max-width:95vw;box-shadow:0 32px 80px rgba(0,0,0,.7);animation:fadeUp .2s ease;}
+.confirm-icon{font-size:28px;margin-bottom:10px;text-align:center;}
+.confirm-title{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;margin-bottom:8px;text-align:center;}
+.confirm-sub{font-size:12px;color:var(--muted);margin-bottom:16px;text-align:center;line-height:1.6;}
+.confirm-sub code{font-family:'DM Mono',monospace;background:var(--s2);padding:2px 6px;border-radius:4px;color:var(--text);}
+.confirm-inp{width:100%;background:var(--s2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:9px 12px;font-size:13px;font-family:'DM Mono',monospace;transition:border-color .2s;margin-bottom:14px;}
+.confirm-inp:focus{outline:none;}
+.confirm-inp.match{border-color:var(--a3);}
+.confirm-inp.nomatch{border-color:var(--danger);}
+.confirm-ftr{display:flex;gap:8px;justify-content:flex-end;}
+.conf-exec{border:none;border-radius:7px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;opacity:.35;pointer-events:none;transition:opacity .2s;}
+.conf-exec.ready{opacity:1;pointer-events:auto;}
+.conf-exec.yellow{background:#fbbf24;color:#000;}
+.conf-exec.red{background:var(--danger);color:#fff;}
+.conf-exec.purple{background:var(--a2);color:#000;}
+.conf-cancel{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:7px;padding:8px 14px;font-size:12px;cursor:pointer;}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.toolbar{padding:10px 16px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex-shrink:0;}
+.tbl-badge{font-family:'DM Mono',monospace;font-size:12px;background:var(--s2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;color:var(--a1);}
+.tbl-badge .db-lbl{color:var(--muted);margin-right:4px;}
+.btn-p{background:var(--a1);color:#000;border:none;border-radius:7px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;transition:opacity .2s;}
+.btn-p:hover{opacity:.85;}
+.btn-o{background:transparent;color:var(--text);border:1px solid var(--border);border-radius:7px;padding:6px 14px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .2s;}
+.btn-o:hover{border-color:var(--a1);color:var(--a1);}
+.search-wrap{margin-left:auto;position:relative;}
+.search-wrap i{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:12px;}
+.search-inp{background:var(--s2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:6px 10px 6px 28px;font-size:12px;width:200px;font-family:inherit;transition:border-color .2s;}
+.search-inp:focus{outline:none;border-color:var(--a1);}
+
+/* data table */
+.table-wrap{flex:1;overflow:auto;padding:12px 16px;}
+.table-wrap::-webkit-scrollbar{width:5px;height:5px;}
+.table-wrap::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+thead th{position:sticky;top:0;background:var(--s2);color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.5px;padding:9px 10px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap;z-index:2;}
+tbody tr{border-bottom:1px solid rgba(255,255,255,.03);transition:background .1s;}
+tbody tr:hover{background:var(--s2);}
+tbody td{padding:8px 10px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:cell;}
+tbody td[contenteditable="true"]:focus{background:rgba(79,156,249,.08);outline:1px solid var(--a1);white-space:pre-wrap;word-break:break-all;max-width:320px;min-width:150px;overflow:visible;border-radius:3px;position:relative;z-index:10;}
+.td-id{font-family:'DM Mono',monospace;color:var(--muted);font-size:11px;}
+.btn-del{background:transparent;border:1px solid transparent;color:var(--muted);border-radius:5px;width:26px;height:26px;cursor:pointer;font-size:11px;transition:all .15s;display:flex;align-items:center;justify-content:center;}
+.btn-del:hover{border-color:var(--danger);color:var(--danger);background:rgba(248,113,113,.1);}
+.empty-state{text-align:center;padding:60px 20px;color:var(--muted);}
+.empty-state i{font-size:36px;margin-bottom:10px;display:block;opacity:.2;}
+.loading-txt{text-align:center;padding:40px;color:var(--muted);font-family:'DM Mono',monospace;font-size:13px;}
+.loading-txt::after{content:'...';animation:dots 1.2s steps(3) infinite;}
+@keyframes dots{0%{content:'.';}33%{content:'..';}66%{content:'...'}}
+
+/* MODAL */
+.modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);z-index:200;align-items:center;justify-content:center;}
+.modal-ov.open{display:flex;}
+.modal-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;width:700px;max-width:95vw;max-height:88vh;overflow-y:auto;box-shadow:0 32px 80px rgba(0,0,0,.7);animation:fadeUp .2s ease;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.modal-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px;}
+.modal-title{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;}
+.btn-close{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;}
+.btn-close:hover{color:var(--text);}
+.form-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.modal-ftr{margin-top:22px;display:flex;justify-content:flex-end;gap:10px;}
+.btn-cancel{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:8px 18px;font-size:13px;cursor:pointer;}
+.btn-save{background:var(--a3);color:#000;border:none;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:600;cursor:pointer;}
+
+/* ── MOBILE RESPONSIVE ── */
+.burger{display:none;background:var(--s2);border:1px solid var(--border);color:var(--text);width:32px;height:32px;border-radius:7px;align-items:center;justify-content:center;cursor:pointer;font-size:14px;flex-shrink:0;}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:49;backdrop-filter:blur(2px);}
+.sidebar-overlay.open{display:block;}
+
+@media(max-width:768px){
+  body{overflow:auto;}
+  #appSection{height:100dvh;}
+
+  /* burger tampil, sidebar hidden default */
+  .burger{display:flex;}
+
+  /* sidebar jadi drawer dari kiri */
+  .sidebar{
+    position:fixed;left:-240px;top:0;bottom:0;z-index:50;
+    width:240px;transition:left .25s ease;
+    box-shadow:4px 0 24px rgba(0,0,0,.4);
+  }
+  .sidebar.open{left:0;}
+
+  /* topbar lebih compact */
+  .topbar{padding:0 12px;gap:8px;}
+  .brand{font-size:15px;}
+
+  /* toolbar wrap ke bawah */
+  .toolbar{padding:8px 10px;gap:6px;}
+  .tbl-badge{font-size:11px;padding:3px 8px;}
+  .btn-p,.btn-o{padding:6px 10px;font-size:11px;}
+  .search-wrap{margin-left:0;width:100%;order:10;}
+  .search-inp{width:100%;}
+
+  /* table area scroll horizontal */
+  .table-wrap{padding:8px;}
+  table{font-size:11px;}
+  thead th{padding:7px 8px;}
+  tbody td{padding:6px 8px;}
+
+  /* login box full width */
+  .login-box{width:92vw;padding:28px 20px;}
+
+  /* modal full width */
+  .modal-box{width:95vw;padding:20px;}
+  .form-fields{grid-template-columns:1fr;}
+
+  /* confirm box */
+  .confirm-box{width:92vw;padding:22px 18px;}
+
+  /* tbl action buttons always visible on mobile (no hover) */
+  .tbl-actions{opacity:1;}
+}
+
+@media(max-width:400px){
+  .btn-p span,.btn-o span{display:none;}
+  .topbar{height:46px;}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginSection">
+  <div class="login-box">
+    <div class="login-logo">Multi<span>DB</span></div>
+    <div class="login-sub">Pilih server lalu masuk</div>
+    <span class="server-label">Server</span>
+    <div class="server-grid" id="loginServerGrid"><!-- filled by JS --></div>
+    <form id="loginForm">
+      <div class="fg"><label class="lbl">Username</label><input id="uname" type="text" class="inp" placeholder="Username" required autofocus autocomplete="username"></div>
+      <div class="fg"><label class="lbl">Password</label><input id="upass" type="password" class="inp" placeholder="••••••" required autocomplete="current-password"></div>
+      <button type="submit" class="btn-login" id="btnLogin">MASUK</button>
+      <div id="loginErr" class="login-err"></div>
+    </form>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="appSection">
+  <div class="topbar">
+    <button class="burger" onclick="toggleSidebar()" title="Menu"><i class="fa fa-bars"></i></button>
+    <div class="brand">Multi<span>DB</span></div>
+    <div class="srv-switcher" id="topbarServerSwitcher"><!-- filled by JS --></div>
+    <div class="topbar-right">
+      <button class="btn-icon" onclick="logout()" title="Keluar"><i class="fa fa-sign-out-alt"></i></button>
+    </div>
+  </div>
+
+  <div class="app-body">
+    <!-- overlay untuk close sidebar di mobile -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+    <!-- SIDEBAR -->
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-scroll" id="sidebarScroll"><!-- filled by JS --></div>
+      <div class="sidebar-footer">
+        <div class="new-tbl-lbl">Buat / Buka Tabel</div>
+        <div class="new-tbl-row">
+          <select id="newTblDb" class="new-tbl-sel">
+            <!-- filled by JS -->
+          </select>
+          <input id="newTblName" type="text" class="new-tbl-inp" placeholder="nama tabel...">
+          <button class="new-tbl-btn" onclick="openNewTable()">+</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN -->
+    <div class="main">
+      <div class="toolbar">
+        <div class="tbl-badge"><span class="db-lbl" id="badgeDb"></span><span id="badgeTbl">—</span></div>
+        <button class="btn-p" onclick="openAddModal()"><i class="fa fa-plus"></i> Tambah</button>
+        <button class="btn-o" onclick="loadData()"><i class="fa fa-rotate-right"></i> Refresh</button>
+        <div class="search-wrap">
+          <i class="fa fa-search"></i>
+          <input type="text" id="searchBox" class="search-inp" placeholder="Cari x_01...">
+        </div>
+      </div>
+      <div class="table-wrap" id="tableWrap">
+        <div class="empty-state"><i class="fa fa-hand-pointer"></i><p>Pilih tabel dari sidebar kiri</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL KONFIRMASI AKSI TABEL -->
+<div class="modal-ov" id="modalConfirm">
+  <div class="confirm-box">
+    <div class="confirm-icon" id="confIcon"></div>
+    <div class="confirm-title" id="confTitle"></div>
+    <div class="confirm-sub" id="confSub"></div>
+    <input type="text" class="confirm-inp" id="confInp" placeholder="Ketik nama tabel di sini..." autocomplete="off">
+    <div class="confirm-ftr">
+      <button class="conf-cancel" onclick="closeModal('modalConfirm')">Batal</button>
+      <button class="conf-exec" id="confExec" onclick="execTableAction()">Konfirmasi</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL BACKUP ke DB1 -->
+<div class="modal-ov" id="modalBackup">
+  <div class="confirm-box" style="width:460px;max-width:95vw;">
+    <div class="confirm-icon" id="bkpIcon"></div>
+    <div class="confirm-title" id="bkpTitle"></div>
+    <div class="confirm-sub" id="bkpSub"></div>
+
+    <!-- DB TUJUAN SELECTOR -->
+    <div style="margin-bottom:10px;">
+      <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:6px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;">Database tujuan</label>
+      <div style="display:flex;gap:6px;">
+        <select id="bkpDbSel" onchange="onBkpDbChange()" style="flex:1;background:var(--s2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 10px;font-size:12px;font-family:'DM Mono',monospace;cursor:pointer;">
+          <!-- diisi oleh populateBkpDbSelect() -->
+        </select>
+        <select id="bkpSrvSel" onchange="onBkpDbChange()" style="background:var(--s2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 10px;font-size:12px;font-family:'DM Mono',monospace;cursor:pointer;display:none;">
+          <!-- server pilihan, diisi saat diperlukan -->
+        </select>
+      </div>
+      <!-- Custom API URL — tampil hanya saat pilih "custom" -->
+      <div id="bkpCustomWrap" style="display:none;margin-top:8px;">
+        <input type="text" id="bkpCustomUrl" class="confirm-inp" placeholder="https://domain.com/api/db_x" autocomplete="off" style="margin-bottom:0;font-size:12px;" oninput="resetBkpCheck()">
+        <div style="font-size:10px;color:var(--muted);margin-top:4px;font-family:'DM Mono',monospace;">Masukkan URL lengkap endpoint API tujuan</div>
+      </div>
+      <!-- Info API tujuan yang dipilih -->
+      <div id="bkpDestApiInfo" style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:6px;padding:5px 8px;background:var(--bg);border-radius:6px;border:1px solid var(--border);display:none;word-break:break-all;"></div>
+    </div>
+
+    <!-- NAMA TABEL TUJUAN -->
+    <div style="margin-bottom:8px;">
+      <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:6px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;">Nama tabel tujuan</label>
+      <input type="text" class="confirm-inp" id="bkpDestInp" placeholder="Contoh: backup_a1..." autocomplete="off" style="margin-bottom:0;" oninput="resetBkpCheck()">
+    </div>
+
+    <div id="bkpCheckMsg" style="font-size:12px;min-height:20px;margin-bottom:10px;font-family:'DM Mono',monospace;padding:0 2px;"></div>
+    <div id="bkpProgress" style="display:none;margin-bottom:10px;">
+      <div id="bkpProgMsg" style="font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px;min-height:18px;"></div>
+      <div style="background:var(--s2);border-radius:6px;height:10px;overflow:hidden;border:1px solid var(--border);">
+        <div id="bkpProgBar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--a1),#34d399);border-radius:6px;transition:width .3s ease;"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:4px;">
+        <span id="bkpProgDetail" style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;"></span>
+        <span id="bkpProgPct" style="font-size:11px;font-weight:700;color:var(--a1);font-family:'DM Mono',monospace;"></span>
+      </div>
+    </div>
+    <div class="confirm-ftr">
+      <button class="conf-cancel" id="bkpCancelBtn" onclick="closeModal('modalBackup')">Batal</button>
+      <button class="conf-exec ready" id="bkpCheckBtn" onclick="checkBackupDest()" style="background:var(--a1);color:#000;"><i class="fa fa-magnifying-glass"></i> Cek Nama</button>
+      <button class="conf-exec ready" id="bkpExecBtn" onclick="execBackup()" style="display:none;background:#60a5fa;color:#000;"><i class="fa fa-cloud-arrow-up"></i> <span id="bkpExecLbl">Backup</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL TAMBAH -->
+<div class="modal-ov" id="modalAdd">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <div class="modal-title">Input Data Baru</div>
+      <button class="btn-close" onclick="closeModal('modalAdd')"><i class="fa fa-times"></i></button>
+    </div>
+    <form id="formAdd">
+      <div class="form-fields" id="addFields"></div>
+    </form>
+    <div class="modal-ftr">
+      <button class="btn-cancel" onclick="closeModal('modalAdd')">Batal</button>
+      <button class="btn-save" onclick="submitData()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── localStorage helpers (harus paling atas) ──
+const sg = k=>{try{return localStorage.getItem(k);}catch(e){return null;}};
+const ss = (k,v)=>{try{localStorage.setItem(k,v);}catch(e){}};
+const sr = k=>{try{localStorage.removeItem(k);}catch(e){}};
+
+// ══════════════════════════════════════════════════════════
+//  SERVER LIST — tambah / kurangi domain di sini
+// ══════════════════════════════════════════════════════════
+const SERVERS = [
+  { label: 'Lidan',     domain: 'lidan-co-id.pages.dev' },
+  { label: 'Tabi',      domain: 'tabi.my.id'             },
+  { label: 'Mobeli',    domain: 'mobeli.my.id'           },
+  { label: 'TalentMap', domain: 'talentmap.my.id'        },
+];
+
+// ── Pola API per-database (path setelah domain tetap) ──
+// domain akan disubstitusi otomatis dari server yang dipilih
+const DB_TEMPLATES = [
+  { name:'General',   path:'/api/contacts_filter_dinamis6', key:'gen',       auth:'admin', color:'#4f9cf9' },
+  { name:'GBKP',      path:'/api/db_gbkp1',                 key:'gbkp',      auth:'admin', color:'#a78bfa' },
+  { name:'Psikogram', path:'/api/db_psikogram1',            key:'psikogram', auth:'admin', color:'#34d399' },
+  { name:'DB1',       path:'/api/db1',                      key:'db1',       auth:'admin', color:'#fb923c' },
+  { name:'DB2',       path:'/api/db2',                      key:'db2',       auth:'admin', color:'#f472b6' },
+  { name:'DB3',       path:'/api/db3',                      key:'db3',       auth:'admin', color:'#38bdf8' },
+  { name:'DB4',       path:'/api/db4',                      key:'db4',       auth:'admin', color:'#facc15' },
+  { name:'DB5',       path:'/api/db5',                      key:'db5',       auth:'admin', color:'#4ade80' },
+];
+
+// ── State server aktif ──
+let activeServerIdx = 0; // default server pertama
+
+// Bangun DBS dari server + template
+function buildDBS(serverIdx){
+  const domain = SERVERS[serverIdx].domain;
+  return DB_TEMPLATES.map(t => ({
+    ...t,
+    api: `https://${domain}${t.path}`
+  }));
+}
+
+// DBS global — diupdate setiap ganti server
+let DBS = buildDBS(activeServerIdx);
+
+// ── Render tombol server di login ──
+function renderLoginServers(){
+  const grid = document.getElementById('loginServerGrid');
+  if(!grid) return;
+  grid.innerHTML = SERVERS.map((s, i) => `
+    <button type="button" class="srv-btn${i===activeServerIdx?' active':''}"
+      onclick="switchServer(${i})"
+      title="https://${s.domain}">
+      ${i===activeServerIdx?'✓ ':''}${s.label}<br>
+      <span style="font-size:9px;opacity:.6;">${s.domain}</span>
+    </button>
+  `).join('');
+}
+
+// ── Render chip server di topbar ──
+function renderTopbarServers(){
+  const bar = document.getElementById('topbarServerSwitcher');
+  if(!bar) return;
+  bar.innerHTML = SERVERS.map((s, i) => `
+    <button class="srv-chip${i===activeServerIdx?' active':''}"
+      onclick="switchServer(${i})"
+      title="https://${s.domain}">
+      <span class="srv-dot"></span>${s.label}
+    </button>
+  `).join('');
+}
+
+// ── Ganti server aktif ──
+function switchServer(idx){
+  if(idx === activeServerIdx) return;
+  activeServerIdx = idx;
+  DBS = buildDBS(idx);
+  ss('activeServerIdx', idx);
+
+  // Reset state tabel
+  allTables  = {};
+  activeDB   = 0;
+  activeTbl  = 'cover';
+
+  renderLoginServers();
+  renderTopbarServers();
+
+  // Kalau sudah login, rebuild sidebar & reload
+  if(document.getElementById('appSection').style.display === 'flex'){
+    buildSkeleton();
+    updateBadge();
+    // Rebuild dropdown "Buat Tabel"
+    const sel = document.getElementById('newTblDb');
+    if(sel){
+      sel.innerHTML = DB_TEMPLATES.map((t,i)=>`<option value="${i}">${t.name}</option>`).join('');
+    }
+    loadData();
+    fetchTables(0).then(()=>{
+      const g0 = document.getElementById('grp0');
+      if(g0) g0.classList.remove('collapsed');
+    });
+  }
+}
+
+// ── Init server dari localStorage ──
+(function initServer(){
+  const saved = parseInt(sg('activeServerIdx')||'0');
+  if(saved >= 0 && saved < SERVERS.length){
+    activeServerIdx = saved;
+    DBS = buildDBS(saved);
+  }
+  renderLoginServers();
+})();
+
+// Index DB1 & state backup — global agar tersedia sebelum fungsi apapun dipanggil
+const DB1_IDX       = DBS.findIndex(d => d.key === 'db1');
+let   bkpDestVerified = false;
+
+let activeDB  = 0;
+let activeTbl = 'cover';
+let allTables = {};   // { dbIdx: ['tbl1','tbl2',...] }
+let searchTimer = null;
+
+function hdrs(idx){
+  const h={'Content-Type':'application/json'};
+  if(DBS[idx].auth) h['X-Custom-Auth']=DBS[idx].auth;
+  return h;
+}
+
+// ── AUTH ──
+document.getElementById('loginForm').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const username = document.getElementById('uname').value.trim();
+  const password = document.getElementById('upass').value;
+  const errEl    = document.getElementById('loginErr');
+  const btnEl    = document.getElementById('btnLogin');
+
+  errEl.style.display='none';
+  btnEl.textContent='Memeriksa...';
+  btnEl.disabled=true;
+
+  try {
+    // Cek ke tabel 'users' di database General (DBS[0])
+    const api = DBS[0].api;
+    const h   = {'Content-Type':'application/json','X-Custom-Auth':DBS[0].auth};
+    const url = `${api}?table=admins&x_01_eq=${encodeURIComponent(username)}&x_02_eq=${encodeURIComponent(password)}`;
+    const res = await fetch(url, { headers: h });
+    const data = await res.json();
+
+    if(data.data && data.data.length > 0){
+      ss('loggedIn','true');
+      ss('loggedUser', username);
+      showApp();
+    } else {
+      errEl.textContent = 'Username atau password salah.';
+      errEl.style.display='block';
+    }
+  } catch(err) {
+    errEl.textContent = 'Gagal terhubung ke server.';
+    errEl.style.display='block';
+  } finally {
+    btnEl.textContent='MASUK';
+    btnEl.disabled=false;
+  }
+});
+function logout(){ sr('loggedIn'); sr('loggedUser'); location.reload(); }
+
+// ── INIT ──
+window.addEventListener('DOMContentLoaded',()=>{ if(sg('loggedIn')==='true') showApp(); });
+
+async function showApp(){
+  document.getElementById('loginSection').style.display='none';
+  const app=document.getElementById('appSection');
+  app.style.display='flex'; app.style.flexDirection='column';
+
+  // Render server chips di topbar
+  renderTopbarServers();
+
+  // Fill dropdown "Buat Tabel"
+  const selTblDb = document.getElementById('newTblDb');
+  if(selTblDb) selTblDb.innerHTML = DB_TEMPLATES.map((t,i)=>`<option value="${i}">${t.name}</option>`).join('');
+  document.getElementById('searchBox').addEventListener('input',()=>{
+    clearTimeout(searchTimer); searchTimer=setTimeout(loadData,450);
+  });
+
+  // restore last active
+  activeDB  = parseInt(sg('activeDB')||'0');
+  activeTbl = sg('tbl_'+DBS[activeDB].key)||'cover';
+
+  // langsung muat data & badge — tidak tunggu sidebar
+  updateBadge();
+  buildSkeleton();
+  loadData();
+
+  // Hanya fetch General (idx=0) saat startup — DB lain lazy load saat diklik
+  fetchTables(0).then(() => {
+    // Auto-expand group General
+    const grp0 = document.getElementById('grp0');
+    if (grp0) grp0.classList.remove('collapsed');
+  });
+
+  // Kalau DB aktif bukan General, fetch dan expand juga
+  if (activeDB !== 0) {
+    fetchTables(activeDB).then(() => {
+      const grpA = document.getElementById('grp' + activeDB);
+      if (grpA) grpA.classList.remove('collapsed');
+    });
+  }
+}
+
+// ── SIDEBAR SKELETON ──
+function buildSkeleton(){
+  const el=document.getElementById('sidebarScroll');
+  el.innerHTML=DBS.map((db,i)=>`
+    <div class="db-group collapsed" id="grp${i}">
+      <div class="db-grp-hdr" onclick="toggleGroup(${i})">
+        <span class="db-dot" style="background:${db.color}"></span>
+        <span class="grp-name">${db.name}</span>
+        <span class="grp-cnt" id="cnt${i}">…</span>
+        <i class="fa fa-chevron-down grp-chev"></i>
+      </div>
+      <div class="tbl-list" id="tblList${i}">
+        <div class="tbl-search-wrap">
+          <i class="fa fa-search"></i>
+          <input class="tbl-search-inp" id="srch${i}" type="text" placeholder="Cari tabel..." oninput="filterTblList(${i},this.value)">
+        </div>
+        <div id="tblItems${i}"><div class="tbl-msg">memuat…</div></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function fetchTables(idx){
+  try{
+    const res=await fetch(`${DBS[idx].api}?action=list_tables`,{headers:hdrs(idx)});
+    const data=await res.json();
+    allTables[idx]=data.tables||[];
+    document.getElementById('cnt'+idx).textContent=allTables[idx].length;
+    renderTblList(idx);
+    highlightActive();
+    // ── DEBUG: tampilkan versi API di console ──
+    console.log(`%c[${DBS[idx].name}] API Version: ${data.version||'LAMA (tidak ada versi)'}`, 'color:#34d399;font-weight:bold');
+  }catch(e){
+    allTables[idx]=[];
+    document.getElementById('cnt'+idx).textContent='!';
+    document.getElementById('tblList'+idx).innerHTML='<div class="tbl-msg tbl-err"><i class="fa fa-exclamation-triangle"></i> Gagal</div>';
+    console.error(`[${DBS[idx].name}] fetchTables error:`, e);
+  }
+}
+
+function renderTblList(idx, filter=''){
+  const raw=allTables[idx]||[];
+  const list=[...raw].sort((a,b)=>a.localeCompare(b))
+    .filter(t=> !filter || t.toLowerCase().includes(filter.toLowerCase()));
+  const el=document.getElementById('tblItems'+idx);
+  if(!el) return;
+  if(!list.length){ el.innerHTML='<div class="tbl-msg">'+(filter?'tidak ditemukan':'kosong')+'</div>'; return; }
+  el.innerHTML='';
+  list.forEach(t=>{
+    const div=document.createElement('div');
+    div.className='tbl-item';
+    div.id='ti_'+idx+'_'+t;
+    div.dataset.db=idx;
+    div.dataset.tbl=t;
+    div.innerHTML=
+      '<i class="fa fa-table tbl-icon"></i>'+
+      '<span class="tbl-name" title="'+t+'">'+t+'</span>'+
+      '<div class="tbl-actions">'+
+        '<button class="tbl-act-btn clear"  data-act="clear"  data-db="'+idx+'" data-tbl="'+t+'" title="Kosongkan data"><i class="fa fa-eraser"></i></button>'+
+        '<button class="tbl-act-btn drop"   data-act="drop"   data-db="'+idx+'" data-tbl="'+t+'" title="Hapus tabel"><i class="fa fa-trash"></i></button>'+
+        '<button class="tbl-act-btn backup" data-act="backup" data-db="'+idx+'" data-tbl="'+t+'" title="Backup ke database tujuan"><i class="fa fa-cloud-arrow-up"></i></button>'+
+      '</div>';
+    div.addEventListener('click', function(e){
+      if(e.target.closest('.tbl-actions')) return;
+      selectTable(idx, t);
+    });
+    div.querySelectorAll('.tbl-act-btn').forEach(btn=>{
+      btn.addEventListener('click', function(e){
+        e.stopPropagation();
+        askTableAction(this.dataset.act, parseInt(this.dataset.db), this.dataset.tbl);
+      });
+    });
+    el.appendChild(div);
+  });
+}
+
+function filterTblList(idx, val){
+  renderTblList(idx, val);
+  highlightActive();
+}
+
+function selectTable(dbIdx, tblName){
+  activeDB=dbIdx; activeTbl=tblName;
+  ss('activeDB',dbIdx);
+  ss('tbl_'+DBS[dbIdx].key,tblName);
+  if(lazyObserver){ lazyObserver.disconnect(); lazyObserver=null; }
+  updateBadge(); highlightActive();
+  document.getElementById('searchBox').value='';
+  loadData();
+  closeSidebar();
+}
+
+function highlightActive(){
+  document.querySelectorAll('.tbl-item').forEach(el=>el.classList.remove('active'));
+  const el=document.getElementById(`ti_${activeDB}_${activeTbl}`);
+  if(el) el.classList.add('active');
+}
+
+function updateBadge(){
+  document.getElementById('badgeDb').textContent=DBS[activeDB].name+' / ';
+  document.getElementById('badgeTbl').textContent=activeTbl;
+}
+
+function toggleGroup(idx){
+  const grp = document.getElementById('grp'+idx);
+  const isCollapsed = grp.classList.contains('collapsed');
+
+  if (isCollapsed && !allTables[idx]) {
+    // Belum pernah fetch — fetch dulu lalu expand
+    grp.classList.remove('collapsed');
+    fetchTables(idx);
+  } else {
+    grp.classList.toggle('collapsed');
+  }
+}
+
+function openNewTable(){
+  const dbIdx=parseInt(document.getElementById('newTblDb').value);
+  const name=document.getElementById('newTblName').value.trim();
+  if(!name) return;
+  if(!allTables[dbIdx]) allTables[dbIdx]=[];
+  if(!allTables[dbIdx].includes(name)) allTables[dbIdx].push(name);
+  renderTblList(dbIdx);
+  document.getElementById('cnt'+dbIdx).textContent=allTables[dbIdx].length;
+  selectTable(dbIdx,name);
+  document.getElementById('newTblName').value='';
+}
+
+// ── LOAD DATA ──
+// ════════════════════════════════════════════════
+//  LAZY LOAD / INFINITE SCROLL
+// ════════════════════════════════════════════════
+const PAGE_SIZE   = 100;  // baris per page — harus sama dengan DEFAULT_LIMIT di API
+let   lazyOffset  = 0;
+let   lazyTotal   = null; // null = belum tahu
+let   lazyLoading = false;
+let   lazyDB      = null;
+let   lazyTbl     = null;
+let   lazySeenIds = new Set(); // guard duplikat berdasarkan id_x
+
+async function loadData(){
+  // Reset state lazy load
+  lazyOffset  = 0;
+  lazyTotal   = null;
+  lazyLoading = false;
+  lazyDB      = activeDB;
+  lazyTbl     = activeTbl;
+  lazySeenIds = new Set();
+
+  const wrap = document.getElementById('tableWrap');
+  wrap.innerHTML = '<div class="loading-txt">Memuat data</div>';
+
+  // Buat kontainer tabel dulu (kosong), lalu append baris
+  const firstBatch = await fetchPage(0);
+  if(firstBatch === null){
+    wrap.innerHTML = '<div class="empty-state"><i class="fa fa-plug"></i><p>Gagal memuat data</p></div>';
+    return;
+  }
+  if(firstBatch.data.length === 0){
+    wrap.innerHTML = '<div class="empty-state"><i class="fa fa-inbox"></i><p>Tidak ada data</p></div>';
+    return;
+  }
+
+  // 'total' = jumlah semua baris di DB (dari API baru), fallback ke count jika API lama
+  lazyTotal  = firstBatch.total ?? null;
+  lazyOffset = firstBatch.data.length;
+
+  // Render tabel awal
+  wrap.innerHTML = buildTableShell();
+  appendRows(firstBatch.data);
+  appendSentinel();
+
+  // Attach infinite scroll observer
+  attachObserver();
+}
+
+async function fetchPage(offset){
+  const q   = document.getElementById('searchBox').value;
+  let url   = `${DBS[activeDB].api}?table=${activeTbl}&limit=${PAGE_SIZE}&offset=${offset}`;
+  if(q) url += `&x_01_like=${encodeURIComponent(q)}`;
+  try{
+    const res    = await fetch(url, { headers: hdrs(activeDB) });
+    const result = await res.json();
+    return result;
+  } catch(e){ return null; }
+}
+
+function buildTableShell(){
+  let h = '<table id="dataTable"><thead><tr><th style="width:34px"></th><th>ID</th>';
+  for(let i=1;i<=20;i++) h += `<th>x_${String(i).padStart(2,'0')}</th>`;
+  h += '</tr></thead><tbody id="dataTbody"></tbody></table>';
+  // Sentinel div untuk IntersectionObserver
+  h += '<div id="lazySentinel" style="height:1px;"></div>';
+  h += '<div id="lazySpinner" style="display:none;text-align:center;padding:14px;color:var(--muted);font-family:monospace;font-size:12px;">Memuat lebih...</div>';
+  return h;
+}
+
+function appendRows(rows){
+  const tbody = document.getElementById('dataTbody');
+  if(!tbody) return;
+  let added = 0;
+  rows.forEach(row=>{
+    // Guard duplikat: skip baris yang id_x-nya sudah ditampilkan
+    if(lazySeenIds.has(row.id_x)) return;
+    lazySeenIds.add(row.id_x);
+    added++;
+    const tr = document.createElement('tr');
+    let cells = `<td><button class="btn-del" onclick="deleteRow(${row.id_x})"><i class="fa fa-trash"></i></button></td>`;
+    cells += `<td class="td-id">${row.id_x}</td>`;
+    for(let i=1;i<=20;i++){
+      const col = `x_${String(i).padStart(2,'0')}`;
+      cells += `<td contenteditable="true" onblur="updateField(${row.id_x},'${col}',this.innerText)">${row[col]||''}</td>`;
+    }
+    tr.innerHTML = cells;
+    tbody.appendChild(tr);
+  });
+  updateRowCount();
+  return added;
+}
+
+function appendSentinel(){
+  // Sentinel sudah ada di shell, tidak perlu append lagi
+}
+
+let lazyObserver = null;
+function attachObserver(){
+  if(lazyObserver) lazyObserver.disconnect();
+  const sentinel = document.getElementById('lazySentinel');
+  if(!sentinel) return;
+  lazyObserver = new IntersectionObserver(async entries => {
+    if(!entries[0].isIntersecting) return;
+    if(lazyLoading) return;
+    // Cek apakah masih ada data
+    if(lazyTotal !== null && lazyOffset >= lazyTotal) return;
+    // Guard: pastikan DB/tabel tidak berganti saat async
+    if(lazyDB !== activeDB || lazyTbl !== activeTbl) return;
+
+    lazyLoading = true;
+    const spinner = document.getElementById('lazySpinner');
+    if(spinner) spinner.style.display = 'block';
+
+    const batch = await fetchPage(lazyOffset);
+    lazyLoading = false;
+    if(spinner) spinner.style.display = 'none';
+
+    if(!batch || batch.data.length === 0) {
+      if(lazyObserver) lazyObserver.disconnect();
+      return;
+    }
+    lazyTotal  = batch.total ?? lazyTotal;
+    lazyOffset += batch.data.length;
+    const added = appendRows(batch.data);
+
+    // Stop jika sudah semua data (berdasarkan total dari API)
+    if(lazyTotal !== null && lazyOffset >= lazyTotal){
+      if(lazyObserver) lazyObserver.disconnect();
+      return;
+    }
+    // Fallback 1: API lama tanpa total — stop jika batch < PAGE_SIZE
+    if(lazyTotal === null && batch.data.length < PAGE_SIZE){
+      if(lazyObserver) lazyObserver.disconnect();
+      return;
+    }
+    // Fallback 2: Semua baris di batch sudah pernah ditampilkan (API loop/duplikat) — stop paksa
+    if(added === 0){
+      if(lazyObserver) lazyObserver.disconnect();
+    }
+  }, { rootMargin: '200px' });
+  lazyObserver.observe(sentinel);
+}
+
+function updateRowCount(){
+  const tbody = document.getElementById('dataTbody');
+  if(!tbody) return;
+  const count = tbody.querySelectorAll('tr').length;
+  const total = lazyTotal !== null ? ` / ${lazyTotal}` : '';
+  document.getElementById('badgeTbl').textContent = `${activeTbl} (${count}${total})`;
+}
+
+// Fungsi ini masih dipanggil dari beberapa tempat — redirect ke loadData
+function renderTable(rows){ loadData(); }
+
+// ── CRUD ──
+async function submitData(){
+  const payload={};
+  document.querySelectorAll('#formAdd input[name]').forEach(inp=>{if(inp.value)payload[inp.name]=inp.value;});
+  const res=await fetch(`${DBS[activeDB].api}?table=${activeTbl}`,{method:'POST',headers:hdrs(activeDB),body:JSON.stringify(payload)});
+  if(res.ok){closeModal('modalAdd');document.getElementById('formAdd').reset();loadData();}
+}
+async function updateField(id,col,val){
+  const p={};p[col]=val;
+  await fetch(`${DBS[activeDB].api}?table=${activeTbl}&id_x=${id}`,{method:'PUT',headers:hdrs(activeDB),body:JSON.stringify(p)});
+}
+async function deleteRow(id){
+  if(!confirm('Hapus baris ini selamanya?')) return;
+  await fetch(`${DBS[activeDB].api}?table=${activeTbl}&id_x=${id}`,{method:'DELETE',headers:hdrs(activeDB)});
+  loadData();
+}
+
+// ── TABLE ACTIONS (clear / drop / reset) ──
+let pendingAction = null; // { type, dbIdx, tblName }
+
+const ACTION_CFG = {
+  clear: {
+    icon:'🧹', color:'yellow',
+    title: t => `Kosongkan "${t}"`,
+    sub:   t => `Semua <strong>baris data</strong> di tabel <code>${t}</code> akan dihapus permanen.<br>Struktur tabel tetap ada.`,
+  },
+  drop: {
+    icon:'🗑️', color:'red',
+    title: t => `Hapus Tabel "${t}"`,
+    sub:   t => `Tabel <code>${t}</code> beserta seluruh isinya akan <strong>dihapus permanen</strong>.`,
+  },
+};
+
+function openBackupModal(type, dbIdx, tblName){
+  pendingAction = { type, dbIdx, tblName };
+  bkpDestVerified = false;
+
+  document.getElementById('bkpIcon').textContent    = '☁️';
+  document.getElementById('bkpTitle').innerHTML     = `Backup <span style="color:var(--a1)">${tblName}</span>`;
+  document.getElementById('bkpSub').innerHTML       = `Salin semua data dari <code>${tblName}</code> (<strong>${DBS[dbIdx].name}</strong>) ke database tujuan pilihan. Tabel sumber <strong>tidak</strong> diubah.`;
+  document.getElementById('bkpExecLbl').textContent = 'Backup';
+  document.getElementById('bkpExecBtn').style.background = '#60a5fa';
+  document.getElementById('bkpDestInp').value        = tblName;
+  document.getElementById('bkpCheckMsg').textContent = '';
+  document.getElementById('bkpCheckMsg').style.color = '';
+  document.getElementById('bkpProgress').style.display = 'none';
+  document.getElementById('bkpProgBar').style.width    = '0%';
+  document.getElementById('bkpProgPct').textContent    = '';
+  document.getElementById('bkpProgMsg').innerHTML      = '';
+  document.getElementById('bkpProgDetail').textContent = '';
+  document.getElementById('bkpCheckBtn').style.display = '';
+  document.getElementById('bkpCheckBtn').disabled      = false;
+  document.getElementById('bkpCheckBtn').innerHTML     = '<i class="fa fa-magnifying-glass"></i> Cek Nama';
+  document.getElementById('bkpExecBtn').style.display  = 'none';
+
+  // Populate DB selector
+  populateBkpDbSelect();
+
+  openModal('modalBackup');
+  setTimeout(()=>document.getElementById('bkpDestInp').focus(), 150);
+}
+
+// Isi dropdown DB tujuan dengan semua DB yang aktif + opsi custom URL
+function populateBkpDbSelect(){
+  const sel = document.getElementById('bkpDbSel');
+  sel.innerHTML = '';
+  // Tambah semua DB dari DBS (server aktif)
+  DBS.forEach((db, i) => {
+    const opt = document.createElement('option');
+    opt.value = 'db:' + i;
+    // Tandai DB1 sebagai default
+    opt.textContent = db.name + (i === DB1_IDX ? ' (default)' : '');
+    if(i === DB1_IDX) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  // Separator
+  const sep = document.createElement('option');
+  sep.disabled = true;
+  sep.textContent = '── Server lain ──';
+  sel.appendChild(sep);
+  // Tambah server lain dari SERVERS × DB_TEMPLATES (kecuali server aktif)
+  SERVERS.forEach((srv, si) => {
+    if(si === activeServerIdx) return;
+    DB_TEMPLATES.forEach((tpl, ti) => {
+      const opt = document.createElement('option');
+      opt.value = `ext:${si}:${ti}`;
+      opt.textContent = `${tpl.name} @ ${srv.label}`;
+      sel.appendChild(opt);
+    });
+  });
+  // Opsi custom
+  const sep2 = document.createElement('option');
+  sep2.disabled = true;
+  sep2.textContent = '──────────────';
+  sel.appendChild(sep2);
+  const custom = document.createElement('option');
+  custom.value = 'custom';
+  custom.textContent = '🔗 Custom URL API...';
+  sel.appendChild(custom);
+
+  onBkpDbChange();
+}
+
+// Dipanggil tiap kali selector berubah
+function onBkpDbChange(){
+  const val = document.getElementById('bkpDbSel').value;
+  const infoEl = document.getElementById('bkpDestApiInfo');
+  const customWrap = document.getElementById('bkpCustomWrap');
+
+  if(val === 'custom'){
+    customWrap.style.display = '';
+    infoEl.style.display = 'none';
+  } else {
+    customWrap.style.display = 'none';
+    const apiUrl = getBkpDestApi();
+    if(apiUrl){
+      infoEl.textContent = '→ ' + apiUrl;
+      infoEl.style.display = '';
+    } else {
+      infoEl.style.display = 'none';
+    }
+  }
+  resetBkpCheck();
+}
+
+// Ambil URL API tujuan backup berdasarkan pilihan selector
+function getBkpDestApi(){
+  const val = document.getElementById('bkpDbSel').value;
+  if(!val) return null;
+  if(val === 'custom'){
+    return document.getElementById('bkpCustomUrl').value.trim() || null;
+  }
+  if(val.startsWith('db:')){
+    const idx = parseInt(val.split(':')[1]);
+    return DBS[idx]?.api || null;
+  }
+  if(val.startsWith('ext:')){
+    const [,si,ti] = val.split(':');
+    const srv = SERVERS[parseInt(si)];
+    const tpl = DB_TEMPLATES[parseInt(ti)];
+    if(srv && tpl) return `https://${srv.domain}${tpl.path}`;
+    return null;
+  }
+  return null;
+}
+
+// Ambil headers untuk API tujuan backup
+function getBkpDestHdrs(){
+  const val = document.getElementById('bkpDbSel').value;
+  if(val && val.startsWith('db:')){
+    const idx = parseInt(val.split(':')[1]);
+    return hdrs(idx);
+  }
+  // Untuk external/custom — gunakan header server aktif sebagai fallback
+  return hdrs(activeServerIdx);
+}
+
+function askTableAction(type, dbIdx, tblName){
+  if(type === 'backup'){ openBackupModal(type, dbIdx, tblName); return; }
+  pendingAction = { type, dbIdx, tblName };
+  const cfg = ACTION_CFG[type];
+  document.getElementById('confIcon').textContent  = cfg.icon;
+  document.getElementById('confTitle').innerHTML   = cfg.title(tblName);
+  document.getElementById('confSub').innerHTML     = cfg.sub(tblName)
+    + `<br><br>Ketik <code>${tblName}</code> untuk konfirmasi:`;
+  const inp = document.getElementById('confInp');
+  inp.value = '';
+  inp.className = 'confirm-inp';
+  const btn = document.getElementById('confExec');
+  btn.className = `conf-exec ${cfg.color}`;
+  btn.textContent = type==='clear'?'Kosongkan':type==='drop'?'Hapus':'Reset';
+  openModal('modalConfirm');
+  setTimeout(()=>inp.focus(), 150);
+}
+
+document.getElementById('confInp').addEventListener('input', function(){
+  if(!pendingAction) return;
+  const match = this.value === pendingAction.tblName;
+  this.className = 'confirm-inp ' + (this.value ? (match?'match':'nomatch') : '');
+  const btn = document.getElementById('confExec');
+  const cfg = ACTION_CFG[pendingAction.type];
+  btn.className = `conf-exec ${cfg.color}` + (match?' ready':'');
+});
+
+async function execTableAction(){
+  if(!pendingAction) return;
+  const { type, dbIdx, tblName } = pendingAction;
+  closeModal('modalConfirm');
+  const api = DBS[dbIdx].api;
+  const h   = hdrs(dbIdx);
+
+  if(type === 'clear'){
+    const url = `${api}?table=${tblName}&action=clear_table`;
+    console.log(`%c[ACTION] clear_table → ${url}`, 'color:#fbbf24;font-weight:bold');
+    const res = await fetch(url, { method:'DELETE', headers:h });
+    const txt = await res.text();
+    console.log(`[ACTION] clear_table response (${res.status}):`, txt);
+    if(!res.ok) { alert(`Gagal: ${res.status}\n${txt}`); return; }
+
+  } else if(type === 'drop'){
+    const url2 = `${api}?table=${tblName}&action=drop_table`;
+    console.log(`%c[ACTION] drop_table → ${url2}`, 'color:#f87171;font-weight:bold');
+    const res2 = await fetch(url2, { method:'DELETE', headers:h });
+    const txt2 = await res2.text();
+    console.log(`[ACTION] drop_table response (${res2.status}):`, txt2);
+    if(!res2.ok) { alert(`Gagal: ${res2.status}\n${txt2}`); return; }
+    // Hapus dari array lokal dulu (tampil cepat)
+    allTables[dbIdx] = (allTables[dbIdx]||[]).filter(t => t !== tblName);
+    renderTblList(dbIdx);
+    document.getElementById('cnt'+dbIdx).textContent = allTables[dbIdx].length;
+    if(activeDB===dbIdx && activeTbl===tblName){
+      activeTbl = '';
+      document.getElementById('tableWrap').innerHTML='<div class="empty-state"><i class="fa fa-hand-pointer"></i><p>Pilih tabel dari sidebar</p></div>';
+      document.getElementById('badgeTbl').textContent='—';
+    }
+    // Fetch ulang dari server untuk memastikan sinkron
+    fetchTables(dbIdx);
+    return;
+  }
+
+  // Refresh tampilan tabel yang aktif
+  if(activeDB===dbIdx && activeTbl===tblName) loadData();
+  else selectTable(dbIdx, tblName);
+}
+
+// ════════════════════════════════════════════════
+//  BACKUP ke DB1
+// ════════════════════════════════════════════════
+
+function resetBkpCheck(){
+  bkpDestVerified = false;
+  document.getElementById('bkpCheckMsg').textContent = '';
+  document.getElementById('bkpCheckMsg').style.color = '';
+  document.getElementById('bkpExecBtn').style.display = 'none';
+  document.getElementById('bkpCheckBtn').style.display = '';
+  document.getElementById('bkpCheckBtn').disabled = false;
+  document.getElementById('bkpCheckBtn').innerHTML = '<i class="fa fa-magnifying-glass"></i> Cek Nama';
+}
+
+async function checkBackupDest(){
+  const destName = document.getElementById('bkpDestInp').value.trim();
+  const msgEl    = document.getElementById('bkpCheckMsg');
+  const checkBtn = document.getElementById('bkpCheckBtn');
+
+  if(!destName){
+    msgEl.style.color = 'var(--danger)'; msgEl.textContent = '⚠ Nama tabel tujuan tidak boleh kosong.'; return;
+  }
+  const destApi = getBkpDestApi();
+  if(!destApi){
+    msgEl.style.color = 'var(--danger)'; msgEl.textContent = '⚠ URL API tujuan tidak valid. Periksa pilihan database atau isi custom URL.'; return;
+  }
+  checkBtn.disabled = true;
+  checkBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Mengecek...';
+  msgEl.textContent = '';
+
+  try {
+    const res  = await fetch(`${destApi}?action=list_tables`, { headers: getBkpDestHdrs() });
+    const data = await res.json();
+    const existing = (data.tables||[]).map(t => t.toLowerCase());
+    if(existing.includes(destName.toLowerCase())){
+      msgEl.style.color = 'var(--danger)';
+      msgEl.innerHTML   = `❌ Tabel <code style="background:var(--s2);padding:1px 5px;border-radius:3px;">${destName}</code> sudah ada di tujuan. Gunakan nama lain.`;
+      bkpDestVerified = false;
+      checkBtn.disabled = false;
+      checkBtn.innerHTML = '<i class="fa fa-magnifying-glass"></i> Cek Nama';
+    } else {
+      msgEl.style.color = 'var(--a3)';
+      msgEl.innerHTML   = `✅ Nama <code style="background:var(--s2);padding:1px 5px;border-radius:3px;">${destName}</code> tersedia di tujuan.`;
+      bkpDestVerified = true;
+      checkBtn.style.display = 'none';
+      document.getElementById('bkpExecBtn').style.display = '';
+    }
+  } catch(e) {
+    msgEl.style.color = 'var(--danger)'; msgEl.textContent = '⚠ Gagal mengecek database tujuan. Periksa URL dan koneksi.';
+    checkBtn.disabled = false;
+    checkBtn.innerHTML = '<i class="fa fa-magnifying-glass"></i> Cek Nama';
+  }
+}
+
+async function execBackup(){
+  if(!pendingAction || !bkpDestVerified) return;
+  const { type, dbIdx, tblName } = pendingAction;
+  const destName  = document.getElementById('bkpDestInp').value.trim();
+  const destApi   = getBkpDestApi();
+  const destHdrs  = getBkpDestHdrs();
+  const progEl    = document.getElementById('bkpProgress');
+  const execBtn   = document.getElementById('bkpExecBtn');
+  const cancelBtn = document.getElementById('bkpCancelBtn');
+
+  if(!destApi){ alert('URL API tujuan tidak valid.'); return; }
+
+  execBtn.disabled = cancelBtn.disabled = true;
+  progEl.style.display = 'block';
+  const setProgress = (pct, msg, detail) => {
+    document.getElementById('bkpProgBar').style.width = pct + '%';
+    document.getElementById('bkpProgPct').textContent = pct + '%';
+    if(msg !== undefined) document.getElementById('bkpProgMsg').innerHTML = msg;
+    if(detail !== undefined) document.getElementById('bkpProgDetail').textContent = detail;
+  };
+  const log = msg => { document.getElementById('bkpProgMsg').innerHTML = msg; };
+
+  try {
+    // ── Langkah 1: Ambil SEMUA data sumber (max 200 per page, sesuai MAX_LIMIT API) ──
+    const LIMIT = 200;
+    let allRows = [], offset = 0, pageNum = 0, totalFromApi = null;
+    while(true){
+      pageNum++;
+      const url = `${DBS[dbIdx].api}?table=${tblName}&limit=${LIMIT}&offset=${offset}`;
+      const fetchLabel = totalFromApi
+        ? `⏳ Mengambil data... halaman ${pageNum} (${allRows.length}/${totalFromApi} baris)`
+        : `⏳ Mengambil data dari sumber... (halaman ${pageNum})`;
+      setProgress(
+        totalFromApi ? Math.round(5 + (allRows.length / totalFromApi) * 10) : 5,
+        fetchLabel, allRows.length ? `${allRows.length} baris terkumpul` : ''
+      );
+      const res = await fetch(url, { headers: hdrs(dbIdx) });
+      if(!res.ok) throw new Error(`Gagal fetch sumber halaman ${pageNum} (${res.status})`);
+      const json = await res.json();
+      const rows = json.data || [];
+      if(rows.length === 0) break;
+      allRows = allRows.concat(rows);
+      if(json.total !== undefined) totalFromApi = json.total;
+      if(totalFromApi !== null && allRows.length >= totalFromApi) break;
+      if(rows.length < LIMIT) break;
+      offset += rows.length;
+    }
+
+    if(allRows.length === 0){
+      setProgress(100, 'ℹ️ Tabel sumber kosong — tidak ada data untuk diproses.', '0 baris');
+      await new Promise(r=>setTimeout(r,1800)); closeModal('modalBackup'); return;
+    }
+
+    log(`⏳ ${allRows.length} baris ditemukan. Mengirim bulk insert ke → <b>${destName}</b>...`);
+    setProgress(15, `⏳ Menyiapkan ${allRows.length} baris untuk dikirim → <b>${destName}</b>...`, `0 / ${allRows.length} baris`);
+
+    // ── Langkah 2: Bersihkan payload & kirim bulk insert ──
+    const payload = allRows.map(row => {
+      const r = {};
+      for(let c=1;c<=20;c++){
+        const col = 'x_'+String(c).padStart(2,'0');
+        if(row[col] !== undefined && row[col] !== null && row[col] !== '') r[col] = row[col];
+      }
+      return r;
+    });
+
+    const CHUNK = 100;
+    let totalInserted = 0;
+    const totalChunks = Math.ceil(payload.length / CHUNK);
+    for(let i = 0; i < payload.length; i += CHUNK){
+      const chunk = payload.slice(i, i + CHUNK);
+      const chunkNum = Math.floor(i/CHUNK)+1;
+      const rowsDone = Math.min(i + CHUNK, payload.length);
+      const pct = Math.round(15 + (rowsDone / payload.length) * 80);
+      setProgress(
+        pct,
+        `⏳ Mengirim chunk ${chunkNum}/${totalChunks} → <b>${destName}</b>...`,
+        `${rowsDone} / ${payload.length} baris`
+      );
+      log(`⏳ Bulk insert chunk ${chunkNum}/${totalChunks} (${i+1}–${rowsDone} dari ${payload.length})...`);
+      const r = await fetch(`${destApi}?table=${destName}&action=bulk_insert`, {
+        method: 'POST',
+        headers: destHdrs,
+        body: JSON.stringify(chunk)
+      });
+      if(!r.ok){
+        const txt = await r.text();
+        throw new Error(`Bulk insert gagal (${r.status}): ${txt}`);
+      }
+      const rj = await r.json();
+      totalInserted += rj.inserted || chunk.length;
+    }
+
+    setProgress(100, `✅ Selesai! ${totalInserted} baris dicopy → <b>${destName}</b>. Sumber tidak diubah.`, `${totalInserted} baris`);
+    log(`✅ Selesai! ${totalInserted} baris dicopy → <b>${destName}</b>. Sumber tidak diubah.`);
+
+    // Refresh sidebar DB1 jika tujuan adalah DB1
+    const selVal = document.getElementById('bkpDbSel').value;
+    if(selVal === 'db:' + DB1_IDX){
+      allTables[DB1_IDX] = null;
+      const grp1 = document.getElementById('grp'+DB1_IDX);
+      if(grp1 && !grp1.classList.contains('collapsed')) fetchTables(DB1_IDX);
+    }
+    if(activeDB===dbIdx && activeTbl===tblName) loadData();
+
+    await new Promise(r=>setTimeout(r,2000));
+    closeModal('modalBackup');
+  } catch(e){
+    setProgress(0, `❌ Error: ${e.message}`, '');
+    log(`❌ Error: ${e.message}`);
+    await new Promise(r=>setTimeout(r,3000)); closeModal('modalBackup');
+  } finally {
+    execBtn.disabled = cancelBtn.disabled = false;
+  }
+}
+
+
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+function openAddModal(){
+  let h='';
+  for(let i=1;i<=20;i++){
+    const col=`x_${String(i).padStart(2,'0')}`;
+    h+=`<div><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">${col}</label><input type="text" name="${col}" class="inp" style="padding:7px 10px;font-size:12px;"></div>`;
+  }
+  document.getElementById('addFields').innerHTML=h;
+  openModal('modalAdd');
+}
+document.querySelectorAll('.modal-ov').forEach(m=>{
+  m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');});
+});
+
+// ── MOBILE SIDEBAR ──
+function toggleSidebar(){
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('open');
+}
+function closeSidebar(){
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('open');
+}
+</script>
+</body>
+</html>
