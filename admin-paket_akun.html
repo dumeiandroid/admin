@@ -849,6 +849,79 @@
     .dnd-wrapper { flex-direction: column; }
     .avail-panels { flex-direction: column; }
   }
+
+  /* ── Server Switcher ── */
+  .srv-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+    display: block;
+  }
+  .srv-grid-login {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+  .srv-chip-login {
+    padding: 5px 13px;
+    border: 1px solid var(--border);
+    border-radius: 99px;
+    background: var(--surface2);
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .srv-chip-login:hover:not(.active) {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .srv-chip-login.active {
+    background: rgba(79,142,247,0.15);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .srv-url-preview {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    word-break: break-all;
+    margin-bottom: 20px;
+    padding: 6px 10px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+  }
+  /* Header chips */
+  .srv-chip-header {
+    padding: 4px 11px;
+    border: 1px solid var(--border);
+    border-radius: 99px;
+    background: transparent;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s;
+    white-space: nowrap;
+  }
+  .srv-chip-header:hover:not(.active) {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .srv-chip-header.active {
+    background: rgba(79,142,247,0.12);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
 </style>
 </head>
 <body>
@@ -858,6 +931,12 @@
   <div class="login-box">
     <div class="login-logo">Psikotest Admin</div>
     <div class="login-title">Manajemen Paket Tes</div>
+
+    <!-- Server Switcher -->
+    <span class="srv-label">Server</span>
+    <div class="srv-grid-login" id="loginSrvChips"><!-- filled by JS --></div>
+    <div class="srv-url-preview" id="loginSrvUrl"></div>
+
     <div class="field">
       <label>Username</label>
       <input type="text" id="loginUser" placeholder="username" autocomplete="username">
@@ -882,6 +961,8 @@
       <span class="app-sep">›</span>
       <span class="app-title">Manajemen Paket Tes</span>
     </div>
+    <!-- Server chips di header -->
+    <div id="headerSrvChips" style="display:flex;gap:5px;align-items:center;flex:1;padding:0 16px;overflow-x:auto;scrollbar-width:none;"></div>
     <div style="display:flex;align-items:center;gap:8px">
       <a href="https://admin.lidan.co.id/admin/psikotest_json_new.html" target="_blank" class="btn-dashboard-link">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
@@ -1057,10 +1138,78 @@
 
 <script>
 /* ══════════════════════════════════════════════════════════
+   SERVER LIST — tambah / kurangi di sini saja
+══════════════════════════════════════════════════════════ */
+const SERVERS = [
+  { label: 'Lidan',     domain: 'lidan-co-id.pages.dev' },
+  { label: 'Tabi',      domain: 'tabi.my.id'             },
+  { label: 'Mobeli',    domain: 'mobeli.my.id'           },
+  { label: 'TalentMap', domain: 'talentmap.my.id'        },
+];
+let activeSrvIdx = 0;
+
+const API_PATH_READ  = '/api/contacts_filter_dinamis7';
+const API_PATH_WRITE = '/api/contacts_filter_dinamis6';
+
+function getApiRead()  { return `https://${SERVERS[activeSrvIdx].domain}${API_PATH_READ}`; }
+function getApiWrite() { return `https://${SERVERS[activeSrvIdx].domain}${API_PATH_WRITE}`; }
+
+// Alias agar kode lama tetap jalan tanpa perubahan
+Object.defineProperty(window, 'API_READ',  { get: getApiRead });
+Object.defineProperty(window, 'API_WRITE', { get: getApiWrite });
+
+/* ══════════════════════════════════════════════════════════
+   SERVER SWITCHER
+══════════════════════════════════════════════════════════ */
+function renderSrvChips() {
+  // Login screen
+  const loginWrap = document.getElementById('loginSrvChips');
+  if (loginWrap) {
+    loginWrap.innerHTML = SERVERS.map((s, i) => `
+      <button class="srv-chip-login${i === activeSrvIdx ? ' active' : ''}"
+        onclick="switchSrcServer(${i})"
+        title="https://${s.domain}">
+        ${i === activeSrvIdx ? '✓ ' : ''}${s.label}
+      </button>`).join('');
+  }
+  const urlEl = document.getElementById('loginSrvUrl');
+  if (urlEl) urlEl.textContent = getApiRead();
+
+  // App header
+  const headerWrap = document.getElementById('headerSrvChips');
+  if (headerWrap) {
+    headerWrap.innerHTML = SERVERS.map((s, i) => `
+      <button class="srv-chip-header${i === activeSrvIdx ? ' active' : ''}"
+        onclick="switchSrcServer(${i})"
+        title="https://${s.domain}">
+        ${i === activeSrvIdx ? '✓ ' : ''}${s.label}
+      </button>`).join('');
+  }
+}
+
+function switchSrcServer(idx) {
+  if (idx === activeSrvIdx) return;
+  activeSrvIdx = idx;
+  renderSrvChips();
+
+  // Jika sudah di app screen, reload daftar paket dari server baru
+  const appScreen = document.getElementById('screenApp');
+  if (appScreen && appScreen.classList.contains('active')) {
+    paketList   = [];
+    activePaket = null;
+    document.getElementById('editorForm').style.display = 'none';
+    document.getElementById('editorPlaceholder').style.display = '';
+    loadPaketList();
+    toast(`Server beralih ke ${SERVERS[idx].label}`, 'ok');
+  }
+}
+
+// Init chips saat halaman load
+renderSrvChips();
+
+/* ══════════════════════════════════════════════════════════
    CONSTANTS
 ══════════════════════════════════════════════════════════ */
-const API_READ   = 'https://lidan-co-id.pages.dev/api/contacts_filter_dinamis7';
-const API_WRITE  = 'https://lidan-co-id.pages.dev/api/contacts_filter_dinamis6';
 const AUTH_KEY   = 'admin';
 const TBL_ADMIN  = 'admins';
 const TBL_PAKET  = 'alat_tes';
