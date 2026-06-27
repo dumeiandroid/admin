@@ -420,6 +420,12 @@
             display: flex;
             align-items: center;
             gap: 0.5rem;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .section-title:hover {
+            color: var(--text);
         }
 
         .section-title::after {
@@ -429,10 +435,33 @@
             background: var(--border);
         }
 
+        .section-title .chevron-icon {
+            font-size: 0.65rem;
+            transition: transform 0.25s ease;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+
+        .section-title.open .chevron-icon {
+            transform: rotate(90deg);
+        }
+
         .cards-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
             gap: 1rem;
+            overflow: hidden;
+            max-height: 2000px;
+            opacity: 1;
+            transition: max-height 0.3s ease, opacity 0.25s ease, margin 0.3s ease;
+        }
+
+        .cards-grid.collapsed {
+            display: grid;
+            max-height: 0;
+            opacity: 0;
+            margin: 0;
+            gap: 0;
         }
 
         .app-card {
@@ -752,6 +781,20 @@ const pageData = {
     ]
 },
             {
+    heading: 'LAPORAN',
+    cards: [
+        { icon: '🧩', label: 'CFIT', href: 'https://skoring.lidan.co.id/cfit_multi' },
+        { type: 'link', icon: '⭐', label: 'EPPS', href: 'https://skoring.lidan.co.id/epps_multi', external: true },
+        { icon: '🧠', label: 'PAPI', href: 'https://skoring.lidan.co.id/papi_multi' },
+        { icon: '💼', label: 'RMIB', href: 'https://skoring.lidan.co.id/rmib_multi' },
+        { icon: '🧮', label: 'IST', href: 'https://skoring.lidan.co.id/ist_multi' },
+        { icon: '🔢', label: 'TKD 3', href: 'https://skoring.lidan.co.id/tkd3_multi' },
+        { icon: '🔢', label: 'TKD 6', href: 'https://skoring.lidan.co.id/tkd6_multi' },
+        { icon: '⚡', label: 'Kraeplin', href: 'https://skoring.lidan.co.id/kreplin_multi' },
+        { icon: '✏️', label: 'KOREKSI TES-MANUAL', href: 'https://skoring.lidan.co.id/koreksi' },
+    ]
+},
+            {
                 heading: 'Alur Psikotest',
                 cards: [
                     { icon: '🔬', label: 'Psikotest Admin', href: 'https://admin.lidan.co.id/admin/psikotest' },
@@ -954,9 +997,13 @@ function renderPage(pageId) {
             <p>${data.subtitle}</p>
         </div>`;
 
-    data.sections.forEach(section => {
-        html += `<div class="section-title">${section.heading}</div>`;
-        html += `<div class="cards-grid">`;
+    data.sections.forEach((section, idx) => {
+        const isOpen = idx === 0; // default: hanya section pertama terbuka
+        html += `<div class="section-title ${isOpen ? 'open' : ''}" onclick="toggleSection(this)">
+            <span>${section.heading}</span>
+            <span class="chevron-icon">▶</span>
+        </div>`;
+        html += `<div class="cards-grid ${isOpen ? '' : 'collapsed'}">`;
         section.cards.forEach(card => {
             const cls = card.placeholder ? 'app-card placeholder' : 'app-card';
             const target = card.placeholder ? '' : 'target="_blank" rel="noopener"';
@@ -969,6 +1016,16 @@ function renderPage(pageId) {
     });
 
     document.getElementById('content').innerHTML = html;
+}
+
+/* ═══════════════════════════════════
+   ACCORDION SECTION TOGGLE
+═══════════════════════════════════ */
+function toggleSection(titleEl) {
+    const grid = titleEl.nextElementSibling;
+    if (!grid || !grid.classList.contains('cards-grid')) return;
+    titleEl.classList.toggle('open');
+    grid.classList.toggle('collapsed');
 }
 
 /* ═══════════════════════════════════
