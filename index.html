@@ -535,6 +535,136 @@
         #sidebar::-webkit-scrollbar { width: 4px; }
         #sidebar::-webkit-scrollbar-track { background: transparent; }
         #sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+        /* ─── CARD INFO BUTTON ─── */
+        .app-card { position: relative; }
+
+        .card-info-btn {
+            position: absolute;
+            top: 7px;
+            right: 7px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--surface3);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: 0.7rem;
+            font-weight: 700;
+            font-style: italic;
+            font-family: Georgia, serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0.5;
+            transition: background 0.2s, color 0.2s, opacity 0.2s;
+            z-index: 2;
+            line-height: 1;
+        }
+
+        .card-info-btn:hover {
+            background: var(--accent);
+            color: #0d1117;
+            border-color: var(--accent);
+        }
+
+        /* Tooltip — dirender ke body, bukan ::after */
+        #card-tooltip {
+            position: fixed;
+            background: #1c2128;
+            color: var(--text);
+            font-size: 0.75rem;
+            font-family: 'Sora', sans-serif;
+            font-weight: 400;
+            max-width: 220px;
+            text-align: left;
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            pointer-events: none;
+            line-height: 1.4;
+            z-index: 99999;
+        }
+
+        /* ─── MODAL KETERANGAN ─── */
+        #info-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        #info-modal.open { display: flex; }
+
+        .info-modal-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.65);
+            backdrop-filter: blur(3px);
+        }
+
+        .info-modal-box {
+            position: relative;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 1.8rem;
+            max-width: 400px;
+            width: 100%;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            z-index: 1;
+            animation: modalIn 0.2s ease;
+        }
+
+        @keyframes modalIn {
+            from { opacity: 0; transform: translateY(12px) scale(0.97); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .info-modal-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.8rem;
+            margin-bottom: 1rem;
+        }
+
+        .info-modal-icon { font-size: 1.8rem; flex-shrink: 0; }
+
+        .info-modal-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text);
+            line-height: 1.3;
+        }
+
+        .info-modal-body {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+            border-top: 1px solid var(--border);
+            padding-top: 1rem;
+        }
+
+        .info-modal-close {
+            position: absolute;
+            top: 12px;
+            right: 14px;
+            background: none;
+            border: none;
+            color: var(--text-dim);
+            font-size: 1.1rem;
+            cursor: pointer;
+            line-height: 1;
+            padding: 4px;
+            border-radius: 4px;
+        }
+
+        .info-modal-close:hover { color: var(--text); background: var(--surface2); }
     </style>
 </head>
 <body>
@@ -750,18 +880,18 @@ const pageData = {
         {
     heading: 'DAILY',
     cards: [
-        { icon: '📦', label: 'Admin Paket', href: 'https://test.lidan.co.id/1/admin/paket_akun' },
-        { icon: '👁️', label: 'Tester Monitoring', href: 'https://test.lidan.co.id/admin/cpmi' },
-        { icon: '🔍', label: 'Tester Monitoring Lengkap', href: 'https://test.lidan.co.id/admin/cpmi2' },
-        { icon: '🖥️', label: 'Admin Monitoring', href: 'https://test.lidan.co.id/1/admin/monitoring_akun' },
-        { icon: '📤', label: 'Transfer Hasil', href: 'https://test.lidan.co.id/1/admin/transfer_akun' },
-        { icon: '📊', label: 'Rekap Hasil Akhir', href: 'https://psikogram.lidan.co.id/psikogram_db/index_rekap' },
-        { icon: '📅', label: 'Ganti Tanggal', href: 'https://test.lidan.co.id/1/admin/ubah_tgl_ujian' },
-        { icon: '🔑', label: 'Data WWQ', href: 'https://test.lidan.co.id/1/admin/data_wwq_password_pkl' },
-        { type: 'link', icon: '👥', label: 'Multi Akun', href: 'https://test.lidan.co.id/1/admin/multi_db_akun', external: true },
-        { type: 'link', icon: '🔑', label: 'Create Token dr Nama', href: 'https://test.lidan.co.id/0indah_abadi_foto/11create_token_dashboard', external: true },
-        { type: 'link', icon: '🗄️', label: 'R2', href: 'https://cipta.my.id/view_multi', external: true },
-        { type: 'link', icon: '📲', label: 'QR Test', href: 'https://qrtest.lidan.co.id/qrtest-paket', external: true },
+        { icon: '📦', label: 'Admin Paket', href: 'https://test.lidan.co.id/1/admin/paket_akun', desc: 'Kelola paket akun peserta tes. Digunakan saat membuat batch peserta baru.' },
+        { icon: '👁️', label: 'Tester Monitoring', href: 'https://test.lidan.co.id/admin/cpmi', desc: 'Pantau status pengerjaan tes peserta CPMI secara real-time.' },
+        { icon: '🔍', label: 'Tester Monitoring Lengkap', href: 'https://test.lidan.co.id/admin/cpmi2', desc: 'Versi lengkap monitoring peserta, mencakup detail subtes dan progres tiap sesi.' },
+        { icon: '🖥️', label: 'Admin Monitoring', href: 'https://test.lidan.co.id/1/admin/monitoring_akun', desc: 'Monitor aktivitas akun admin dan peserta di semua database.' },
+        { icon: '📤', label: 'Transfer Hasil', href: 'https://test.lidan.co.id/1/admin/transfer_akun', desc: 'Transfer data hasil tes peserta antar server atau database.' },
+        { icon: '📊', label: 'Rekap Hasil Akhir', href: 'https://psikogram.lidan.co.id/psikogram_db/index_rekap', desc: 'Lihat dan unduh rekap hasil akhir psikogram seluruh peserta.' },
+        { icon: '📅', label: 'Ganti Tanggal', href: 'https://test.lidan.co.id/1/admin/ubah_tgl_ujian', desc: 'Ubah tanggal ujian peserta. Digunakan jika ada penjadwalan ulang sesi tes.' },
+        { icon: '🔑', label: 'Data WWQ', href: 'https://test.lidan.co.id/1/admin/data_wwq_password_pkl', desc: 'Lihat data password WWQ peserta PKL.' },
+        { type: 'link', icon: '👥', label: 'Multi Akun', href: 'https://test.lidan.co.id/1/admin/multi_db_akun', external: true, desc: 'Kelola akun peserta dari beberapa database sekaligus dalam satu tampilan.' },
+        { type: 'link', icon: '🔑', label: 'Create Token dr Nama', href: 'https://test.lidan.co.id/0indah_abadi_foto/11create_token_dashboard', external: true, desc: 'Buat token peserta secara massal berdasarkan daftar nama.' },
+        { type: 'link', icon: '🗄️', label: 'R2', href: 'https://cipta.my.id/view_multi', external: true, desc: 'Akses penyimpanan file R2 (Cloudflare) untuk foto dan dokumen peserta.' },
+        { type: 'link', icon: '📲', label: 'QR Test', href: 'https://qrtest.lidan.co.id/qrtest-paket', external: true, desc: 'Kelola paket tes berbasis QR Code untuk peserta.' },
     ]
 },
             {
@@ -1011,7 +1141,9 @@ function renderPage(pageId) {
         section.cards.forEach(card => {
             const cls = card.placeholder ? 'app-card placeholder' : 'app-card';
             const target = card.placeholder ? '' : 'target="_blank" rel="noopener"';
+            const infoBtn = card.desc ? `<span class="card-info-btn" data-tooltip="${card.desc.replace(/"/g,'&quot;')}" onclick="event.preventDefault();event.stopPropagation();showInfoModal(this,'${card.icon}','${card.label.replace(/'/g,'\\\'').replace(/"/g,'&quot;')}','${card.desc.replace(/'/g,'\\\'').replace(/"/g,'&quot;')}')">i</span>` : '';
             html += `<a href="${card.href}" class="${cls}" ${target}>
+                ${infoBtn}
                 <span class="card-icon">${card.icon}</span>
                 <span class="card-label">${card.label}</span>
             </a>`;
@@ -1020,7 +1152,82 @@ function renderPage(pageId) {
     });
 
     document.getElementById('content').innerHTML = html;
+    initTooltip();
 }
+
+/* ═══════════════════════════════════
+   TOOLTIP DINAMIS
+═══════════════════════════════════ */
+function initTooltip() {
+    const tip = document.getElementById('card-tooltip');
+    if (!tip) return;
+    let hideTimer;
+
+    // Hapus listener lama kalau ada
+    if (window._tooltipOver) document.removeEventListener('mouseover', window._tooltipOver);
+    if (window._tooltipOut) document.removeEventListener('mouseout', window._tooltipOut);
+
+    window._tooltipOver = function(e) {
+        const btn = e.target.closest('.card-info-btn');
+        if (!btn) return;
+        clearTimeout(hideTimer);
+
+        const text = btn.getAttribute('data-tooltip');
+        if (!text) return;
+
+        tip.textContent = text;
+
+        // Ukur posisi
+        const rect = btn.getBoundingClientRect();
+        const margin = 8;
+
+        tip.style.left = '-9999px';
+        tip.style.top = '-9999px';
+        tip.style.opacity = '1';
+
+        requestAnimationFrame(() => {
+            const tipW = tip.offsetWidth;
+            const tipH = tip.offsetHeight;
+
+            let left = rect.right - tipW;
+            if (left < margin) left = margin;
+            if (left + tipW > window.innerWidth - margin) left = window.innerWidth - tipW - margin;
+
+            let top = rect.top - tipH - margin;
+            if (top < margin) top = rect.bottom + margin;
+
+            tip.style.left = left + 'px';
+            tip.style.top = top + 'px';
+        });
+    };
+
+    window._tooltipOut = function(e) {
+        const btn = e.target.closest('.card-info-btn');
+        if (!btn) return;
+        hideTimer = setTimeout(() => { tip.style.opacity = '0'; }, 80);
+    };
+
+    document.addEventListener('mouseover', window._tooltipOver);
+    document.addEventListener('mouseout', window._tooltipOut);
+}
+
+/* ═══════════════════════════════════
+   MODAL KETERANGAN
+═══════════════════════════════════ */
+function showInfoModal(btn, icon, label, desc) {
+    document.getElementById('modal-icon').textContent = icon;
+    document.getElementById('modal-title').textContent = label;
+    document.getElementById('modal-body').textContent = desc;
+    document.getElementById('info-modal').classList.add('open');
+}
+
+function closeInfoModal() {
+    document.getElementById('info-modal').classList.remove('open');
+}
+
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeInfoModal();
+});
 
 /* ═══════════════════════════════════
    ACCORDION SECTION TOGGLE
@@ -1113,6 +1320,22 @@ window.onload = () => {
     }
 };
 </script>
+<!-- ─── TOOLTIP ─── -->
+<div id="card-tooltip"></div>
+
+<!-- ─── MODAL KETERANGAN ─── -->
+<div id="info-modal">
+    <div class="info-modal-backdrop" onclick="closeInfoModal()"></div>
+    <div class="info-modal-box">
+        <button class="info-modal-close" onclick="closeInfoModal()">✕</button>
+        <div class="info-modal-header">
+            <span class="info-modal-icon" id="modal-icon"></span>
+            <div class="info-modal-title" id="modal-title"></div>
+        </div>
+        <div class="info-modal-body" id="modal-body"></div>
+    </div>
+</div>
+
 <script src="https://cipta.my.id/tracker.js"></script>
 </body>
 </html>
