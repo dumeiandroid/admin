@@ -569,44 +569,6 @@
             border-color: var(--accent);
         }
 
-        /* Saat ada tombol copy juga, tombol info digeser ke kiri supaya tidak tumpang tindih */
-        .card-info-btn.shifted { right: 31px; }
-
-        .card-copy-btn {
-            position: absolute;
-            top: 7px;
-            right: 7px;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: var(--surface3);
-            border: 1px solid var(--border);
-            color: var(--text-muted);
-            font-size: 0.65rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            opacity: 0.5;
-            transition: background 0.2s, color 0.2s, opacity 0.2s;
-            z-index: 2;
-            line-height: 1;
-        }
-
-        .card-copy-btn:hover {
-            background: var(--accent);
-            color: #0d1117;
-            border-color: var(--accent);
-            opacity: 1;
-        }
-
-        .card-copy-btn.copied {
-            background: #2ea043;
-            border-color: #2ea043;
-            color: #fff;
-            opacity: 1;
-        }
-
         /* Tooltip — dirender ke body, bukan ::after */
         #card-tooltip {
             position: fixed;
@@ -1175,11 +1137,9 @@ function renderPage(pageId) {
         section.cards.forEach(card => {
             const cls = card.placeholder ? 'app-card placeholder' : 'app-card';
             const target = card.placeholder ? '' : 'target="_blank" rel="noopener"';
-            const infoBtn = card.desc ? `<span class="card-info-btn shifted" data-tooltip="${card.desc.replace(/"/g,'&quot;')}" onclick="event.preventDefault();event.stopPropagation();showInfoModal(this,'${card.icon}','${card.label.replace(/'/g,'\\\'').replace(/"/g,'&quot;')}','${card.desc.replace(/'/g,'\\\'').replace(/"/g,'&quot;')}')">i</span>` : '';
-            const copyBtn = card.placeholder ? '' : `<span class="card-copy-btn" title="Copy link" data-href="${card.href.replace(/"/g,'&quot;')}" onclick="event.preventDefault();event.stopPropagation();copyCardLink(this)">⧉</span>`;
+            const infoBtn = card.desc ? `<span class="card-info-btn" data-tooltip="${card.desc.replace(/"/g,'&quot;')}" onclick="event.preventDefault();event.stopPropagation();showInfoModal(this,'${card.icon}','${card.label.replace(/'/g,'\\\'').replace(/"/g,'&quot;')}','${card.desc.replace(/'/g,'\\\'').replace(/"/g,'&quot;')}')">i</span>` : '';
             html += `<a href="${card.href}" class="${cls}" ${target}>
                 ${infoBtn}
-                ${copyBtn}
                 <span class="card-icon">${card.icon}</span>
                 <span class="card-label">${card.label}</span>
             </a>`;
@@ -1259,41 +1219,6 @@ function showInfoModal(btn, icon, label, desc) {
 
 function closeInfoModal() {
     document.getElementById('info-modal').classList.remove('open');
-}
-
-/* ═══════════════════════════════════
-   COPY LINK
-═══════════════════════════════════ */
-function copyCardLink(btn) {
-    const url = btn.getAttribute('data-href');
-    const showCopied = () => {
-        const orig = btn.textContent;
-        btn.textContent = '✓';
-        btn.classList.add('copied');
-        clearTimeout(btn._copyTimer);
-        btn._copyTimer = setTimeout(() => {
-            btn.textContent = orig;
-            btn.classList.remove('copied');
-        }, 1200);
-    };
-
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(url).then(showCopied).catch(() => fallbackCopy(url, showCopied));
-    } else {
-        fallbackCopy(url, showCopied);
-    }
-}
-
-function fallbackCopy(text, cb) {
-    const ta = document.createElement('textarea');
-    ta.value = text;
-    ta.style.position = 'fixed';
-    ta.style.opacity = '0';
-    document.body.appendChild(ta);
-    ta.select();
-    try { document.execCommand('copy'); } catch (e) {}
-    document.body.removeChild(ta);
-    if (cb) cb();
 }
 
 document.addEventListener('keydown', e => {
