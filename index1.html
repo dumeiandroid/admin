@@ -1326,26 +1326,6 @@ function closeSidebar() {
 }
 
 /* ═══════════════════════════════════
-   COOKIE HELPER — shared login lintas subdomain *.lidan.co.id
-   (localStorage TIDAK bisa dipakai krn beda origin per subdomain,
-   cookie dgn domain=.lidan.co.id bisa dibaca semua subdomain)
-═══════════════════════════════════ */
-const AUTH_COOKIE = 'isAdminLoggedIn';
-const AUTH_COOKIE_DOMAIN = '.lidan.co.id';
-
-function setAuthCookie(value, days = 7) {
-    const maxAge = days * 24 * 60 * 60;
-    document.cookie = `${AUTH_COOKIE}=${value}; domain=${AUTH_COOKIE_DOMAIN}; path=/; max-age=${maxAge}; samesite=lax; secure`;
-}
-function getAuthCookie() {
-    const m = document.cookie.match(new RegExp('(?:^|; )' + AUTH_COOKIE + '=([^;]*)'));
-    return m ? m[1] : null;
-}
-function clearAuthCookie() {
-    document.cookie = `${AUTH_COOKIE}=; domain=${AUTH_COOKIE_DOMAIN}; path=/; max-age=0`;
-}
-
-/* ═══════════════════════════════════
    AUTH
 ═══════════════════════════════════ */
 async function handleLogin() {
@@ -1377,8 +1357,7 @@ async function handleLogin() {
         const result = await response.json();
 
         if (result.success) {
-            localStorage.setItem('isAdminLoggedIn', 'true'); // fallback lokal (opsional)
-            setAuthCookie('true');
+            localStorage.setItem('isAdminLoggedIn', 'true');
             showDashboard();
         } else {
             errMsg.style.display = 'block';
@@ -1403,12 +1382,11 @@ function showDashboard() {
 
 function logout() {
     localStorage.removeItem('isAdminLoggedIn');
-    clearAuthCookie();
     location.reload();
 }
 
 window.onload = () => {
-    if (getAuthCookie() === 'true' || localStorage.getItem('isAdminLoggedIn') === 'true') {
+    if (localStorage.getItem('isAdminLoggedIn') === 'true') {
         showDashboard();
     }
 };
