@@ -1,0 +1,1223 @@
+<!-- dsdfsd -->
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monitor Peserta — Tester</title>
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<style>
+:root {
+    --primary: #667eea;
+    --purple:  #764ba2;
+    --success: #28a745;
+    --danger:  #dc3545;
+    --warning: #ffc107;
+    --bg:      #f0f2ff;
+    --card:    #ffffff;
+    --text:    #1e293b;
+    --muted:   #64748b;
+    --border:  #e2e8f0;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--purple) 100%);
+    min-height: 100vh;
+    padding: 0;
+}
+
+/* ── TOP NAV ── */
+.topnav {
+    background: rgba(255,255,255,0.12);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    height: 52px;
+}
+.topnav-brand {
+    font-size: 15px;
+    font-weight: 700;
+    color: white;
+    white-space: nowrap;
+}
+.topnav-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+/* ── MAIN ── */
+.main { padding: 20px; max-width: 1400px; margin: 0 auto; }
+
+/* ── CARD ── */
+.card {
+    background: white;
+    border-radius: 14px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.1);
+    padding: 20px;
+}
+.card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+    padding-bottom: 14px;
+    border-bottom: 2px solid var(--bg);
+}
+.card-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* ── INFO BAR ── */
+.info-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+.info-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 99px;
+    font-size: 12px;
+    font-weight: 600;
+}
+.pill-blue   { background: #dbeafe; color: #1d4ed8; }
+.pill-yellow { background: #fef3c7; color: #d97706; }
+.pill-purple { background: #ede9fe; color: #6d28d9; }
+.pulse-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #28a745; flex-shrink: 0;
+    animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+/* ── CONTROLS ── */
+.controls-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 14px;
+}
+.ctrl-input {
+    padding: 8px 14px;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    outline: none;
+    transition: border-color 0.2s;
+    background: white;
+    color: var(--text);
+}
+.ctrl-input:focus { border-color: var(--primary); }
+
+/* ── BUTTONS ── */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 9px 18px;
+    border: none;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: linear-gradient(135deg, var(--primary), var(--purple)); color: white; box-shadow: 0 3px 10px rgba(102,126,234,.3); }
+.btn-primary:hover { opacity: 0.9; }
+.btn-warning { background: linear-gradient(135deg, #f59e0b, #ef4444); color: white; }
+.btn-warning:hover { opacity: 0.9; }
+.btn-outline { background: white; color: var(--muted); border: 2px solid var(--border); }
+.btn-outline:hover { border-color: var(--primary); color: var(--primary); }
+.btn-sm { padding: 6px 12px; font-size: 12px; }
+/* ── MODAL ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center;}
+.modal-overlay.active{display:flex;}
+.modal-box{background:#fff;border-radius:16px;padding:24px;box-shadow:0 8px 40px rgba(0,0,0,.2);position:relative;width:100%;}
+.modal-close{position:absolute;top:12px;right:14px;background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted);line-height:1;padding:0;}
+.modal-close:hover{color:var(--text);}
+
+
+/* ── DATATABLES ── */
+.dataTables_wrapper { overflow-x: auto; width: 100%; }
+table.dataTable {
+    width: 100% !important;
+    border-collapse: collapse;
+    font-size: 13px;
+    min-width: 500px;
+    table-layout: auto;
+}
+table.dataTable thead th {
+    background: linear-gradient(135deg, var(--primary), var(--purple));
+    color: white; padding: 10px 8px; font-weight: 700;
+    border: none; white-space: nowrap; font-size: 13px;
+}
+table.dataTable thead th, table.dataTable tbody td { white-space: nowrap; }
+/* Biodata & Skor boleh wrap */
+table.dataTable tbody td:nth-child(3),
+table.dataTable tbody td:nth-child(4) { white-space: normal; vertical-align: top; }
+table.dataTable tbody td {
+    padding: 9px 8px;
+    border-bottom: 1px solid #eef0f6;
+    vertical-align: middle;
+    font-size: 13px;
+}
+table.dataTable tbody tr:hover { background: #f5f7ff; }
+table.dataTable tbody tr:nth-child(even) { background: #fafbff; }
+.dataTables_wrapper .dataTables_filter input,
+.dataTables_wrapper .dataTables_length select {
+    border: 2px solid var(--border); border-radius: 8px;
+    padding: 6px 10px; font-size: 13px; outline: none;
+}
+.dataTables_wrapper .dataTables_filter input:focus,
+.dataTables_wrapper .dataTables_length select:focus { border-color: var(--primary); }
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+    padding: 6px 12px; margin: 2px; border-radius: 8px;
+    border: 1px solid var(--border); font-size: 12px;
+}
+.dataTables_wrapper .dataTables_paginate .paginate_button.current {
+    background: linear-gradient(135deg, var(--primary), var(--purple));
+    color: white !important; border: none;
+}
+.dataTables_wrapper .dataTables_info { font-size: 12px; }
+
+/* ── STATUS BADGE ── */
+.badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 10px; border-radius: 99px;
+    font-size: 11px; font-weight: 700;
+}
+.badge-active { background: #dbeafe; color: #1d4ed8; animation: pulse 2s infinite; }
+
+/* ── TIMER ── */
+.timer-live {
+    display: inline-block; background: #fff3cd; color: #856404;
+    border: 1.5px solid #ffc107; border-radius: 8px; padding: 3px 10px;
+    font-weight: 700; font-size: 13px; font-family: 'Courier New', monospace;
+    min-width: 72px; text-align: center;
+}
+.timer-live.danger { background: #f8d7da; color: #842029; border-color: #f5c2c7; animation: blink 1s infinite; }
+.timer-live.done   { background: #d1e7dd; color: #0f5132; border-color: #badbcc; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.5} }
+
+/* ── STATUS AKTIF (readonly) ── */
+.status-aktif {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 12px; border-radius: 99px;
+    font-size: 12px; font-weight: 700;
+}
+.status-aktif.ya  { background: #dcfce7; color: #166534; border: 1.5px solid #86efac; }
+.status-aktif.tdk { background: #fee2e2; color: #991b1b; border: 1.5px solid #fca5a5; }
+
+/* ── LOADING ── */
+.loading-block { text-align: center; padding: 50px 20px; color: var(--muted); }
+.spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid var(--primary);
+    border-radius: 50%; width: 40px; height: 40px;
+    animation: spin 1s linear infinite; margin: 0 auto 14px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── EMPTY MSG ── */
+.empty-msg { text-align: center; padding: 40px 20px; color: var(--muted); }
+.em-icon { font-size: 36px; margin-bottom: 10px; }
+
+/* ── TRUNCATE ── */
+.truncate {
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    display: block; cursor: default; max-width: 160px;
+}
+
+/* ── NOTE ── */
+.note-bar {
+    font-size: 12px; color: var(--muted);
+    margin-bottom: 12px;
+}
+
+/* ── TOTAL ROW ── */
+#totalRow td {
+    background: linear-gradient(135deg, #ede9fe, #dbeafe) !important;
+    font-weight: 700 !important;
+    border-top: 2px solid var(--primary) !important;
+}
+.total-val { color: #1d4ed8; font-weight: 800; font-size: 13px; }
+
+/* ── Server Switcher ── */
+.srv-chip {
+    padding: 4px 12px;
+    border: 1.5px solid rgba(255,255,255,.35);
+    border-radius: 99px;
+    background: rgba(255,255,255,.1);
+    color: rgba(255,255,255,.8);
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all .2s;
+    font-family: inherit;
+}
+.srv-chip:hover:not(.active) {
+    background: rgba(255,255,255,.22);
+    color: white;
+    border-color: rgba(255,255,255,.65);
+}
+.srv-chip.active {
+    background: rgba(255,255,255,.28);
+    color: white;
+    border-color: white;
+    box-shadow: 0 0 0 2px rgba(255,255,255,.15);
+}
+/* Login overlay server chips */
+.srv-chip-login {
+    padding: 5px 13px;
+    border: 2px solid #c9baff;
+    border-radius: 99px;
+    background: #f4f0ff;
+    color: #5F4EDA;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all .2s;
+    font-family: inherit;
+}
+.srv-chip-login:hover:not(.active) { background: #e8e0ff; border-color: #667eea; }
+.srv-chip-login.active { background: linear-gradient(135deg,#667eea,#764ba2); color: white; border-color: #667eea; }
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN OVERLAY ══ -->
+<div id="loginOverlay" style="
+    position:fixed;inset:0;z-index:99999;
+    background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);
+    display:flex;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#fff;border-radius:20px;padding:36px 32px;width:100%;max-width:360px;box-shadow:0 20px 60px rgba(0,0,0,.25);text-align:center;">
+    <div style="font-size:2.8em;margin-bottom:10px;">👁</div>
+    <div style="font-size:1.2em;font-weight:700;color:#1e293b;margin-bottom:4px;">Monitor Peserta</div>
+    <div style="font-size:.85em;color:#64748b;margin-bottom:16px;">Masuk sebagai Tester</div>
+
+    <div style="text-align:left;margin-bottom:14px;">
+      <label style="font-size:.8em;font-weight:700;color:#64748b;display:block;margin-bottom:5px;">Username</label>
+      <input id="loginUser" type="text" placeholder="Username" autocomplete="username"
+        style="width:100%;padding:11px 14px;border:2px solid #e2e8f0;border-radius:10px;font-size:.95em;outline:none;font-family:inherit;transition:border .2s;"
+        onfocus="this.style.borderColor='#667eea'" onblur="this.style.borderColor='#e2e8f0'"
+        onkeydown="if(event.key==='Enter')document.getElementById('loginPass').focus()">
+    </div>
+    <div style="text-align:left;margin-bottom:20px;">
+      <label style="font-size:.8em;font-weight:700;color:#64748b;display:block;margin-bottom:5px;">Password</label>
+      <input id="loginPass" type="password" placeholder="Password" autocomplete="current-password"
+        style="width:100%;padding:11px 14px;border:2px solid #e2e8f0;border-radius:10px;font-size:.95em;outline:none;font-family:inherit;transition:border .2s;"
+        onfocus="this.style.borderColor='#667eea'" onblur="this.style.borderColor='#e2e8f0'"
+        onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+
+    <div id="loginErr" style="display:none;background:#fef2f2;border:1.5px solid #fecaca;color:#dc2626;border-radius:8px;padding:9px 12px;font-size:.83em;font-weight:600;margin-bottom:14px;"></div>
+
+    <button onclick="doLogin()" id="loginBtn"
+      style="width:100%;padding:12px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;border-radius:10px;font-size:.95em;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .2s;">
+      Masuk
+    </button>
+  </div>
+</div>
+
+<!-- TOP NAV -->
+<nav class="topnav">
+    <div class="topnav-brand">👁 Monitor Peserta — Tester</div>
+    <!-- Server chips topnav -->
+    <div id="topnavSrvChips" style="display:flex;gap:5px;flex:1;padding:0 10px;overflow-x:auto;scrollbar-width:none;"><!-- filled by JS --></div>
+    <div class="topnav-right">
+        <div class="info-pill pill-blue" id="autoRefreshPill" style="font-size:12px;">
+            <span class="pulse-dot"></span>
+            Auto-refresh 5 detik
+        </div>
+        <span class="info-pill pill-yellow" id="todayCount">0 peserta</span>
+        <span class="info-pill pill-purple" id="todayLastUpdate">-</span>
+        <button class="btn btn-outline btn-sm" onclick="doRefresh()">🔄 Refresh</button>
+        <button class="btn btn-sm" onclick="doLogout()"
+          style="background:#fee2e2;color:#dc2626;border:1.5px solid #fca5a5;font-size:12px;padding:6px 12px;border-radius:8px;cursor:pointer;font-weight:700;">
+          🔒 Logout
+        </button>
+    </div>
+</nav>
+
+<div class="main">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">
+        📅 Peserta Aktif
+        <span style="background:#fef3c7;color:#d97706;border-radius:99px;padding:3px 12px;font-size:12px;font-weight:700;" id="todayBadgeLabel">Hari Ini</span>
+      </div>
+      <div class="info-bar">
+        <!-- kosong, info sudah di topnav -->
+      </div>
+      <button onclick="openInstruksiModalGlobal()" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--primary);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">📋 Instruksi</button>
+    </div>
+
+    <div class="controls-bar" style="display:none;">
+      <label style="font-size:13px;font-weight:700;color:var(--muted)">Tabel:</label>
+      <input type="text" class="ctrl-input" id="tableInput" value="nilai3_json" style="width:140px">
+      <label style="font-size:13px;font-weight:700;color:var(--muted);margin-left:6px">Tanggal:</label>
+      <input type="date" id="dateInput" style="padding:8px 12px;border:2px solid var(--border);border-radius:10px;font-size:14px;outline:none">
+      <button class="btn btn-warning" onclick="loadTable()">🔍 Cari</button>
+    </div>
+
+    <p class="note-bar">
+      💡 Peserta terdeteksi dari tanggal yang otomatis disimpan saat mengisi biodata.
+    </p>
+
+    <div id="todayContainer">
+      <div class="loading-block"><div class="spinner"></div><p>Memuat data...</p></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// SERVER LIST — tambah / kurangi di sini saja
+// ============================================================
+const SERVERS = [
+    { label: '1', domain: 'lidan-co-id.pages.dev' },
+    { label: '2', domain: 'tabi.my.id'             },
+    { label: '3', domain: 'mobeli.my.id'           },
+    { label: '4', domain: 'talentmap.my.id'        },
+    { label: '5', domain: 'ciptapersada.my.id'     },
+    { label: '6', domain: 'mysupplier.my.id'       },
+    { label: '7', domain: 'goblast.my.id'          },
+];
+const API_PATH = '/api/contacts_filter_dinamis7';
+const SRV_STORAGE_KEY = 'cpmi_activeSrvIdx';
+// Login selalu diwajibkan lewat Server 1 — tidak ada restore dari localStorage di sini
+let activeSrvIdx = 0;
+
+// Getter dinamis — semua fetch pakai ini
+function getApiBase() { return `https://${SERVERS[activeSrvIdx].domain}${API_PATH}`; }
+Object.defineProperty(window, 'API_BASE', { get: getApiBase });
+
+// ============================================================
+// KONFIGURASI
+// ============================================================
+const AUTH_KEY = 'admin';
+
+// ============================================================
+// SERVER SWITCHER — render chips
+// ============================================================
+function renderSrvChips() {
+    // Topnav chips (switcher server hanya tampil di sini, setelah login)
+    const topWrap = document.getElementById('topnavSrvChips');
+    if (topWrap) {
+        topWrap.innerHTML = SERVERS.map((s, i) => `
+            <button class="srv-chip${i === activeSrvIdx ? ' active' : ''}"
+                onclick="switchSrcServer(${i})"
+                title="https://${s.domain}">
+                ${i === activeSrvIdx ? '✓ ' : ''}${s.label}
+            </button>`).join('');
+    }
+}
+
+function switchSrcServer(idx) {
+    if (idx === activeSrvIdx) return;
+    activeSrvIdx = idx;
+    try { localStorage.setItem(SRV_STORAGE_KEY, String(idx)); } catch (e) {}
+    renderSrvChips();
+    // Reset cache & reload data jika sudah login
+    lastHash = null;
+    rawCache = [];
+    if (testerTable) { testerTable.destroy(); testerTable = null; }
+    document.getElementById('todayContainer').innerHTML =
+        '<div class="loading-block"><div class="spinner"></div><p>Memuat dari server baru...</p></div>';
+    update();
+}
+
+// Init chips saat halaman load
+renderSrvChips();
+
+// ============================================================
+// STATE
+// ============================================================
+// ╔══════════════════════════════════════════════════════╗
+// ║  KONFIGURASI AUTO-REFRESH                           ║
+// ║  autoRefresh: true  → refresh otomatis tiap 5 detik ║
+// ║  autoRefresh: false → hanya refresh saat klik tombol║
+// ╚══════════════════════════════════════════════════════╝
+const APP_CONFIG = {
+    autoRefresh: false
+};
+// ============================================================
+let testerTable    = null;
+let testerInterval = null;
+let rawCache       = [];
+let lastHash       = null;
+let tableName      = 'nilai3_json';
+
+// ============================================================
+// HELPERS
+// ============================================================
+function todayString() {
+    const d = new Date();
+    return d.getFullYear() + '-' +
+        String(d.getMonth()+1).padStart(2,'0') + '-' +
+        String(d.getDate()).padStart(2,'0');
+}
+
+function nowTimeString() {
+    return new Date().toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+}
+
+function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function getDateFromX02(x02) {
+    if (!x02) return '';
+    try { return (JSON.parse(x02).tgl_tes || '').trim(); } catch(e) { return ''; }
+}
+
+function renderJsonBio(raw) {
+    if (!raw || raw.trim() === '') return '<span style="color:#ccc;font-size:12px">—</span>';
+    try {
+        const obj  = JSON.parse(raw);
+        const nama = obj.nama || '';
+        const usia = obj.usia ? obj.usia + 'th' : '';
+        const pend = obj.pendidikan || '';
+        const jk   = obj.jenis_kelamin || '';
+        const disp = [nama, usia, pend, jk].filter(Boolean).join(' · ');
+        const full = Object.entries(obj).map(([k,v]) => `${k}: ${v}`).join(' | ');
+        return `<span title="${escHtml(full)}" style="cursor:default">${escHtml(disp)}</span>`;
+    } catch(e) { return escHtml(raw); }
+}
+
+function renderProgresGabung(raw05, raw06, raw07) {
+    // Kumpulkan semua chip dari x_05 (biru), x_06 (abu), x_07 (hijau)
+    let items = [];
+    // x_05 — chip biru (seperti renderSkorField)
+    if (raw05 && raw05.trim() !== '') {
+        try {
+            const obj = JSON.parse(raw05);
+            Object.entries(obj).forEach(([k]) => {
+                const lbl = shortLabel(k);
+                items.push(`<span title="${escHtml(k)}" style="font-size:11px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 6px;white-space:nowrap;box-sizing:border-box;text-align:center"><span style="color:#1e40af;font-weight:700">${escHtml(lbl)}</span></span>`);
+            });
+        } catch(e) {}
+    }
+    // x_06 — chip abu (seperti renderJsonField)
+    if (raw06 && raw06.trim() !== '') {
+        try {
+            const obj = JSON.parse(raw06);
+            Object.entries(obj).forEach(([k]) => {
+                const lbl = shortLabel(k);
+                items.push(`<span title="${escHtml(k)}" style="font-size:11px;background:#f1f5f9;border-radius:4px;padding:2px 6px;white-space:nowrap;box-sizing:border-box;text-align:center">${escHtml(lbl)}</span>`);
+            });
+        } catch(e) {}
+    }
+    // x_07 — chip hijau
+    if (raw07 && raw07.trim() !== '') {
+        try {
+            const obj = JSON.parse(raw07);
+            Object.entries(obj).forEach(([k]) => {
+                const lbl = shortLabel(k);
+                items.push(`<span title="${escHtml(k)}" style="font-size:11px;background:#dcfce7;border:1px solid #86efac;border-radius:4px;padding:2px 6px;white-space:nowrap;box-sizing:border-box;text-align:center"><span style="color:#166534;font-weight:700">${escHtml(lbl)}</span></span>`);
+            });
+        } catch(e) {}
+    }
+    if (items.length === 0) return '<span style="color:#ccc;font-size:12px">—</span>';
+    return `<div style="display:flex;flex-wrap:wrap;gap:2px;width:240px;cursor:default">${items.join('')}</div>`;
+}
+
+
+const LABEL_SHORT = {
+    'cfit1':'c1','cfit2':'c2','cfit3':'c3','cfit4':'c4',
+    'tkd3':'t3','tkd6':'t6',
+    'rmib_k1':'r1','rmib_k2':'r2','rmib_k3':'r3','rmib_k4':'r4',
+    'rmib_k5':'r5','rmib_k6':'r6','rmib_k7':'r7','rmib_k8':'r8',
+    'epps':'e',
+    ...Object.fromEntries(Array.from({length:30},(_,i)=>[`who_${i+1}`,`w${i+1}`]))
+};
+function shortLabel(k) { return LABEL_SHORT[k] || k; }
+
+function renderSkorField(raw) {
+    if (!raw || raw.trim() === '') return '<span style="color:#ccc;font-size:12px">—</span>';
+    try {
+        const obj     = JSON.parse(raw);
+        const entries = Object.entries(obj);
+        if (entries.length === 0) return '<span style="color:#ccc;font-size:12px">—</span>';
+        const tooltip = entries.map(([k,v]) => `${k}: ${v}`).join(' | ');
+        const items   = entries.map(([k]) => {
+            const lbl = shortLabel(k);
+            return `<span title="${escHtml(k)}" style="font-size:11px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 6px;white-space:nowrap;flex:0 0 calc(25% - 3px);box-sizing:border-box;text-align:center"><span style="color:#1e40af;font-weight:700">${escHtml(lbl)}</span></span>`;
+        }).join('');
+        return `<div title="${escHtml(tooltip)}" style="display:flex;flex-wrap:wrap;gap:2px;width:240px;cursor:default">${items}</div>`;
+    } catch(e) {
+        return `<span style="font-size:11px;background:#eff6ff;border-radius:4px;padding:1px 6px;cursor:default">${escHtml(raw)}</span>`;
+    }
+}
+
+function renderJsonField(raw) {
+    if (!raw || raw.trim() === '') return '<span style="color:#ccc;font-size:12px">—</span>';
+    try {
+        const obj     = JSON.parse(raw);
+        const entries = Object.entries(obj);
+        if (entries.length === 0) return '<span style="color:#ccc;font-size:12px">—</span>';
+        const items = entries.map(([k]) => {
+            const lbl = shortLabel(k);
+            return `<span title="${escHtml(k)}" style="font-size:11px;background:#f1f5f9;border-radius:4px;padding:2px 6px;white-space:nowrap;flex:0 0 calc(25% - 3px);box-sizing:border-box;text-align:center">${escHtml(lbl)}</span>`;
+        }).join('');
+        const keyOnly = entries.map(([k]) => k).join(', ');
+        return `<div title="${escHtml(keyOnly)}" style="display:flex;flex-wrap:wrap;gap:2px;width:240px;cursor:default">${items}</div>`;
+    } catch(e) {
+        const key = raw.split(':')[0].trim();
+        return `<span title="${escHtml(raw)}" style="font-size:11px;background:#f1f5f9;border-radius:4px;padding:1px 6px;cursor:default">${escHtml(shortLabel(key))}</span>`;
+    }
+}
+
+// ── renderTimer — hitung mundur murni lokal, 0 request D1 ──
+// Format baru : "START:NamaSubtes:ISO:durasi_detik"
+// Format lama : "NamaSubtes|COUNTDOWN:detik" (statis)
+function renderTimer(x04Raw) {
+    if (!x04Raw || x04Raw.trim() === '') return '<span style="color:#ccc;font-size:12px">—</span>';
+
+    // ── Format baru: START:NamaSubtes:ISO:durasi ──
+    if (x04Raw.startsWith('START:')) {
+        const lastColon   = x04Raw.lastIndexOf(':');
+        const durasi      = parseInt(x04Raw.substring(lastColon + 1));
+        const firstColon  = x04Raw.indexOf(':');
+        const secondColon = x04Raw.indexOf(':', firstColon + 1);
+        const namaTest    = x04Raw.substring(firstColon + 1, secondColon);
+        const isoStr      = x04Raw.substring(secondColon + 1, lastColon);
+        const mulai       = new Date(isoStr);
+        if (isNaN(mulai.getTime())) return '<span style="color:#ccc;font-size:12px">—</span>';
+
+        if (!durasi || isNaN(durasi)) {
+            const berlalu = Math.floor((new Date() - mulai) / 1000);
+            return `<span class="timer-live stopwatch" title="${escHtml(namaTest)}">${berlalu}s</span>`;
+        }
+
+        const selesai = new Date(mulai.getTime() + durasi * 1000);
+        const sisa    = Math.floor((selesai - new Date()) / 1000);
+        if (sisa <= 0) return `<span class="timer-live done" title="${escHtml(namaTest)}">Habis</span>`;
+        const cls = sisa <= 60 ? 'timer-live danger' : 'timer-live';
+        return `<span class="${cls}" title="${escHtml(namaTest)} — selesai ${selesai.toLocaleTimeString('id-ID')}">${sisa}s</span>`;
+    }
+
+    // ── Format lama: NamaSubtes|COUNTDOWN:detik (statis) ──
+    if (x04Raw.includes('|')) {
+        const pipe     = x04Raw.indexOf('|');
+        const namaTest = x04Raw.substring(0, pipe);
+        const rest     = x04Raw.substring(pipe + 1);
+        const colon    = rest.indexOf(':');
+        const mode     = rest.substring(0, colon);
+        const val      = parseInt(rest.substring(colon + 1));
+        if (isNaN(val) || mode !== 'COUNTDOWN') return '<span style="color:#ccc;font-size:12px">—</span>';
+        if (val <= 0) return `<span class="timer-live done" title="${escHtml(namaTest)}">Habis</span>`;
+        const cls = val <= 60 ? 'timer-live danger' : 'timer-live';
+        return `<span class="${cls}" title="${escHtml(namaTest)} (nilai statis)">${val}s</span>`;
+    }
+
+    return '<span style="color:#ccc;font-size:12px">—</span>';
+}
+
+// ── Aksi (kolom x_04 — flag token bermasalah) ──
+const MSG_AKSI_TOOLTIP = 'Tekan tombol di baris jika token bermasalah karena gangguan internet.';
+
+function infoAksi() {
+    alert(MSG_AKSI_TOOLTIP);
+}
+
+function renderAksi(x04Raw, idX) {
+    if (!x04Raw || String(x04Raw).trim() === '') {
+        return '<span style="color:#ccc;font-size:12px">—</span>';
+    }
+    return `<button class="btn btn-warning btn-sm" style="padding:4px 10px;font-size:11px"
+                onclick="resetTokenBermasalah('${String(idX).replace(/'/g, "\\'")}')"
+                title="${escHtml(MSG_AKSI_TOOLTIP)}">🔄 Reset Token</button>`;
+}
+
+async function resetTokenBermasalah(idX) {
+    if (!confirm('Kosongkan x_04 untuk baris ini?')) return;
+    const url = `${API_BASE}?table=${encodeURIComponent(tableName)}&id_x=${encodeURIComponent(idX)}`;
+    console.log('[resetTokenBermasalah] URL:', url, '| id_x:', idX);
+    try {
+        const res = await fetch(url, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'X-Custom-Auth': AUTH_KEY },
+            body: JSON.stringify({ x_04: '' })
+        });
+        const text = await res.text();
+        console.log('[resetTokenBermasalah] HTTP status:', res.status, '| response:', text);
+        let json;
+        try { json = JSON.parse(text); } catch(e) { throw new Error('Response bukan JSON: ' + text); }
+        if (!json.success) throw new Error(json.message || json.error || 'Gagal update (lihat console).');
+        lastHash = null;
+        await update();
+    } catch (e) {
+        console.error('[resetTokenBermasalah] Error:', e);
+        alert('Gagal mengosongkan x_04: ' + e.message);
+    }
+}
+
+function renderViolation(x09Raw) {
+    if (!x09Raw || x09Raw.trim() === '') return '<span style="color:#ccc;font-size:12px">—</span>';
+    let entries = [];
+    try {
+        entries = Object.entries(JSON.parse(x09Raw)).filter(([,v]) => v > 0);
+    } catch(e) { return '<span style="color:#ccc;font-size:12px">—</span>'; }
+    if (entries.length === 0) return '<span style="color:#ccc;font-size:12px">—</span>';
+    const total   = entries.reduce((s,[,v]) => s + (parseInt(v)||0), 0);
+    const tooltip = entries.map(([k,v]) => `${k}: ${v}x`).join(' | ');
+    const summary = entries.map(([k,v]) => {
+        const c = parseInt(v) >= 5 ? '#dc2626' : parseInt(v) >= 2 ? '#d97706' : '#16a34a';
+        return `<span title="${escHtml(k)}" style="color:${c};font-weight:600">${escHtml(shortLabel(k))} ${v}x</span>`;
+    }).join('<span style="color:#ccc"> · </span>');
+    return `<div title="Total: ${total}x &#10;${tooltip}" style="cursor:default;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${summary}</div>`;
+}
+
+// ── Selfie (dari x_02.foto_selfie) ──
+const CDN_SELFIE = 'https://assets.indahabadi.my.id/';
+function renderTodaySelfie(x02Raw) {
+    if (!x02Raw) return '<span style="color:#ccc;font-size:12px">—</span>';
+    try {
+        const obj = JSON.parse(x02Raw);
+        const foto = obj.foto_selfie || '';
+        if (!foto) return '<span style="color:#ccc;font-size:12px">—</span>';
+        const url = foto.startsWith('http') ? foto : CDN_SELFIE + foto;
+        return `<img src="${url}" alt="Selfie" onclick="bukaPopupSelfie('${url}')"
+            style="width:36px;height:46px;object-fit:cover;object-position:center top;border-radius:6px;border:1.5px solid #e2e8f0;cursor:pointer;transition:transform .15s;"
+            onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform='scale(1)'"
+            title="Klik untuk perbesar">`;
+    } catch(e) { return '<span style="color:#ccc;font-size:12px">—</span>'; }
+}
+
+function bukaPopupSelfie(url) {
+    let overlay = document.getElementById('selfieFotoModal');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'selfieFotoModal';
+        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:zoom-out;';
+        overlay.onclick = () => overlay.style.display = 'none';
+        overlay.innerHTML = `
+            <button onclick="event.stopPropagation();document.getElementById('selfieFotoModal').style.display='none'"
+                style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:22px;width:38px;height:38px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+            <img id="selfieFotoModalImg" src="" alt="Foto Selfie"
+                style="max-width:88vw;max-height:88vh;border-radius:12px;object-fit:contain;box-shadow:0 10px 40px rgba(0,0,0,.5);">`;
+        document.body.appendChild(overlay);
+    }
+    document.getElementById('selfieFotoModalImg').src = url;
+    overlay.style.display = 'flex';
+}
+
+// Status aktif — readonly badge, tidak bisa diklik
+function renderStatusAktif(x02Raw) {
+    let status = 'nonaktif';
+    try { status = JSON.parse(x02Raw || '{}').status || 'nonaktif'; } catch(e) {}
+    return status === 'aktif'
+        ? `<span class="status-aktif ya">✅ Aktif</span>`
+        : `<span class="status-aktif tdk">⛔ Nonaktif</span>`;
+}
+
+function renderPaket(x02Raw) {
+    if (!x02Raw) return '<span style="color:#ccc;font-size:12px">—</span>';
+    try {
+        const p = JSON.parse(x02Raw).paket_laporan || '';
+        if (!p) return '<span style="color:#ccc;font-size:12px">—</span>';
+        const colorMap = { 'Dasar':'#dbeafe;color:#1d4ed8', 'Lengkap':'#fef3c7;color:#d97706', 'Komprehensif':'#ede9fe;color:#6d28d9' };
+        const style = colorMap[p] || '#f1f5f9;color:#334155';
+        return `<span style="background:${style};padding:3px 10px;border-radius:99px;font-size:11px;font-weight:700;">${escHtml(p)}</span>`;
+    } catch(e) { return '<span style="color:#ccc;font-size:12px">—</span>'; }
+}
+
+function parseHargaNum(x02Raw) {
+    // Ambil angka dari string "Rp 85.000" → 85000
+    if (!x02Raw) return 0;
+    try {
+        const h = JSON.parse(x02Raw).harga_laporan || '';
+        return parseInt(h.replace(/[^0-9]/g, '')) || 0;
+    } catch(e) { return 0; }
+}
+
+function renderStatusBayar(x02Raw) {
+    const sudah = isSudahBayar(x02Raw);
+    return sudah
+        ? `<span style="background:#dcfce7;color:#166534;border:1.5px solid #86efac;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:700;">✅ Sudah Bayar</span>`
+        : `<span style="background:#fee2e2;color:#991b1b;border:1.5px solid #fca5a5;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:700;">⛔ Belum Bayar</span>`;
+}
+
+function isSudahBayar(x02Raw) {
+    // Baca dari field "payment" di x_02 JSON
+    // "done" = sudah bayar, "pending" atau tidak ada = belum bayar
+    if (!x02Raw) return false;
+    try {
+        const obj = JSON.parse(x02Raw);
+        return obj.payment === 'done';
+    } catch(e) { return false; }
+}
+
+function renderInsentif(x02Raw) {
+    if (!isSudahBayar(x02Raw)) return '<span style="color:#ccc;font-size:12px">—</span>';
+    const num = parseHargaNum(x02Raw);
+    if (!num) return '<span style="color:#ccc;font-size:12px">—</span>';
+    const fee = Math.round(num * 0.1);
+    return `<span style="font-weight:700;color:#92400e">Rp ${fee.toLocaleString('id-ID')}</span>`;
+}
+// ============================================================
+async function fetchData() {
+    const res  = await fetch(`${API_BASE}?table=${encodeURIComponent(tableName)}`, {
+        headers: { 'X-Custom-Auth': AUTH_KEY }
+    });
+    const json = await res.json();
+    return (json.success && json.data) ? json.data : [];
+}
+
+// ============================================================
+// RENDER TABEL
+// ============================================================
+function buildRows(data) {
+    const dateVal = document.getElementById('dateInput').value || todayString();
+    return data
+        .filter(row => getDateFromX02(row.x_02) === dateVal)
+        .map(row => ({
+            id_x:   String(row.id_x || ''),
+            selfie: renderTodaySelfie(row.x_02),
+            x_01:   String(row.x_01 || ''),
+            x_02:   renderJsonBio(row.x_02),
+            progres: renderProgresGabung(row.x_05, row.x_06, row.x_07),
+            x_09:   renderViolation(row.x_09 || ''),
+            aksi:   renderAksi(row.x_04 || '', row.id_x || ''),
+            tgl:    `<span style="font-size:12px;color:var(--muted)">${getDateFromX02(row.x_02)}</span>`
+        }));
+}
+
+function initTable(rows) {
+    const heads = `<th>ID</th><th>Selfie</th><th>Token</th><th>Biodata</th><th>Progres</th><th>🔄 Tab</th><th onclick="infoAksi()" title="${escHtml(MSG_AKSI_TOOLTIP)}" style="cursor:help">Aksi ℹ️</th><th>Tgl Tes</th>`;
+    const cols  = [
+        { data: 'id_x',   orderable: true },
+        { data: 'selfie', orderable: false },
+        { data: 'x_01' },
+        { data: 'x_02' },
+        { data: 'progres', orderable: false },
+        { data: 'x_09',   orderable: false, defaultContent: '—' },
+        { data: 'aksi',   orderable: false, defaultContent: '—' },
+        { data: 'tgl',    orderable: false }
+    ];
+    document.getElementById('todayContainer').innerHTML = `
+        <table id="testerTable" class="display nowrap" style="width:100%">
+            <thead><tr>${heads}</tr></thead><tbody></tbody>
+            <tfoot><tr id="totalRow"></tr></tfoot>
+        </table>`;
+    testerTable = $('#testerTable').DataTable({
+        data: rows,
+        columns: cols,
+        pageLength: 25,
+        lengthMenu: [[10,25,50,100,-1],[10,25,50,100,'Semua']],
+        order: [[0,'desc']],
+        language: {
+            search: '🔍', searchPlaceholder: 'Cari...',
+            lengthMenu: 'Tampilkan _MENU_',
+            info: '_START_–_END_ dari _TOTAL_',
+            infoEmpty: '0 data', infoFiltered: '(dari _MAX_)',
+            paginate: { first:'«', last:'»', next:'›', previous:'‹' },
+            zeroRecords: 'Tidak ada data', emptyTable: 'Tidak ada data'
+        },
+        autoWidth: false,
+        drawCallback: function() { updateTotalRow(rows); }
+    });
+    updateTotalRow(rows);
+}
+
+function updateTotalRow(rows) {
+    const tr = document.getElementById('totalRow');
+    if (!tr) return;
+    const totalInsentif = rows.reduce((s, r) => s + (r._sudahBayar ? Math.round((r._hargaNum || 0) * 0.1) : 0), 0);
+    const colCount = 11; // total kolom
+    tr.innerHTML = `
+        <td colspan="${colCount - 1}" style="text-align:right;font-size:12px;font-weight:700;color:var(--muted);padding:10px 8px;">
+            TOTAL INSENTIF (${rows.filter(r => r._sudahBayar).length} sudah bayar)
+        </td>
+        <td style="padding:10px 8px;">
+            <span class="total-val">Rp ${totalInsentif.toLocaleString('id-ID')}</span>
+        </td>`;
+}
+
+// ============================================================
+// UPDATE (dipanggil tiap 5 detik)
+// ============================================================
+async function update() {
+    try {
+        const data = await fetchData();
+        const hash = JSON.stringify(data);
+
+        document.getElementById('todayLastUpdate').textContent = '🕐 ' + nowTimeString();
+
+        rawCache = data;
+        const rows = buildRows(data);
+        document.getElementById('todayCount').textContent = rows.length + ' peserta';
+
+        if (hash === lastHash && testerTable) return; // tidak ada perubahan
+        lastHash = hash;
+
+        if (testerTable) {
+            testerTable.clear();
+            testerTable.rows.add(rows);
+            testerTable.draw(false);
+            updateTotalRow(rows);
+        } else {
+            if (rows.length === 0) {
+                const dateVal = document.getElementById('dateInput').value || todayString();
+                document.getElementById('todayContainer').innerHTML = `
+                    <div class="empty-msg">
+                        <div class="em-icon">📭</div>
+                        <p>Tidak ada peserta pada <strong>${dateVal}</strong></p>
+                    </div>`;
+            } else {
+                initTable(rows);
+            }
+        }
+    } catch(e) {
+        document.getElementById('todayLastUpdate').textContent = '⚠ Error';
+    }
+}
+
+// ============================================================
+// KONTROL
+// ============================================================
+function loadTable() {
+    tableName = document.getElementById('tableInput').value.trim() || 'nilai3_json';
+    lastHash  = null;
+    rawCache  = [];
+    if (testerTable) { testerTable.destroy(); testerTable = null; }
+    document.getElementById('todayContainer').innerHTML =
+        '<div class="loading-block"><div class="spinner"></div><p>Memuat...</p></div>';
+    update();
+}
+
+async function doRefresh() {
+    lastHash = null;
+    await update();
+}
+
+// ============================================================
+// LOGIN / LOGOUT
+// ============================================================
+const SESSION_KEY = 'ct_tester_session';
+
+function showLoginErr(msg) {
+    const el = document.getElementById('loginErr');
+    el.textContent = msg;
+    el.style.display = 'block';
+}
+
+async function doLogin() {
+    const user = document.getElementById('loginUser').value.trim();
+    const pass = document.getElementById('loginPass').value.trim();
+    const btn  = document.getElementById('loginBtn');
+
+    if (!user || !pass) { showLoginErr('Username dan password wajib diisi.'); return; }
+
+    btn.textContent = '⏳ Memeriksa...';
+    btn.disabled    = true;
+    document.getElementById('loginErr').style.display = 'none';
+
+    try {
+        const res  = await fetch(
+            `${API_BASE}?table=users&x_01_eq=${encodeURIComponent(user)}`,
+            { headers: { 'X-Custom-Auth': AUTH_KEY } }
+        );
+        const json = await res.json();
+
+        if (!json.success || !json.count || !json.data || !json.data.length) {
+            showLoginErr('Username tidak ditemukan.');
+            btn.textContent = 'Masuk'; btn.disabled = false; return;
+        }
+
+        const row   = Array.isArray(json.data) ? json.data[0] : json.data;
+        const dbPwd = (row.x_02 || '').trim();
+
+        if (dbPwd !== pass) {
+            showLoginErr('Password salah.');
+            btn.textContent = 'Masuk'; btn.disabled = false; return;
+        }
+
+        // Simpan sesi ke sessionStorage (hilang saat tab ditutup)
+        sessionStorage.setItem(SESSION_KEY, JSON.stringify({ user, ts: Date.now() }));
+        document.getElementById('loginOverlay').style.display = 'none';
+        btn.textContent = 'Masuk'; btn.disabled = false;
+
+        // Mulai auto-refresh setelah login
+        startApp();
+
+    } catch(e) {
+        showLoginErr('Gagal terhubung ke server. Coba lagi.');
+        btn.textContent = 'Masuk'; btn.disabled = false;
+    }
+}
+
+function doLogout() {
+    if (!confirm('Keluar dari sesi ini?')) return;
+    sessionStorage.removeItem(SESSION_KEY);
+    location.reload();
+}
+
+function checkSession() {
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    if (!raw) return false;
+    try { return !!JSON.parse(raw).user; } catch(e) { return false; }
+}
+
+// ============================================================
+// INIT
+// ============================================================
+document.getElementById('dateInput').value = todayString();
+
+function startApp() {
+    update();
+    if (testerInterval) clearInterval(testerInterval);
+    if (APP_CONFIG.autoRefresh) {
+        testerInterval = setInterval(update, 5000);
+    }
+    updateRefreshPill();
+}
+
+function updateRefreshPill() {
+    const pill = document.getElementById('autoRefreshPill');
+    if (!pill) return;
+    if (APP_CONFIG.autoRefresh) {
+        pill.innerHTML = '<span class="pulse-dot"></span> Auto-refresh 5 detik';
+        pill.style.background = '#dbeafe';
+        pill.style.color      = '#1d4ed8';
+    } else {
+        pill.innerHTML = '⏸ Auto-refresh <b>nonaktif</b>';
+        pill.style.background = '#fee2e2';
+        pill.style.color      = '#dc2626';
+    }
+}
+
+// Cek sesi — jika sudah login langsung mulai, jika belum tampilkan overlay login
+if (checkSession()) {
+    document.getElementById('loginOverlay').style.display = 'none';
+    startApp();
+}
+// Jika belum login, overlay tetap tampil dan startApp dipanggil setelah doLogin() berhasil
+
+
+function openModal(id){
+    const m=document.getElementById(id);
+    if(m){m.style.display='flex';}
+}
+function closeModal(id){
+    const m=document.getElementById(id);
+    if(m){m.style.display='none';}
+}
+// Tutup modal saat klik overlay
+document.addEventListener('click',function(e){
+    if(e.target.classList.contains('modal-overlay')) closeModal(e.target.id);
+});
+
+/* ══ INSTRUKSI TES (global) ══ */
+const INSTR_BASE      = 'https://cipta.my.id/psikotest/simpel/';
+const INSTR_WHO_BASE  = 'https://cipta.my.id/who1/';
+// ═══════════════════════════════════════════════════════════════
+// KONFIGURASI SUBTES INSTRUKSI
+// active : true = tampil di popup | false = disembunyikan
+// alias  : label tombol yang muncul (kosong '' = pakai id asli)
+// ═══════════════════════════════════════════════════════════════
+const INSTR_ALL_CONFIG = [
+  {id:'apm0',   alias:'APM0',   active:false,  dataUrl:INSTR_BASE+'apm0.txt'},
+  {id:'apm1',   alias:'APM1',   active:false,  dataUrl:INSTR_BASE+'apm1.txt'},
+  {id:'apm1a',  alias:'APM1a',  active:false,  dataUrl:INSTR_BASE+'apm1a.txt'},
+  {id:'apm1b',  alias:'APM1b',  active:false,  dataUrl:INSTR_BASE+'apm1b.txt'},
+  {id:'apm2',   alias:'APM2',   active:false,  dataUrl:INSTR_BASE+'apm2.txt'},
+  {id:'apm2a',  alias:'APM2a',  active:false,  dataUrl:INSTR_BASE+'apm2a.txt'},
+  {id:'apm2b',  alias:'APM2b',  active:false,  dataUrl:INSTR_BASE+'apm2b.txt'},
+  {id:'apm14',  alias:'APM14',  active:false,  dataUrl:INSTR_BASE+'apm14.txt'},
+  {id:'cfit0',  alias:'c0',     active:false,  dataUrl:INSTR_BASE+'cfit0.txt'},
+  {id:'cfit1',  alias:'c1',     active:true,  dataUrl:INSTR_BASE+'cfit1.txt'},
+  {id:'cfit2',  alias:'c2',     active:true,  dataUrl:INSTR_BASE+'cfit2_a.txt'},
+  {id:'cfit3',  alias:'c3',     active:true,  dataUrl:INSTR_BASE+'cfit3.txt'},
+  {id:'cfit4',  alias:'c4',     active:true,  dataUrl:INSTR_BASE+'cfit4.txt'},
+  {id:'tkd3',   alias:'t3',   active:true,  dataUrl:INSTR_BASE+'tkd3.txt'},
+  {id:'tkd6',   alias:'t6',   active:true,  dataUrl:INSTR_BASE+'tkd6_a.txt'},
+  {id:'vak',   alias:'gb',   active:true,  dataUrl:INSTR_BASE+'1.txt'},
+  {id:'tkar',   alias:'tp',   active:true,  dataUrl:INSTR_BASE+'4.txt'},
+  {id:'epps',   alias:'EPPS',   active:true,  dataUrl:INSTR_BASE+'epps.txt'},
+  {id:'ist0',   alias:'i0',     active:false,  dataUrl:INSTR_BASE+'ist0.txt'},
+  {id:'ist1',   alias:'i1',     active:false,  dataUrl:INSTR_BASE+'ist1.txt'},
+  {id:'ist2',   alias:'i2',     active:false,  dataUrl:INSTR_BASE+'ist2.txt'},
+  {id:'ist3',   alias:'i3',     active:false,  dataUrl:INSTR_BASE+'ist3.txt'},
+  {id:'ist4_a', alias:'i4',     active:false,  dataUrl:INSTR_BASE+'ist4_a.txt'},
+  {id:'ist5_a', alias:'i5',     active:false,  dataUrl:INSTR_BASE+'ist5_a.txt'},
+  {id:'ist6_a', alias:'i6',     active:false,  dataUrl:INSTR_BASE+'ist6_a.txt'},
+  {id:'ist7',   alias:'i7',     active:false,  dataUrl:INSTR_BASE+'ist7.txt'},
+  {id:'ist8',   alias:'i8',     active:false,  dataUrl:INSTR_BASE+'ist8.txt'},
+  {id:'ist9',   alias:'i9',     active:false,  dataUrl:INSTR_BASE+'ist9.txt'},
+  {id:'papi',   alias:'PAPI',   active:false,  dataUrl:INSTR_BASE+'papi.txt'},
+  {id:'rmib',   alias:'RMIB',   active:true,  dataUrl:INSTR_BASE+'rmib.txt'}
+];
+
+let _instrPaketCache = {};
+let _instrDataCache  = {};
+
+// Buka modal instruksi tanpa token (tampilkan semua subtes dari INSTR_ALL_CONFIG)
+function openInstruksiModalGlobal() {
+    document.getElementById('instrTokenLabel').textContent = 'Lihat instruksi per subtes';
+    document.getElementById('instrSubtesLoading').style.display = 'none';
+    document.getElementById('instrDetail').style.display       = 'none';
+    document.getElementById('instrDetailLoading').style.display = 'none';
+    document.getElementById('instrDetailError').style.display   = 'none';
+    document.getElementById('instrDetailError').textContent     = '';
+
+    const btnWrap = document.getElementById('instrSubtesBtns');
+    btnWrap.innerHTML = '';
+    btnWrap.style.display = 'flex';
+
+    INSTR_ALL_CONFIG.filter(cfg => cfg.active !== false).forEach(cfg => {
+        const key   = cfg.id;
+        const label = cfg.alias || key.toUpperCase();
+        const btn = document.createElement('button');
+        btn.style.cssText = 'padding:6px 14px;border:2px solid var(--border);border-radius:8px;background:#f8fafc;cursor:pointer;font-size:12px;font-weight:700;font-family:\'Courier New\',monospace;color:var(--text);transition:all .15s;';
+        btn.textContent = label;
+        btn.dataset.key = key;
+        btn.onclick = () => {
+            btnWrap.querySelectorAll('button').forEach(b => {
+                b.style.background  = '#f8fafc';
+                b.style.borderColor = 'var(--border)';
+                b.style.color       = 'var(--text)';
+            });
+            btn.style.background  = 'var(--primary)';
+            btn.style.borderColor = 'var(--primary)';
+            btn.style.color       = '#fff';
+            loadInstruksiSubtes(key, false);
+        };
+        btnWrap.appendChild(btn);
+    });
+
+    // Auto-klik pertama
+    const first = btnWrap.querySelector('button');
+    if (first) first.click();
+
+    openModal('modalInstruksi');
+}
+
+async function loadInstruksiSubtes(key, isWho) {
+    const detailEl  = document.getElementById('instrDetail');
+    const loadingEl = document.getElementById('instrDetailLoading');
+    const errorEl   = document.getElementById('instrDetailError');
+    detailEl.style.display  = 'none';
+    errorEl.style.display   = 'none';
+    errorEl.textContent     = '';
+    loadingEl.style.display = 'block';
+    try {
+        const cacheKey = (isWho ? 'who:' : '') + key;
+        let data = _instrDataCache[cacheKey] || null;
+        if (!data) {
+            const cfgEntry = INSTR_ALL_CONFIG.find(c => c.id === key);
+            const url = isWho ? INSTR_WHO_BASE + key + '.txt' : (cfgEntry?.dataUrl || INSTR_BASE + key + '.txt');
+            const raw = await (await fetch(url + '?v=' + Date.now())).json();
+            if (raw && !Array.isArray(raw) && raw.meta)      data = raw.meta;
+            else if (raw && !Array.isArray(raw))              data = raw;
+            else                                              data = {};
+            _instrDataCache[cacheKey] = data;
+        }
+        loadingEl.style.display = 'none';
+        renderInstruksiDetail(data, key);
+    } catch(e) {
+        loadingEl.style.display = 'none';
+        errorEl.textContent = '⚠ Gagal memuat instruksi untuk "' + key + '": ' + e.message;
+        errorEl.style.display = 'block';
+    }
+}
+
+function renderInstruksiDetail(data, key) {
+    const detailEl = document.getElementById('instrDetail');
+    const titleEl  = document.getElementById('instrDetailTitle');
+    const instrBox = document.getElementById('instrDetailInstrBox');
+    const instrEl  = document.getElementById('instrDetailInstr');
+    const exBlock  = document.getElementById('instrDetailExBlock');
+    const imgTop   = document.getElementById('instrDetailImgTop');
+    const imgBot   = document.getElementById('instrDetailImgBot');
+    const exNoteEl = document.getElementById('instrDetailExNote');
+    const noneEl   = document.getElementById('instrDetailNone');
+    instrBox.style.display = 'none'; exBlock.style.display = 'none';
+    imgTop.style.display = 'none';   imgBot.style.display = 'none';
+    exNoteEl.style.display = 'none'; noneEl.style.display = 'none';
+    const rawTitle = data.title || key.toUpperCase();
+    titleEl.textContent = rawTitle.replace(/\s*[—–-].*$/, '').trim();
+    const instrText = data.instructions || data.desc || data.description || '';
+    if (instrText.trim()) { instrEl.textContent = instrText; instrBox.style.display = 'block'; }
+    const hasImgTop = !!(data.exImgTop || data.exImgTop1);
+    const hasImgBot = !!(data.exImgBottom || data.exImgBot);
+    const hasExNote = !!(data.exNote && data.exNote.trim());
+    if (hasImgTop || hasImgBot || hasExNote) {
+        exBlock.style.display = 'block';
+        if (hasImgTop) { imgTop.src = data.exImgTop || data.exImgTop1; imgTop.style.display = 'block'; }
+        if (hasImgBot) { imgBot.src = data.exImgBottom || data.exImgBot; imgBot.style.display = 'block'; }
+        if (hasExNote) { exNoteEl.textContent = data.exNote; exNoteEl.style.display = 'block'; }
+    }
+    if (!instrText.trim() && !hasImgTop && !hasImgBot && !hasExNote) noneEl.style.display = 'block';
+    detailEl.style.display = 'block';
+}
+
+</script>
+
+<!-- ══ MODAL INSTRUKSI TES ══ -->
+<div class="modal-overlay" id="modalInstruksi" style="z-index:10300;">
+  <div class="modal-box" style="max-width:640px;width:96%;max-height:90vh;overflow-y:auto;">
+    <button class="modal-close" onclick="closeModal('modalInstruksi')">×</button>
+    <h2 style="font-size:16px;margin-bottom:4px;">📋 Instruksi Tes</h2>
+    <div id="instrTokenLabel" style="font-size:11px;font-family:'Courier New',monospace;color:var(--muted);margin-bottom:14px;"></div>
+    <div id="instrSubtesLoading" style="font-size:13px;color:var(--muted);padding:10px 0;">⏳ Memuat daftar subtes...</div>
+    <div id="instrSubtesBtns" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px;"></div>
+    <div id="instrDetail" style="display:none;">
+      <div style="border-top:2px solid var(--border);padding-top:16px;">
+        <div id="instrDetailTitle" style="font-size:15px;font-weight:700;color:var(--primary);margin-bottom:12px;"></div>
+        <div id="instrDetailInstrBox" style="background:#eff6ff;border-left:4px solid var(--primary);border-radius:8px;padding:14px 18px;margin-bottom:16px;display:none;">
+          <div style="font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--primary);margin-bottom:8px;">📋 Instruksi Pengerjaan</div>
+          <p id="instrDetailInstr" style="font-size:.92em;line-height:1.75;color:var(--text);white-space:pre-line;"></p>
+        </div>
+        <div id="instrDetailExBlock" style="margin-bottom:16px;display:none;">
+          <div style="font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:10px;">📖 Contoh Soal &amp; Jawaban</div>
+          <div style="display:flex;flex-direction:column;gap:10px;align-items:center;">
+            <img id="instrDetailImgTop" src="" alt="Contoh Atas" style="max-width:100%;border-radius:10px;border:2px solid var(--border);display:none;">
+            <img id="instrDetailImgBot" src="" alt="Contoh Bawah" style="max-width:100%;border-radius:10px;border:2px solid var(--border);display:none;">
+          </div>
+          <div id="instrDetailExNote" style="margin-top:12px;padding:12px 16px;background:#f8fafc;border-radius:8px;font-size:.87em;line-height:1.75;color:var(--muted);white-space:pre-line;display:none;"></div>
+        </div>
+        <div id="instrDetailNone" style="text-align:center;padding:20px;color:var(--muted);font-size:.88em;display:none;">
+          Subtes ini tidak memiliki instruksi awal (langsung tes).
+        </div>
+      </div>
+    </div>
+    <div id="instrDetailLoading" style="text-align:center;padding:20px;color:var(--muted);font-size:.88em;display:none;">⏳ Memuat instruksi...</div>
+    <div id="instrDetailError" style="text-align:center;padding:16px;color:#dc2626;font-size:.88em;display:none;"></div>
+    <div style="margin-top:16px;display:flex;justify-content:flex-end;">
+      <button class="btn btn-outline" onclick="closeModal('modalInstruksi')" style="width:auto;padding:8px 20px;">Tutup</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

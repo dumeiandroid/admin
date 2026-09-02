@@ -1,0 +1,1551 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Create New Token — Psikotest</title>
+<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+:root {
+    --primary: #667eea;
+    --primary-dark: #5a67d8;
+    --purple: #764ba2;
+    --success: #28a745;
+    --danger: #dc3545;
+    --warning: #ffc107;
+    --info: #17a2b8;
+    --bg: #f0f2ff;
+    --card: #ffffff;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--purple) 100%);
+    min-height: 100vh;
+    padding: 20px;
+}
+.main { max-width: 1100px; margin: 0 auto; }
+
+.topbar {
+    color: white; text-align: center; margin-bottom: 22px;
+}
+.topbar h1 { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
+.topbar p { font-size: 13px; opacity: .85; }
+
+/* ── Server Switcher ── */
+.srv-wrap {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
+    gap: 8px; margin-top: 14px;
+}
+.srv-label {
+    font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
+    text-transform: uppercase; opacity: .75; margin-right: 2px;
+}
+.srv-chip {
+    padding: 5px 14px;
+    border: 1px solid rgba(255,255,255,0.35);
+    border-radius: 99px;
+    background: rgba(255,255,255,0.08);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s;
+}
+.srv-chip:hover:not(.active) {
+    background: rgba(255,255,255,0.18);
+    border-color: rgba(255,255,255,0.6);
+}
+.srv-chip.active {
+    background: #fff;
+    color: var(--primary-dark);
+    border-color: #fff;
+}
+
+.card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+    padding: 22px 24px;
+    margin-bottom: 20px;
+}
+.card-title {
+    font-size: 16px; font-weight: 700; color: var(--text);
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 16px; padding-bottom: 12px;
+    border-bottom: 2px solid var(--bg);
+}
+.step-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 24px; height: 24px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), var(--purple));
+    color: white; font-size: 12px; font-weight: 800; flex-shrink: 0;
+}
+
+/* ── FORM ── */
+.form-group { margin-bottom: 16px; }
+.form-group label {
+    display: block; font-size: 12px; font-weight: 700; color: var(--muted);
+    margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.04em;
+}
+.form-row { display: flex; gap: 14px; flex-wrap: wrap; }
+.form-row .form-group { flex: 1; min-width: 180px; }
+.ctrl-input, select.ctrl-input {
+    width: 100%; padding: 11px 14px; border: 2px solid var(--border);
+    border-radius: 10px; font-size: 14px; outline: none;
+    transition: border-color 0.2s; background: white; color: var(--text);
+}
+.ctrl-input:focus { border-color: var(--primary); }
+.hint { font-size: 11.5px; color: var(--muted); margin-top: 5px; line-height: 1.5; }
+
+/* ── DROPZONE ── */
+.dropzone {
+    border: 2.5px dashed var(--border);
+    border-radius: 14px;
+    padding: 32px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: #fafbff;
+}
+.dropzone:hover, .dropzone.dragover {
+    border-color: var(--primary); background: #eff3ff;
+}
+.dropzone .dz-icon { font-size: 38px; margin-bottom: 10px; }
+.dropzone .dz-title { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.dropzone .dz-sub { font-size: 12px; color: var(--muted); }
+.dropzone input[type=file] { display: none; }
+.file-chip {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: #eef2ff; border: 1.5px solid #c7d2fe; border-radius: 10px;
+    padding: 8px 14px; font-size: 13px; font-weight: 600; color: var(--primary-dark);
+    margin-top: 12px;
+}
+.file-chip button {
+    background: none; border: none; color: #94a3b8; cursor: pointer;
+    font-size: 14px; line-height: 1; padding: 0 0 0 4px;
+}
+
+/* ── Input Source Tabs (Upload vs Paste) ── */
+.src-tabs {
+    display: flex; gap: 6px; margin-bottom: 14px;
+    background: #f1f3fb; border-radius: 10px; padding: 4px;
+}
+.src-tab {
+    flex: 1; text-align: center; padding: 9px 0;
+    border-radius: 8px; cursor: pointer; user-select: none;
+    font-size: 13px; font-weight: 700; color: var(--muted);
+    transition: all .15s;
+}
+.src-tab:hover { color: var(--primary-dark); }
+.src-tab.active { background: #fff; color: var(--primary-dark); box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+
+.paste-area textarea {
+    width: 100%; min-height: 160px; resize: vertical;
+    padding: 14px; border: 2px solid var(--border); border-radius: 12px;
+    font-family: 'Consolas', 'Courier New', monospace; font-size: 13px;
+    color: var(--text); outline: none; transition: border-color .2s;
+    background: #fafbff; line-height: 1.6;
+}
+.paste-area textarea:focus { border-color: var(--primary); }
+.paste-hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+.paste-count { font-size: 12px; color: var(--primary-dark); font-weight: 700; margin-top: 6px; }
+.file-chip button:hover { color: var(--danger); }
+
+/* ── BUTTONS ── */
+.btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 11px 22px; border: none; border-radius: 10px;
+    font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s;
+    white-space: nowrap;
+}
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn:active:not(:disabled) { transform: scale(0.97); }
+.btn-primary { background: linear-gradient(135deg, var(--primary), var(--purple)); color: white; box-shadow: 0 3px 10px rgba(102,126,234,.3); }
+.btn-primary:hover:not(:disabled) { opacity: 0.92; transform: translateY(-1px); }
+.btn-success { background: linear-gradient(135deg, #28a745, #20c997); color: white; box-shadow: 0 3px 10px rgba(40,167,69,.25); }
+.btn-success:hover:not(:disabled) { opacity: 0.92; }
+.btn-outline { background: white; color: var(--muted); border: 2px solid var(--border); }
+.btn-outline:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
+.btn-block { width: 100%; }
+.btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+
+/* ── STATS ── */
+.stats-row {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 12px; margin: 16px 0;
+}
+.stat-box { background: var(--bg); border-radius: 12px; padding: 14px 16px; text-align: center; }
+.stat-num { font-size: 26px; font-weight: 800; color: var(--primary); line-height: 1; margin-bottom: 4px; }
+.stat-label { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+.stat-box.warn .stat-num { color: #d97706; }
+.stat-box.danger .stat-num { color: var(--danger); }
+.stat-box.ok .stat-num { color: var(--success); }
+
+/* ── TABLE PREVIEW ── */
+.table-wrap { overflow-x: auto; border: 1.5px solid var(--border); border-radius: 12px; max-height: 460px; overflow-y: auto; }
+table.preview-tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.preview-tbl thead th {
+    background: linear-gradient(135deg, var(--primary), var(--purple));
+    color: white; padding: 10px 12px; font-weight: 700; text-align: left;
+    position: sticky; top: 0; white-space: nowrap;
+}
+table.preview-tbl tbody td { padding: 8px 12px; border-bottom: 1px solid #eef0f6; vertical-align: middle; }
+table.preview-tbl tbody tr:nth-child(even) { background: #fafbff; }
+table.preview-tbl tbody tr:hover { background: #f5f7ff; }
+.token-cell { font-family: 'Courier New', monospace; font-weight: 700; color: var(--primary-dark); }
+.row-status { font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 99px; white-space: nowrap; }
+.status-pending { background: #f1f5f9; color: var(--muted); }
+.status-ok { background: #dcfce7; color: #16a34a; }
+.status-dup { background: #fef3c7; color: #b45309; }
+.status-saved { background: #dbeafe; color: #1d4ed8; }
+.status-error { background: #fee2e2; color: #dc2626; }
+.status-skip { background: #f3f4f6; color: #9ca3af; }
+.name-empty { color: var(--danger); font-style: italic; font-size: 12px; }
+
+/* ── LOG ── */
+.log-box {
+    margin-top: 14px; max-height: 200px; overflow-y: auto;
+    background: #f8f9fa; border-radius: 10px; padding: 12px 14px;
+    font-size: 12px; font-family: 'Courier New', monospace; display: none;
+}
+.log-ok { color: #16a34a; margin: 2px 0; }
+.log-err { color: #dc2626; margin: 2px 0; }
+.log-info { color: #6366f1; margin: 2px 0; }
+
+/* ── LOADING ── */
+.loading-inline { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+.spinner-sm {
+    border: 3px solid #f3f3f3; border-top: 3px solid var(--primary);
+    border-radius: 50%; width: 16px; height: 16px;
+    animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.section-disabled { opacity: 0.5; pointer-events: none; filter: grayscale(0.3); }
+.badge-soft {
+    display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 10px;
+    border-radius: 99px; background: #ede9fe; color: #6d28d9; margin-left: 8px;
+}
+
+/* ── Mode Toggle (Nama vs Token) ── */
+.mode-toggle {
+    display: flex; gap: 10px; margin-bottom: 6px;
+}
+.mode-opt {
+    flex: 1;
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 12px 14px;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all .15s;
+}
+.mode-opt:hover { border-color: var(--primary); }
+.mode-opt.active {
+    border-color: var(--primary);
+    background: #f5f6ff;
+}
+.mode-opt input { margin-top: 2px; accent-color: var(--primary); cursor: pointer; }
+.mode-opt-text { font-size: 13px; }
+.mode-opt-title { font-weight: 700; color: var(--text); margin-bottom: 2px; }
+.mode-opt-desc { font-size: 11.5px; color: var(--muted); line-height: 1.4; }
+
+.toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: #1e293b; color: white; padding: 12px 22px; border-radius: 99px;
+    font-size: 13px; font-weight: 600; box-shadow: 0 8px 24px rgba(0,0,0,.25);
+    z-index: 9999; opacity: 0; transition: opacity .25s, transform .25s; pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(-6px); }
+
+/* ── MAIN MENU TABS (Buat Token vs Hapus Token Kosong) ── */
+.main-menu-wrap {
+    display: flex; justify-content: center; gap: 10px;
+    margin-top: 16px; flex-wrap: wrap;
+}
+.main-menu-tab {
+    padding: 10px 22px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.10);
+    border: 1.5px solid rgba(255,255,255,0.3);
+    color: #fff;
+    font-size: 13.5px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all .15s;
+    user-select: none;
+}
+.main-menu-tab:hover:not(.active) {
+    background: rgba(255,255,255,0.2);
+    border-color: rgba(255,255,255,0.55);
+}
+.main-menu-tab.active {
+    background: #fff;
+    color: var(--primary-dark);
+    border-color: #fff;
+    box-shadow: 0 4px 14px rgba(0,0,0,.18);
+}
+
+/* ── BUTTONS extra ── */
+.btn-danger { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; box-shadow: 0 3px 10px rgba(220,53,69,.28); }
+.btn-danger:hover:not(:disabled) { opacity: 0.92; transform: translateY(-1px); }
+.btn-sm { padding: 7px 14px; font-size: 12.5px; border-radius: 8px; }
+
+/* ── CHECKBOX TABLE (Hapus Token Kosong) ── */
+table.preview-tbl input[type="checkbox"] {
+    width: 16px; height: 16px; accent-color: var(--primary); cursor: pointer;
+}
+.chk-col { width: 40px; text-align: center; }
+.sel-count-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 10px;
+    background: var(--bg); border-radius: 10px;
+    padding: 10px 14px; margin-bottom: 12px;
+    font-size: 13px; font-weight: 600; color: var(--text);
+}
+.sel-count-bar .left { display: flex; align-items: center; gap: 10px; }
+.empty-state {
+    text-align: center; padding: 40px 20px; color: var(--muted);
+}
+.empty-state .es-icon { font-size: 40px; margin-bottom: 10px; }
+.empty-state .es-title { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.empty-state .es-sub { font-size: 12.5px; }
+
+@media (max-width: 600px) {
+    body { padding: 12px; }
+    .card { padding: 16px; }
+}
+</style>
+</head>
+<body>
+
+<div class="main">
+    <div class="topbar">
+        <h1>🔑 Create New Token — dari Daftar Nama</h1>
+        <p>Upload file nama peserta (.txt / .xlsx / .csv) → generate token unik → simpan ke server</p>
+        <div class="srv-wrap">
+            <span class="srv-label">Server</span>
+            <div id="srvChips" style="display:flex;gap:8px;"><!-- filled by JS --></div>
+        </div>
+        <div class="main-menu-wrap">
+            <div class="main-menu-tab active" id="menuTabBuat" onclick="setMainMenu('buat')">🔑 Buat Token</div>
+            <div class="main-menu-tab" id="menuTabHapus" onclick="setMainMenu('hapus')">🗑️ Hapus Token Kosong</div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════
+         MENU 1 — BUAT TOKEN (Step 1-2-3, isi lama tidak diubah)
+    ══════════════════════════════════════════════════════════════════ -->
+    <div id="menuBuatToken">
+
+    <!-- ══ STEP 1 — KONFIGURASI TABEL ══ -->
+    <div class="card">
+        <div class="card-title"><span class="step-badge">1</span> Konfigurasi Tabel</div>
+
+        <div class="form-group">
+            <label>Isi File Dianggap Sebagai</label>
+            <div class="mode-toggle" id="modeToggle">
+                <label class="mode-opt active" id="modeOptNama">
+                    <input type="radio" name="srcMode" value="nama" checked onchange="onModeChange()">
+                    <div class="mode-opt-text">
+                        <div class="mode-opt-title">👤 Nama Peserta</div>
+                        <div class="mode-opt-desc">Tiap baris diolah jadi token baru (nama + angka yang diketik, lalu disambung id_x).</div>
+                    </div>
+                </label>
+                <label class="mode-opt" id="modeOptToken">
+                    <input type="radio" name="srcMode" value="token" onchange="onModeChange()">
+                    <div class="mode-opt-text">
+                        <div class="mode-opt-title">🔑 Token Langsung</div>
+                        <div class="mode-opt-desc">Tiap baris dianggap token jadi. Dicek ke server: yang belum ada baru bisa disimpan.</div>
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label>Nama Tabel (cek duplikat &amp; simpan token)</label>
+                <input type="text" class="ctrl-input" id="tableInput" value="nilai3_json">
+                <div class="hint">Token akan dicek keunikannya ke tabel ini, dan saat "Simpan ke Server" juga akan diinsert ke tabel ini (kolom <code>x_01</code>).</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ STEP 2 — UPLOAD FILE ══ -->
+    <div class="card">
+        <div class="card-title"><span class="step-badge">2</span> <span id="step2Title">Upload Daftar Nama</span></div>
+
+        <div class="src-tabs">
+            <div class="src-tab active" id="tabUpload" onclick="setInputSource('upload')">📁 Upload File</div>
+            <div class="src-tab" id="tabPaste" onclick="setInputSource('paste')">📋 Paste Teks</div>
+        </div>
+
+        <div id="uploadSourceArea">
+            <div class="dropzone" id="dropzone">
+                <div class="dz-icon">📄</div>
+                <div class="dz-title">Klik atau seret file ke sini</div>
+                <div class="dz-sub" id="dzSub">Format: .txt (1 nama per baris) atau .xlsx / .xls / .csv (nama di kolom A)</div>
+                <input type="file" id="fileInput" accept=".txt,.xlsx,.xls,.csv">
+            </div>
+            <div id="fileChipArea"></div>
+        </div>
+
+        <div id="pasteSourceArea" class="paste-area" style="display:none;">
+            <textarea id="pasteInput" placeholder="Tempel daftar di sini, satu per baris...&#10;contoh:&#10;Budi Santoso&#10;Siti Aminah&#10;Andi Wijaya" oninput="onPasteInputChange()"></textarea>
+            <div class="paste-hint" id="pasteHint">Satu nama per baris. Baris kosong otomatis diabaikan.</div>
+            <div class="paste-count" id="pasteCount" style="display:none;"></div>
+        </div>
+
+        <div class="form-group" id="digitInputGroup" style="margin-top:14px;">
+            <label>Angka Setelah Nama</label>
+            <input type="text" inputmode="numeric" class="ctrl-input" id="numberSuffixInput" value="2" placeholder="misal: 2">
+            <div class="hint">Angka ini diketik langsung (bukan acak) dan disambung persis setelah nama depan. Contoh: nama "Budi Santoso" + angka "2" → token dasar <code>budi2</code>, lalu saat "Simpan ke Server" otomatis disambung <code>id_x</code> jadi token final (mis. <code>budi2153</code>). Boleh sama untuk banyak nama — id_x yang menjamin token final tetap unik.</div>
+        </div>
+
+        <div id="extraBlocksContainer"></div>
+
+        <div class="btn-row" id="tambahBlokRow" style="margin-top:2px;">
+            <button class="btn btn-outline btn-sm" type="button" onclick="tambahBlokNama()">➕ Tambah Daftar Nama Lain</button>
+        </div>
+        <div class="hint" id="tambahBlokHint" style="margin-top:-6px; margin-bottom:14px;">Gunakan ini kalau ada kelompok nama lain dengan angka suffix yang berbeda (misal kelompok pertama pakai angka 2, kelompok berikutnya pakai angka 3). Semua blok akan digabung jadi satu hasil saat "Generate Token" ditekan.</div>
+
+        <div class="btn-row">
+            <button class="btn btn-primary" id="btnProcess" onclick="processFile()" disabled>⚡ <span id="btnProcessLabel">Generate Token</span></button>
+        </div>
+        <div id="uploadLoading" style="display:none;margin-top:12px;" class="loading-inline">
+            <div class="spinner-sm"></div> <span id="uploadLoadingLabel">Membaca file & memeriksa duplikasi ke server...</span>
+        </div>
+    </div>
+
+    <!-- ══ STEP 3 — PREVIEW & HASIL ══ -->
+    <div class="card" id="resultCard" style="display:none;">
+        <div class="card-title">
+            <span class="step-badge">3</span> <span id="step3Title">Hasil Generate</span>
+            <span class="badge-soft" id="resultFileType"></span>
+        </div>
+
+        <div class="stats-row">
+            <div class="stat-box"><div class="stat-num" id="statTotal">0</div><div class="stat-label" id="statTotalLabel">Total Nama</div></div>
+            <div class="stat-box ok"><div class="stat-num" id="statGenerated">0</div><div class="stat-label" id="statGeneratedLabel">Token Dibuat</div></div>
+            <div class="stat-box warn"><div class="stat-num" id="statSkipped">0</div><div class="stat-label" id="statSkippedLabel">Dilewati (Nama Kosong)</div></div>
+            <div class="stat-box" id="statSavedBox"><div class="stat-num" id="statSaved">0</div><div class="stat-label">Tersimpan ke Server</div></div>
+        </div>
+
+        <div class="table-wrap">
+            <table class="preview-tbl">
+                <thead>
+                    <tr><th style="width:46px">#</th><th id="colNamaHeader">Nama Peserta</th><th>Token</th><th style="width:130px">Status</th></tr>
+                </thead>
+                <tbody id="previewBody"></tbody>
+            </table>
+        </div>
+
+        <div class="btn-row">
+            <button class="btn btn-success" id="btnSaveServer" onclick="saveToServer()">💾 Simpan ke Server</button>
+            <button class="btn btn-primary" id="btnDownload" onclick="downloadResult()">⬇️ Download Hasil</button>
+            <button class="btn btn-outline" onclick="resetAll()">↺ Mulai Ulang</button>
+        </div>
+
+        <div class="log-box" id="logBox"></div>
+    </div>
+
+    </div>
+    <!-- ══ /MENU 1 — BUAT TOKEN ══ -->
+
+    <!-- ══════════════════════════════════════════════════════════════
+         MENU 2 — HAPUS TOKEN KOSONG
+    ══════════════════════════════════════════════════════════════════ -->
+    <div id="menuHapusKosong" style="display:none;">
+
+        <div class="card">
+            <div class="card-title">🔍 Cari Token Kosong</div>
+
+            <div class="form-group">
+                <label>Nama Tabel</label>
+                <input type="text" class="ctrl-input" id="tableInputHapus" value="nilai3_json">
+                <div class="hint">Token kosong = baris dengan kolom <code>x_01</code> terisi (token sudah dibuat) tapi <code>x_02</code> masih kosong (belum pernah dipakai peserta).</div>
+            </div>
+
+            <div class="btn-row">
+                <button class="btn btn-primary" id="btnCariKosong" onclick="cariTokenKosong()">🔍 Cek Token Kosong</button>
+            </div>
+            <div id="hapusLoading" style="display:none;margin-top:12px;" class="loading-inline">
+                <div class="spinner-sm"></div> <span>Mengambil daftar token kosong dari server...</span>
+            </div>
+        </div>
+
+        <div class="card" id="hapusResultCard" style="display:none;">
+            <div class="card-title">
+                <span id="hapusResultTitle">Daftar Token Kosong</span>
+                <span class="badge-soft" id="hapusResultCount"></span>
+            </div>
+
+            <div class="sel-count-bar">
+                <div class="left">
+                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:700;">
+                        <input type="checkbox" id="chkSelectAll" onchange="toggleSelectAll(this)"> Pilih Semua
+                    </label>
+                    <span id="selCountLabel">0 dipilih</span>
+                </div>
+                <button class="btn btn-danger btn-sm" id="btnHapusTerpilih" onclick="hapusTokenTerpilih()" disabled>🗑️ Hapus Terpilih (0)</button>
+            </div>
+
+            <div class="table-wrap">
+                <table class="preview-tbl">
+                    <thead>
+                        <tr>
+                            <th class="chk-col"><input type="checkbox" id="chkSelectAllHead" onchange="toggleSelectAll(this)"></th>
+                            <th style="width:46px">#</th>
+                            <th>Token</th>
+                            <th style="width:140px">ID</th>
+                            <th style="width:110px">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="hapusPreviewBody"></tbody>
+                </table>
+            </div>
+
+            <div class="log-box" id="hapusLogBox"></div>
+        </div>
+
+        <div class="card" id="hapusEmptyCard" style="display:none;">
+            <div class="empty-state">
+                <div class="es-icon">✨</div>
+                <div class="es-title">Tidak ada token kosong</div>
+                <div class="es-sub">Semua token di tabel ini sudah pernah dipakai, atau tabel belum dicek.</div>
+            </div>
+        </div>
+
+    </div>
+    <!-- ══ /MENU 2 — HAPUS TOKEN KOSONG ══ -->
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════════
+   KONFIGURASI API — disamakan dengan dashboard psikotest
+══════════════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════════
+   SERVER LIST — tambah / kurangi di sini saja
+══════════════════════════════════════════════════════════════════ */
+const SERVERS = [
+  { label: 'Lidan',     domain: 'lidan-co-id.pages.dev' },
+  { label: 'Tabi',      domain: 'tabi.my.id'             },
+  { label: 'Mobeli',    domain: 'mobeli.my.id'           },
+  { label: 'TalentMap', domain: 'talentmap.my.id'        },
+];
+let activeSrvIdx = 0;
+
+const API_PATH_BASE   = '/api/contacts_filter_dinamis7';
+const API_PATH_INSERT = '/api/contacts_filter_dinamis6';
+
+function getApiBase()   { return `https://${SERVERS[activeSrvIdx].domain}${API_PATH_BASE}`; }
+function getApiInsert() { return `https://${SERVERS[activeSrvIdx].domain}${API_PATH_INSERT}`; }
+
+// Alias agar kode lama tetap jalan tanpa perubahan
+Object.defineProperty(window, 'API_BASE',   { get: getApiBase });
+Object.defineProperty(window, 'API_INSERT', { get: getApiInsert });
+
+/* ══════════════════════════════════════════════════════════════════
+   SERVER SWITCHER
+══════════════════════════════════════════════════════════════════ */
+function renderSrvChips() {
+  const wrap = document.getElementById('srvChips');
+  if (!wrap) return;
+  wrap.innerHTML = SERVERS.map((s, i) => `
+    <button class="srv-chip${i === activeSrvIdx ? ' active' : ''}"
+      onclick="switchSrcServer(${i})"
+      title="https://${s.domain}">
+      ${i === activeSrvIdx ? '✓ ' : ''}${s.label}
+    </button>`).join('');
+}
+
+function switchSrcServer(idx) {
+  if (idx === activeSrvIdx) return;
+  activeSrvIdx = idx;
+  renderSrvChips();
+  resetStateForServerSwitch();
+  showToast(`Server beralih ke ${SERVERS[idx].label}`);
+}
+
+// Reset ringan tanpa konfirmasi, khusus saat pindah server
+// (resetAll() pakai confirm() — tidak cocok dipanggil otomatis)
+function resetStateForServerSwitch() {
+  rows = [];
+  currentFile = null;
+  currentFileType = null;
+  originalWorkbook = null;
+  originalSheetName = null;
+  if (fileInput) fileInput.value = '';
+  const chipArea = document.getElementById('fileChipArea');
+  if (chipArea) chipArea.innerHTML = '';
+  const pasteInput = document.getElementById('pasteInput');
+  if (pasteInput) pasteInput.value = '';
+  const pasteCount = document.getElementById('pasteCount');
+  if (pasteCount) pasteCount.style.display = 'none';
+  const btnProcess = document.getElementById('btnProcess');
+  if (btnProcess) btnProcess.disabled = true;
+  const resultCard = document.getElementById('resultCard');
+  if (resultCard) resultCard.style.display = 'none';
+  const logBox = document.getElementById('logBox');
+  if (logBox) { logBox.innerHTML = ''; logBox.style.display = 'none'; }
+  hapusSemuaBlokTambahan();
+}
+
+renderSrvChips();
+
+/* ══════════════════════════════════════════════════════════════════
+   MODE TOGGLE — Nama Peserta vs Token Langsung
+══════════════════════════════════════════════════════════════════ */
+function onModeChange() {
+    const radios = document.querySelectorAll('input[name="srcMode"]');
+    for (const r of radios) if (r.checked) srcMode = r.value;
+
+    document.getElementById('modeOptNama').classList.toggle('active', srcMode === 'nama');
+    document.getElementById('modeOptToken').classList.toggle('active', srcMode === 'token');
+
+    const digitGroup = document.getElementById('digitInputGroup');
+    const dzSub      = document.getElementById('dzSub');
+    const step2Title = document.getElementById('step2Title');
+    const step3Title = document.getElementById('step3Title');
+    const btnLabel   = document.getElementById('btnProcessLabel');
+    const upLoadLbl  = document.getElementById('uploadLoadingLabel');
+    const colHeader  = document.getElementById('colNamaHeader');
+    const lblTotal   = document.getElementById('statTotalLabel');
+    const lblGen     = document.getElementById('statGeneratedLabel');
+    const lblSkip    = document.getElementById('statSkippedLabel');
+    const pasteInput = document.getElementById('pasteInput');
+    const pasteHint  = document.getElementById('pasteHint');
+    const tambahBlokRow = document.getElementById('tambahBlokRow');
+    const tambahBlokHint = document.getElementById('tambahBlokHint');
+    const extraBlocksContainer = document.getElementById('extraBlocksContainer');
+
+    if (srcMode === 'token') {
+        tambahBlokRow.style.display = 'none';
+        tambahBlokHint.style.display = 'none';
+        extraBlocksContainer.style.display = 'none';
+    } else {
+        tambahBlokRow.style.display = '';
+        tambahBlokHint.style.display = '';
+        extraBlocksContainer.style.display = '';
+    }
+
+    if (srcMode === 'token') {
+        digitGroup.style.display = 'none';
+        dzSub.textContent      = 'Format: .txt (1 token per baris) atau .xlsx / .xls / .csv (token di kolom A)';
+        step2Title.textContent = 'Upload Daftar Token';
+        step3Title.textContent = 'Hasil Pengecekan';
+        btnLabel.textContent   = 'Cek ke Server';
+        upLoadLbl.textContent  = 'Membaca file & memeriksa token ke server...';
+        colHeader.textContent  = 'Nama Peserta';
+        lblTotal.textContent   = 'Total Token';
+        lblGen.textContent     = 'Belum Ada (Siap Simpan)';
+        lblSkip.textContent    = 'Sudah Ada (Duplikat)';
+        pasteInput.placeholder = 'Tempel daftar token di sini, satu per baris...\ncontoh:\nBUDI23\nSITI07\nANDI91';
+        pasteHint.textContent  = 'Satu token per baris. Baris kosong otomatis diabaikan.';
+    } else {
+        digitGroup.style.display = '';
+        dzSub.textContent      = 'Format: .txt (1 nama per baris) atau .xlsx / .xls / .csv (nama di kolom A)';
+        step2Title.textContent = 'Upload Daftar Nama';
+        step3Title.textContent = 'Hasil Generate';
+        btnLabel.textContent   = 'Generate Token';
+        upLoadLbl.textContent  = 'Membaca file & memeriksa duplikasi ke server...';
+        colHeader.textContent  = 'Nama Peserta';
+        lblTotal.textContent   = 'Total Nama';
+        lblGen.textContent     = 'Token Dibuat';
+        lblSkip.textContent    = 'Dilewati (Nama Kosong)';
+        pasteInput.placeholder = 'Tempel daftar di sini, satu per baris...\ncontoh:\nBudi Santoso\nSiti Aminah\nAndi Wijaya';
+        pasteHint.textContent  = 'Satu nama per baris. Baris kosong otomatis diabaikan.';
+    }
+
+    // Ganti mode di tengah jalan -> reset hasil supaya tidak ambigu
+    resetStateForServerSwitch();
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   MAIN MENU TAB — Buat Token vs Hapus Token Kosong
+══════════════════════════════════════════════════════════════════ */
+let mainMenu = 'buat';
+
+function setMainMenu(menu) {
+    mainMenu = menu;
+    document.getElementById('menuTabBuat').classList.toggle('active', menu === 'buat');
+    document.getElementById('menuTabHapus').classList.toggle('active', menu === 'hapus');
+    document.getElementById('menuBuatToken').style.display  = (menu === 'buat')  ? '' : 'none';
+    document.getElementById('menuHapusKosong').style.display = (menu === 'hapus') ? '' : 'none';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   HAPUS TOKEN KOSONG — state & util
+══════════════════════════════════════════════════════════════════ */
+let hapusRows = [];   // [{ idx, token, id_x, checked, status }]
+
+function hapusAddLog(type, msg) {
+    const log = document.getElementById('hapusLogBox');
+    log.style.display = 'block';
+    const d = document.createElement('div');
+    d.className = 'log-' + type;
+    d.textContent = msg;
+    log.appendChild(d);
+    log.scrollTop = log.scrollHeight;
+}
+
+/* ── Ambil daftar token kosong dari server: x_01 terisi, x_02 kosong ── */
+async function cariTokenKosong() {
+    const tbl = document.getElementById('tableInputHapus').value.trim() || 'nilai3_json';
+
+    const btn = document.getElementById('btnCariKosong');
+    btn.disabled = true;
+    document.getElementById('hapusLoading').style.display = 'flex';
+    document.getElementById('hapusResultCard').style.display = 'none';
+    document.getElementById('hapusEmptyCard').style.display = 'none';
+    document.getElementById('hapusLogBox').innerHTML = '';
+    document.getElementById('hapusLogBox').style.display = 'none';
+
+    try {
+        const url = `${API_BASE}?table=${tbl}&x_01_notempty=1&x_02_isempty=1`;
+        const res  = await fetch(url, { headers: { 'X-Custom-Auth': AUTH_KEY } });
+        const data = await res.json();
+
+        if (!data.success) {
+            throw new Error(data.message || 'Gagal mengambil data dari server.');
+        }
+
+        const list = data.data || data.rows || [];
+        hapusRows = list.map((r, i) => ({
+            idx: i + 1,
+            token: r.x_01 || '',
+            id_x: r.id_x,
+            checked: false,
+            status: 'pending'
+        }));
+
+        if (hapusRows.length === 0) {
+            document.getElementById('hapusEmptyCard').style.display = 'block';
+        } else {
+            document.getElementById('hapusResultCard').style.display = 'block';
+            document.getElementById('hapusResultCount').textContent = `${hapusRows.length} token kosong`;
+            renderHapusPreview();
+        }
+        updateSelCountBar();
+        showToast(`🔎 Ditemukan ${hapusRows.length} token kosong di tabel "${tbl}"`);
+    } catch (e) {
+        alert('Gagal mengambil daftar token kosong: ' + e.message);
+    } finally {
+        btn.disabled = false;
+        document.getElementById('hapusLoading').style.display = 'none';
+    }
+}
+
+function renderHapusPreview() {
+    const body = document.getElementById('hapusPreviewBody');
+    body.innerHTML = '';
+    for (const row of hapusRows) {
+        const tr = document.createElement('tr');
+        const sl = statusLabel(row.status === 'pending' ? 'pending' : row.status);
+        tr.innerHTML = `
+            <td class="chk-col"><input type="checkbox" ${row.checked ? 'checked' : ''} onchange="toggleRowChk(${row.idx}, this.checked)" ${row.status === 'deleted' ? 'disabled' : ''}></td>
+            <td>${row.idx}</td>
+            <td><span class="token-cell">${escHtml(row.token)}</span></td>
+            <td style="font-size:11.5px;color:var(--muted);">${escHtml(String(row.id_x))}</td>
+            <td><span class="row-status ${row.status === 'deleted' ? 'status-saved' : (row.status === 'error' ? 'status-error' : 'status-pending')}">${row.status === 'deleted' ? '🗑️ Terhapus' : (row.status === 'error' ? '✗ Gagal' : 'Menunggu')}</span></td>
+        `;
+        body.appendChild(tr);
+    }
+}
+
+function toggleRowChk(idx, checked) {
+    const row = hapusRows.find(r => r.idx === idx);
+    if (row) row.checked = checked;
+    updateSelCountBar();
+}
+
+function toggleSelectAll(sourceCheckbox) {
+    const checked = sourceCheckbox ? sourceCheckbox.checked : document.getElementById('chkSelectAll').checked;
+
+    document.getElementById('chkSelectAll').checked = checked;
+    document.getElementById('chkSelectAllHead').checked = checked;
+
+    for (const row of hapusRows) {
+        if (row.status !== 'deleted') row.checked = checked;
+    }
+    renderHapusPreview();
+    updateSelCountBar();
+}
+
+function updateSelCountBar() {
+    const selected = hapusRows.filter(r => r.checked && r.status !== 'deleted');
+    const total = hapusRows.filter(r => r.status !== 'deleted');
+    document.getElementById('selCountLabel').textContent = `${selected.length} dipilih`;
+    const btn = document.getElementById('btnHapusTerpilih');
+    btn.textContent = `🗑️ Hapus Terpilih (${selected.length})`;
+    btn.disabled = selected.length === 0;
+
+    const allChecked = total.length > 0 && selected.length === total.length;
+    document.getElementById('chkSelectAll').checked = allChecked;
+    document.getElementById('chkSelectAllHead').checked = allChecked;
+}
+
+/* ── Hapus token terpilih: sequential DELETE per id_x (tidak ada bulk-delete di API) ── */
+async function hapusTokenTerpilih() {
+    const tbl = document.getElementById('tableInputHapus').value.trim() || 'nilai3_json';
+    const toDelete = hapusRows.filter(r => r.checked && r.status !== 'deleted');
+    if (toDelete.length === 0) {
+        alert('Pilih minimal satu token untuk dihapus.');
+        return;
+    }
+    if (!confirm(`Hapus ${toDelete.length} token kosong dari tabel "${tbl}"? Tindakan ini tidak bisa dibatalkan.`)) return;
+
+    const btn = document.getElementById('btnHapusTerpilih');
+    btn.disabled = true;
+    document.getElementById('hapusLogBox').innerHTML = '';
+    document.getElementById('hapusLogBox').style.display = 'block';
+    hapusAddLog('info', `Mulai menghapus ${toDelete.length} token dari tabel "${tbl}"...`);
+
+    let ok = 0, fail = 0;
+    for (let i = 0; i < toDelete.length; i++) {
+        const row = toDelete[i];
+        try {
+            const res = await fetch(`${API_INSERT}?table=${tbl}&id_x=${row.id_x}`, {
+                method: 'DELETE',
+                headers: { 'X-Custom-Auth': AUTH_KEY }
+            });
+            const data = await res.json();
+            if (data.success) {
+                row.status = 'deleted';
+                row.checked = false;
+                ok++;
+                hapusAddLog('ok', `[${i + 1}/${toDelete.length}] ✓ ${row.token} (id_x:${row.id_x}) — terhapus`);
+            } else {
+                row.status = 'error';
+                fail++;
+                hapusAddLog('err', `[${i + 1}/${toDelete.length}] ✗ ${row.token} (id_x:${row.id_x}) — ${data.message || 'gagal'}`);
+            }
+        } catch (e) {
+            row.status = 'error';
+            fail++;
+            hapusAddLog('err', `[${i + 1}/${toDelete.length}] ✗ ${row.token} (id_x:${row.id_x}) — ${e.message}`);
+        }
+    }
+    hapusAddLog('info', `─── Selesai: ${ok} terhapus, ${fail} gagal ───`);
+
+    // Buang baris yang sudah terhapus dari daftar (sisakan yang gagal supaya bisa dicoba lagi)
+    hapusRows = hapusRows.filter(r => r.status !== 'deleted');
+    renderHapusPreview();
+    document.getElementById('hapusResultCount').textContent = `${hapusRows.length} token kosong`;
+    if (hapusRows.length === 0) {
+        document.getElementById('hapusResultCard').style.display = 'none';
+        document.getElementById('hapusEmptyCard').style.display = 'block';
+    }
+    updateSelCountBar();
+
+    btn.disabled = false;
+    showToast(`🗑️ ${ok} token terhapus${fail ? `, ${fail} gagal` : ''}`);
+}
+
+const AUTH_KEY   = 'admin';
+const NUM_CHARS  = '0123456789';
+
+/* ══════════════════════════════════════════════════════════════════
+   STATE
+══════════════════════════════════════════════════════════════════ */
+let currentFile      = null;
+let currentFileType   = null;   // 'txt' | 'excel'
+let originalWorkbook  = null;   // dipakai utk excel agar bisa download dgn kolom asli
+let originalSheetName = null;
+let rows = [];   // [{ idx, nama, token, status, statusLabel }]
+let existingTokensCache = new Set();   // token yg sudah ada di server (hasil fetch sekali)
+let srcMode = 'nama';   // 'nama' = generate token baru | 'token' = isi file sudah token, cek ke server
+let inputSource = 'upload';   // 'upload' = dari file | 'paste' = dari textarea
+let extraBlocks = [];      // [{ id, textareaId, numberId, displayIndex }] — blok tambahan (paste teks + angka)
+let extraBlockCounter = 0; // penomor unik id blok tambahan, tidak pernah reset walau blok dihapus
+
+/* ══════════════════════════════════════════════════════════════════
+   UTIL
+══════════════════════════════════════════════════════════════════ */
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+function randDigits(len) {
+    let r = '';
+    for (let i = 0; i < len; i++) r += NUM_CHARS.charAt(Math.floor(Math.random() * NUM_CHARS.length));
+    return r;
+}
+
+// Ambil "nama depan" dari nama lengkap: kata pertama, lowercase, buang karakter non-huruf
+function extractFirstNameSlug(fullName) {
+    const trimmed = String(fullName || '').trim();
+    if (!trimmed) return '';
+    const firstWord = trimmed.split(/\s+/)[0];
+    const slug = firstWord.toLowerCase().replace(/[^a-z]/g, '');
+    return slug;
+}
+
+function addLog(type, msg) {
+    const log = document.getElementById('logBox');
+    log.style.display = 'block';
+    const d = document.createElement('div');
+    d.className = 'log-' + type;
+    d.textContent = msg;
+    log.appendChild(d);
+    log.scrollTop = log.scrollHeight;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   DROPZONE / FILE INPUT
+══════════════════════════════════════════════════════════════════ */
+const dropzone  = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+
+dropzone.addEventListener('click', () => fileInput.click());
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+dropzone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropzone.classList.remove('dragover');
+    if (e.dataTransfer.files.length) handleFileSelected(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', e => {
+    if (e.target.files.length) handleFileSelected(e.target.files[0]);
+});
+
+function handleFileSelected(file) {
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (!['txt', 'xlsx', 'xls', 'csv'].includes(ext)) {
+        alert('Format file tidak didukung. Gunakan .txt, .xlsx, .xls, atau .csv');
+        return;
+    }
+    currentFile     = file;
+    currentFileType = (ext === 'txt') ? 'txt' : 'excel';
+
+    const chipArea = document.getElementById('fileChipArea');
+    chipArea.innerHTML = '';
+    const chip = document.createElement('div');
+    chip.className = 'file-chip';
+    chip.innerHTML = `📎 ${escHtml(file.name)} <button onclick="clearFile()" title="Hapus">✕</button>`;
+    chipArea.appendChild(chip);
+
+    document.getElementById('btnProcess').disabled = false;
+}
+
+function clearFile() {
+    currentFile = null;
+    currentFileType = null;
+    fileInput.value = '';
+    document.getElementById('fileChipArea').innerHTML = '';
+    document.getElementById('btnProcess').disabled = true;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   INPUT SOURCE TOGGLE — Upload File vs Paste Teks
+══════════════════════════════════════════════════════════════════ */
+function setInputSource(src) {
+    inputSource = src;
+    document.getElementById('tabUpload').classList.toggle('active', src === 'upload');
+    document.getElementById('tabPaste').classList.toggle('active', src === 'paste');
+    document.getElementById('uploadSourceArea').style.display = (src === 'upload') ? '' : 'none';
+    document.getElementById('pasteSourceArea').style.display  = (src === 'paste')  ? '' : 'none';
+
+    // Reset tombol proses sesuai isi sumber yang sedang aktif
+    if (src === 'upload') {
+        document.getElementById('btnProcess').disabled = !currentFile;
+    } else {
+        onPasteInputChange(); // sync status tombol dengan isi textarea saat ini
+    }
+}
+
+function onPasteInputChange() {
+    const text  = document.getElementById('pasteInput').value;
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l !== '');
+    const countEl = document.getElementById('pasteCount');
+    if (lines.length > 0) {
+        countEl.style.display = '';
+        countEl.textContent = `${lines.length} baris terdeteksi`;
+    } else {
+        countEl.style.display = 'none';
+    }
+    document.getElementById('btnProcess').disabled = lines.length === 0;
+}
+
+function escHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   BLOK TAMBAHAN — Paste Teks + Angka Setelah Nama (khusus mode Nama Peserta)
+   Setiap blok independen: daftar nama sendiri + angka suffix sendiri.
+   Semua blok (blok utama + blok tambahan) digabung jadi satu hasil
+   saat tombol "Generate Token" ditekan.
+══════════════════════════════════════════════════════════════════ */
+function tambahBlokNama() {
+    extraBlockCounter++;
+    const id = extraBlockCounter;
+    const displayIndex = extraBlocks.length + 2; // blok utama = #1
+    const textareaId = `pasteInputExtra_${id}`;
+    const numberId   = `numberSuffixExtra_${id}`;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'form-group extra-blok';
+    wrap.dataset.blokId = id;
+    wrap.style.cssText = 'border:2px dashed var(--border); border-radius:12px; padding:14px; margin-top:14px; margin-bottom:14px; position:relative; background:#fafbff;';
+    wrap.innerHTML = `
+        <button type="button" onclick="hapusBlokNama(${id})" title="Hapus blok ini"
+            style="position:absolute; top:10px; right:10px; background:none; border:none; color:var(--muted); cursor:pointer; font-size:16px; line-height:1;">✕</button>
+        <label class="blok-label">📋 Daftar Nama Tambahan #${displayIndex}</label>
+        <textarea class="ctrl-input" id="${textareaId}" style="width:100%; min-height:120px; font-family:'Consolas','Courier New',monospace; font-size:13px; resize:vertical; padding:12px; border:2px solid var(--border); border-radius:10px; outline:none; background:white;"
+            placeholder="Tempel daftar nama di sini, satu per baris...&#10;contoh:&#10;Rudi Hartono&#10;Dewi Lestari"></textarea>
+        <div class="hint" style="margin:5px 0 12px 0;">Satu nama per baris. Baris kosong otomatis diabaikan. Kosongkan blok ini kalau tidak jadi dipakai.</div>
+        <label>Angka Setelah Nama (untuk blok ini)</label>
+        <input type="text" inputmode="numeric" class="ctrl-input" id="${numberId}" placeholder="misal: 3">
+    `;
+    document.getElementById('extraBlocksContainer').appendChild(wrap);
+    extraBlocks.push({ id, textareaId, numberId, displayIndex });
+}
+
+function hapusBlokNama(id) {
+    const idx = extraBlocks.findIndex(b => b.id === id);
+    if (idx === -1) return;
+    const wrap = document.querySelector(`.extra-blok[data-blok-id="${id}"]`);
+    if (wrap) wrap.remove();
+    extraBlocks.splice(idx, 1);
+    renumberExtraBlocks();
+}
+
+function renumberExtraBlocks() {
+    extraBlocks.forEach((b, i) => {
+        b.displayIndex = i + 2;
+        const wrap = document.querySelector(`.extra-blok[data-blok-id="${b.id}"]`);
+        if (wrap) {
+            const label = wrap.querySelector('.blok-label');
+            if (label) label.textContent = `📋 Daftar Nama Tambahan #${b.displayIndex}`;
+        }
+    });
+}
+
+function hapusSemuaBlokTambahan() {
+    const container = document.getElementById('extraBlocksContainer');
+    if (container) container.innerHTML = '';
+    extraBlocks = [];
+}
+
+function getResultBadgeText() {
+    if (srcMode === 'nama') {
+        const blokTerisi = extraBlocks.filter(b => {
+            const t = document.getElementById(b.textareaId);
+            return t && t.value.split('\n').map(l => l.trim()).filter(l => l !== '').length > 0;
+        }).length;
+        if (blokTerisi > 0) return `🧩 ${1 + blokTerisi} Blok Digabung`;
+    }
+    if (inputSource === 'paste') return '📋 Paste Teks';
+    return currentFileType === 'txt' ? '📄 TXT' : '📊 Excel/CSV';
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   BACA FILE → daftar nama mentah
+══════════════════════════════════════════════════════════════════ */
+function readTxtFile(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+            const lines = String(reader.result)
+                .split(/\r?\n/)
+                .map(l => l.trim())
+                .filter(l => l.length > 0);
+            resolve(lines);
+        };
+        reader.onerror = () => reject(new Error('Gagal membaca file txt.'));
+        reader.readAsText(file, 'UTF-8');
+    });
+}
+
+function readExcelFile(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+            try {
+                const data = new Uint8Array(reader.result);
+                const wb = XLSX.read(data, { type: 'array' });
+                const sheetName = wb.SheetNames[0];
+                const sheet = wb.Sheets[sheetName];
+                const json = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+                originalWorkbook  = wb;
+                originalSheetName = sheetName;
+                // Ambil kolom A (index 0) dari setiap baris, lewati baris yang benar2 kosong semua
+                const names = [];
+                for (const r of json) {
+                    if (!r || r.length === 0) continue;
+                    const isRowEmpty = r.every(cell => String(cell).trim() === '');
+                    if (isRowEmpty) continue;
+                    names.push(String(r[0] != null ? r[0] : '').trim());
+                }
+                resolve(names);
+            } catch (e) {
+                reject(e);
+            }
+        };
+        reader.onerror = () => reject(new Error('Gagal membaca file excel.'));
+        reader.readAsArrayBuffer(file);
+    });
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   CEK TOKEN KE SERVER
+══════════════════════════════════════════════════════════════════ */
+async function tokenExistsOnServer(token, tbl) {
+    try {
+        const res  = await fetch(`${API_INSERT}?table=${tbl}&x_01_eq=${encodeURIComponent(token)}`, { headers: { 'X-Custom-Auth': AUTH_KEY } });
+        const data = await res.json();
+        return data.success && data.count > 0;
+    } catch {
+        return false; // jika gagal cek, jangan blokir proses — akan ketahuan saat insert
+    }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   GENERATE TOKEN DASAR (nama + angka yang diketik langsung, tanpa acak)
+   Token dasar boleh sama untuk banyak nama — saat "Simpan ke Server",
+   id_x dari database otomatis disambung sehingga token final tetap unik.
+══════════════════════════════════════════════════════════════════ */
+function generateTokenFor(namaSlug, numberSuffix) {
+    if (!namaSlug) return null; // nama kosong -> tidak generate
+    return namaSlug + numberSuffix;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   PROSES UTAMA: file -> generate token
+══════════════════════════════════════════════════════════════════ */
+async function processFile() {
+    if (srcMode === 'token') {
+        // Mode Token Langsung — tidak melibatkan blok tambahan, alur seperti semula (1 sumber saja)
+        if (inputSource === 'upload' && !currentFile) { alert('Pilih file terlebih dahulu.'); return; }
+        if (inputSource === 'paste' && document.getElementById('pasteInput').value.trim() === '') {
+            alert('Tempel daftar terlebih dahulu.'); return;
+        }
+
+        document.getElementById('uploadLoading').style.display = 'flex';
+        document.getElementById('btnProcess').disabled = true;
+
+        try {
+            let items = [];
+            if (inputSource === 'paste') {
+                const text = document.getElementById('pasteInput').value;
+                items = text.split('\n').map(l => l.trim()).filter(l => l !== '');
+            } else if (currentFileType === 'txt') {
+                items = await readTxtFile(currentFile);
+            } else {
+                items = await readExcelFile(currentFile);
+            }
+
+            if (items.length === 0) {
+                alert('Tidak ada token yang terbaca.');
+                return;
+            }
+
+            await processAsTokens(items);
+            document.getElementById('resultCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } catch (e) {
+            alert('Gagal memproses data: ' + e.message);
+        } finally {
+            document.getElementById('uploadLoading').style.display = 'none';
+            document.getElementById('btnProcess').disabled = false;
+        }
+        return;
+    }
+
+    // Mode Nama Peserta — kumpulkan dari blok utama + semua blok tambahan, lalu gabung jadi satu hasil
+    document.getElementById('uploadLoading').style.display = 'flex';
+    document.getElementById('btnProcess').disabled = true;
+
+    try {
+        const groups = await collectNameGroups();
+        if (groups === null) return; // validasi gagal, alert sudah tampil di collectNameGroups()
+
+        await processAsNames(groups);
+        document.getElementById('resultCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (e) {
+        alert('Gagal memproses data: ' + e.message);
+    } finally {
+        document.getElementById('uploadLoading').style.display = 'none';
+        document.getElementById('btnProcess').disabled = false;
+    }
+}
+
+/* Kumpulkan { items:[nama...], numberSuffix } dari blok utama (Upload/Paste) + semua
+   blok tambahan (Paste Teks saja). Blok tambahan yang dikosongkan otomatis dilewati.
+   Return null kalau ada validasi yang gagal (alert sudah ditampilkan ke user). */
+async function collectNameGroups() {
+    const groups = [];
+
+    // ── Blok utama (Upload File / Paste Teks) ──
+    if (inputSource === 'upload' && !currentFile) { alert('Pilih file terlebih dahulu, atau isi lewat Paste Teks.'); return null; }
+    if (inputSource === 'paste' && document.getElementById('pasteInput').value.trim() === '') {
+        alert('Tempel daftar terlebih dahulu.'); return null;
+    }
+
+    const numberSuffixMain = String(document.getElementById('numberSuffixInput').value || '').trim();
+    if (!numberSuffixMain) {
+        alert('Isi dulu "Angka Setelah Nama" pada blok pertama.');
+        return null;
+    }
+
+    let itemsMain = [];
+    if (inputSource === 'paste') {
+        itemsMain = document.getElementById('pasteInput').value.split('\n').map(l => l.trim()).filter(l => l !== '');
+    } else if (currentFileType === 'txt') {
+        itemsMain = await readTxtFile(currentFile);
+    } else {
+        itemsMain = await readExcelFile(currentFile);
+    }
+    if (itemsMain.length === 0) {
+        alert('Tidak ada nama yang terbaca dari blok pertama.');
+        return null;
+    }
+    groups.push({ items: itemsMain, numberSuffix: numberSuffixMain });
+
+    // ── Blok tambahan (Paste Teks saja) ──
+    for (const blok of extraBlocks) {
+        const textarea    = document.getElementById(blok.textareaId);
+        const numberInput = document.getElementById(blok.numberId);
+        const text  = textarea ? textarea.value : '';
+        const items = text.split('\n').map(l => l.trim()).filter(l => l !== '');
+
+        if (items.length === 0) continue; // blok kosong -> lewati, tidak wajib diisi
+
+        const numberSuffix = String(numberInput ? numberInput.value : '').trim();
+        if (!numberSuffix) {
+            alert(`Isi dulu "Angka Setelah Nama" pada blok tambahan #${blok.displayIndex}.`);
+            return null;
+        }
+        groups.push({ items, numberSuffix });
+    }
+
+    return groups;
+}
+
+/* ── MODE: NAMA -> generate token baru dari beberapa grup (masing-masing punya angka suffix sendiri) ── */
+async function processAsNames(groups) {
+    rows = [];
+    let idx = 1;
+    groups.forEach((grp, gi) => {
+        for (const nama of grp.items) {
+            rows.push({
+                idx: idx++,
+                nama,
+                token: null,
+                status: 'pending',
+                numberSuffix: grp.numberSuffix,
+                blokIndex: gi,           // 0-based, urutan blok
+                blokDisplayIndex: gi + 1 // 1-based, untuk label/nama file
+            });
+        }
+    });
+
+    let generated = 0, skipped = 0;
+    for (const row of rows) {
+        const slug = extractFirstNameSlug(row.nama);
+        if (!slug) {
+            row.status = 'skip';
+            row.token  = null;
+            skipped++;
+            continue;
+        }
+        const token = generateTokenFor(slug, row.numberSuffix);
+        row.token  = token;
+        row.status = 'ok';
+        generated++;
+    }
+
+    renderPreview();
+    document.getElementById('resultCard').style.display = 'block';
+    document.getElementById('resultFileType').textContent = getResultBadgeText();
+    document.getElementById('statTotal').textContent = rows.length;
+    document.getElementById('statGenerated').textContent = generated;
+    document.getElementById('statSkipped').textContent = skipped;
+    document.getElementById('statSaved').textContent = '0';
+
+    showToast(`✅ ${generated} token berhasil dibuat${skipped ? `, ${skipped} dilewati` : ''}`);
+}
+
+/* ── MODE: TOKEN LANGSUNG -> tiap baris dianggap token jadi, cek ke server ── */
+async function processAsTokens(tokensRaw) {
+    const tbl = document.getElementById('tableInput').value.trim() || 'nilai3_json';
+
+    // bersihkan baris kosong & rapikan spasi, nama dikosongkan (file ini isinya token, bukan nama)
+    const cleaned = tokensRaw.map(t => String(t || '').trim()).filter(t => t !== '');
+
+    if (cleaned.length === 0) {
+        alert('Tidak ada token yang terbaca dari file ini.');
+        return;
+    }
+
+    rows = cleaned.map((tok, i) => ({ idx: i + 1, nama: '', token: tok, status: 'pending' }));
+
+    let available = 0, dup = 0;
+    for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        document.getElementById('uploadLoadingLabel').textContent =
+            `Memeriksa token ke server... (${i + 1}/${rows.length})`;
+        const exists = await tokenExistsOnServer(row.token, tbl);
+        if (exists) {
+            row.status = 'dup';
+            dup++;
+        } else {
+            row.status = 'ok';
+            available++;
+        }
+    }
+
+    renderPreview();
+    document.getElementById('resultCard').style.display = 'block';
+    document.getElementById('resultFileType').textContent = getResultBadgeText();
+    document.getElementById('statTotal').textContent = rows.length;
+    document.getElementById('statGenerated').textContent = available;
+    document.getElementById('statSkipped').textContent = dup;
+    document.getElementById('statSaved').textContent = '0';
+
+    showToast(`🔎 ${available} token belum ada (siap disimpan)${dup ? `, ${dup} sudah ada di server` : ''}`);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   RENDER PREVIEW TABLE
+══════════════════════════════════════════════════════════════════ */
+function statusLabel(status) {
+    switch (status) {
+        case 'ok':     return { cls: 'status-ok',     text: '✓ Siap' };
+        case 'saved':  return { cls: 'status-saved',  text: '💾 Tersimpan' };
+        case 'error':  return { cls: 'status-error',  text: '✗ Gagal' };
+        case 'skip':   return { cls: 'status-skip',   text: '— Dilewati' };
+        case 'dup':    return { cls: 'status-dup',    text: '⚠ Duplikat' };
+        default:       return { cls: 'status-pending', text: 'Menunggu' };
+    }
+}
+
+function renderPreview() {
+    const body = document.getElementById('previewBody');
+    body.innerHTML = '';
+    for (const row of rows) {
+        const tr = document.createElement('tr');
+        const sl = statusLabel(row.status);
+        const namaCell = row.nama
+            ? escHtml(row.nama)
+            : (srcMode === 'token'
+                ? '<span style="color:var(--muted)">-</span>'
+                : '<span class="name-empty">(nama kosong)</span>');
+        const tokenCell = row.token
+            ? `<span class="token-cell">${escHtml(row.token)}</span>`
+            : '<span style="color:var(--muted)">-</span>';
+        tr.innerHTML = `
+            <td>${row.idx}</td>
+            <td>${namaCell}</td>
+            <td>${tokenCell}</td>
+            <td><span class="row-status ${sl.cls}">${sl.text}</span></td>
+        `;
+        body.appendChild(tr);
+    }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   SIMPAN KE SERVER (insert ke tabel, kolom x_01)
+══════════════════════════════════════════════════════════════════ */
+async function saveToServer() {
+    const tbl = document.getElementById('tableInput').value.trim() || 'nilai3_json';
+    const toSave = rows.filter(r => r.status === 'ok' && r.token);
+    if (toSave.length === 0) {
+        alert('Tidak ada token yang siap untuk disimpan (semua sudah tersimpan / sudah ada di server / tidak valid).');
+        return;
+    }
+    if (!confirm(`Simpan ${toSave.length} token baru ke tabel "${tbl}"?`)) return;
+
+    const btn = document.getElementById('btnSaveServer');
+    btn.disabled = true;
+    btn.textContent = '⏳ Menyimpan...';
+    document.getElementById('logBox').innerHTML = '';
+    document.getElementById('logBox').style.display = 'block';
+    addLog('info', `Mulai menyimpan ${toSave.length} token ke tabel "${tbl}"...`);
+
+    const lbl = row => row.nama ? `${row.token} (${row.nama})` : row.token;
+
+    let ok = 0, fail = 0;
+    for (let i = 0; i < toSave.length; i++) {
+        const row = toSave[i];
+        try {
+            // cek ulang sesaat sebelum insert, untuk mengurangi race condition
+            const exists = await tokenExistsOnServer(row.token, tbl);
+            if (exists) {
+                row.status = 'dup';
+                fail++;
+                addLog('err', `[${i + 1}/${toSave.length}] ✗ ${lbl(row)} — sudah ada di server, dilewati`);
+                continue;
+            }
+            const res = await fetch(`${API_INSERT}?table=${tbl}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-Custom-Auth': AUTH_KEY },
+                body: JSON.stringify({ x_01: row.token })
+            });
+            const data = await res.json();
+            if (data.success) {
+                const idX = data.id_x;
+                const tokenAwal = row.token;
+                const tokenFinal = tokenAwal + idX; // sambung token dasar (nama+angka) dengan id_x
+
+                // Update baris yg baru diinsert agar x_01 jadi token+id_x
+                try {
+                    const resUpd = await fetch(`${API_INSERT}?table=${tbl}&id_x=${idX}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json', 'X-Custom-Auth': AUTH_KEY },
+                        body: JSON.stringify({ x_01: tokenFinal })
+                    });
+                    const dataUpd = await resUpd.json();
+                    if (dataUpd.success) {
+                        row.token = tokenFinal;
+                        row.status = 'saved';
+                        ok++;
+                        addLog('ok', `[${i + 1}/${toSave.length}] ✓ ${lbl({ ...row, token: tokenAwal })} → id_x:${idX} → token final: ${tokenFinal}`);
+                    } else {
+                        // insert sukses tapi update gagal -> token tetap versi awal (tanpa id_x)
+                        row.status = 'saved';
+                        ok++;
+                        addLog('err', `[${i + 1}/${toSave.length}] ⚠ ${lbl(row)} → id_x:${idX} — tersimpan, tapi gagal update token final (${dataUpd.message || 'error'})`);
+                    }
+                } catch (eUpd) {
+                    row.status = 'saved';
+                    ok++;
+                    addLog('err', `[${i + 1}/${toSave.length}] ⚠ ${lbl(row)} → id_x:${idX} — tersimpan, tapi gagal update token final (${eUpd.message})`);
+                }
+            } else {
+                row.status = 'error';
+                fail++;
+                addLog('err', `[${i + 1}/${toSave.length}] ✗ ${lbl(row)} — ${data.message || 'error'}`);
+            }
+        } catch (e) {
+            row.status = 'error';
+            fail++;
+            addLog('err', `[${i + 1}/${toSave.length}] ✗ ${lbl(row)} — ${e.message}`);
+        }
+    }
+    addLog('info', `─── Selesai: ${ok} tersimpan, ${fail} gagal/duplikat ───`);
+
+    renderPreview();
+    const savedTotal = rows.filter(r => r.status === 'saved').length;
+    document.getElementById('statSaved').textContent = savedTotal;
+
+    btn.disabled = false;
+    btn.textContent = '💾 Simpan ke Server';
+    showToast(`💾 ${ok} token tersimpan ke server${fail ? `, ${fail} gagal/duplikat` : ''}`);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   DOWNLOAD HASIL (selalu dalam bentuk Excel/.xlsx — kolom Nama & Token)
+══════════════════════════════════════════════════════════════════ */
+function downloadResult() {
+    if (rows.length === 0) { alert('Belum ada data untuk didownload.'); return; }
+
+    const ts = new Date();
+    const stamp = `${ts.getFullYear()}${String(ts.getMonth()+1).padStart(2,'0')}${String(ts.getDate()).padStart(2,'0')}_${String(ts.getHours()).padStart(2,'0')}${String(ts.getMinutes()).padStart(2,'0')}`;
+
+    // Kelompokkan baris berdasarkan blok asalnya. Hanya rows hasil mode "Nama Peserta"
+    // yang punya blokIndex (mode Token Langsung tidak punya konsep blok).
+    const blokIndices = [...new Set(rows.map(r => r.blokIndex).filter(v => v !== undefined))];
+    const lebihDariSatuBlok = blokIndices.length > 1;
+
+    if (!lebihDariSatuBlok) {
+        // Perilaku lama, tidak berubah: Token Langsung, atau Nama Peserta yang cuma pakai 1 blok
+        const aoa = [['Nama', 'Token']];
+        for (const r of rows) aoa.push([r.nama, r.token || '']);
+        const ws = XLSX.utils.aoa_to_sheet(aoa);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Token');
+        XLSX.writeFile(wb, `hasil_token_${stamp}.xlsx`);
+        return;
+    }
+
+    // Lebih dari 1 blok -> bungkus 1 file .xlsx per blok ke dalam 1 file .zip
+    downloadResultPerBlokZip(stamp);
+}
+
+async function downloadResultPerBlokZip(stamp) {
+    if (typeof JSZip === 'undefined') {
+        alert('Library ZIP gagal dimuat. Cek koneksi internet lalu muat ulang halaman.');
+        return;
+    }
+
+    const btn = document.getElementById('btnDownload');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Membungkus ZIP...'; }
+
+    try {
+        const zip = new JSZip();
+        const blokIndices = [...new Set(rows.map(r => r.blokIndex))].sort((a, b) => a - b);
+
+        for (const bi of blokIndices) {
+            const rowsBlok = rows.filter(r => r.blokIndex === bi);
+            const displayIdx = rowsBlok[0]?.blokDisplayIndex ?? (bi + 1);
+
+            const aoa = [['Nama', 'Token']];
+            for (const r of rowsBlok) aoa.push([r.nama, r.token || '']);
+            const ws = XLSX.utils.aoa_to_sheet(aoa);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Token');
+
+            const wbBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+            zip.file(`hasil_token_blok${displayIdx}_${stamp}.xlsx`, wbBuffer);
+        }
+
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        triggerDownload(zipBlob, `hasil_token_per_blok_${stamp}.zip`);
+        showToast(`✅ ZIP berisi ${blokIndices.length} file Excel (1 per blok) berhasil didownload.`);
+    } catch (e) {
+        alert('Gagal membuat ZIP: ' + e.message);
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = '⬇️ Download Hasil'; }
+    }
+}
+
+function triggerDownload(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   RESET
+══════════════════════════════════════════════════════════════════ */
+function resetAll() {
+    if (!confirm('Mulai ulang? Hasil yang belum didownload akan hilang.')) return;
+    rows = [];
+    currentFile = null;
+    currentFileType = null;
+    originalWorkbook = null;
+    originalSheetName = null;
+    fileInput.value = '';
+    document.getElementById('fileChipArea').innerHTML = '';
+    const pasteInput = document.getElementById('pasteInput');
+    if (pasteInput) pasteInput.value = '';
+    const pasteCount = document.getElementById('pasteCount');
+    if (pasteCount) pasteCount.style.display = 'none';
+    document.getElementById('btnProcess').disabled = true;
+    document.getElementById('resultCard').style.display = 'none';
+    document.getElementById('logBox').innerHTML = '';
+    document.getElementById('logBox').style.display = 'none';
+    hapusSemuaBlokTambahan();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+</body>
+</html>

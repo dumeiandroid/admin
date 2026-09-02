@@ -1,0 +1,2507 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transfer Data Psikogram JSON</title>
+    <script src="https://psikogram.lidan.co.id/engine1/psikogram-engine-json.js?v=1"></script>
+    <script>
+        // karakter_engine.js menggunakan const di top-level sehingga tidak otomatis masuk window.
+        // Solusi: load ulang via fetch lalu eksekusi dengan window assignment eksplisit.
+        // Simpan promise agar fetchPreview bisa await sebelum proses data
+        function _loadEngine(url, varName) {
+            return fetch(url)
+                .then(r => r.text())
+                .then(text => {
+                    const fn = new Function(text + '; return ' + varName + ';');
+                    window[varName] = fn();
+                    console.log('[' + varName + '] Berhasil dimuat');
+                })
+                .catch(e => console.error('[' + varName + '] Gagal:', e));
+        }
+
+        // Semua engine dimuat paralel, disimpan sebagai promise untuk di-await
+        window._enginesReady = Promise.all([
+            _loadEngine('https://psikogram.lidan.co.id/engine1/karakter_engine.js', 'KarakterEngine'),
+            _loadEngine('https://psikogram.lidan.co.id/engine1/potensi_engine.js',  'PotensiEngine'),
+            _loadEngine('https://psikogram.lidan.co.id/engine1/karir_engine.js',    'KarirEngine'),
+            _loadEngine('https://psikogram.lidan.co.id/engine1/asmara_engine.js',   'AsmaraEngine'),
+        ]);
+        // Backward compat
+        window._karakterEngineReady = window._enginesReady;
+
+        // =========================================================
+        // TOGGLE VARIASI KALIMAT: konsisten (per id_x) vs acak murni
+        // Disimpan di localStorage (per-browser/per-admin, sesuai kesepakatan).
+        // 'konsisten' → id_x sama = kalimat pasti sama tiap kali di-generate ulang.
+        // 'acak'      → kalimat boleh berubah setiap kali di-generate ulang,
+        //               walau id_x sama (Math.random murni, tanpa seed).
+        // =========================================================
+        const VARIASI_MODE_KEY = 'lidan_variasi_mode';
+
+        function getVariasiMode() {
+            const m = localStorage.getItem(VARIASI_MODE_KEY);
+            return (m === 'acak') ? 'acak' : 'konsisten'; // default: konsisten
+        }
+
+        function setVariasiMode(mode) {
+            localStorage.setItem(VARIASI_MODE_KEY, mode === 'acak' ? 'acak' : 'konsisten');
+        }
+
+        // getRandFn(seed): satu-satunya sumber fungsi random di file ini.
+        // - Mode konsisten: rand seeded dari `seed` (pakai util PsikogramEngine kalau ada,
+        //   fallback ke seededRandom lokal) → deterministik per seed (biasanya id_x/token).
+        // - Mode acak: Math.random murni, seed diabaikan → beda tiap kali dipanggil.
+        function getRandFn(seed) {
+            if (getVariasiMode() === 'acak') {
+                return function () { return Math.random(); };
+            }
+            const PE = window.PsikogramEngine;
+            if (PE && PE.makeSeededRand && PE.seedFromId) {
+                return PE.makeSeededRand(PE.seedFromId(String(seed)));
+            }
+            // Fallback: pakai seededRandom() yang didefinisikan lebih bawah di file ini.
+            return seededRandom(String(seed));
+        }
+    </script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #5F4EDA;
+            min-height: 100vh;
+            color: #222;
+        }
+
+        /* ── Header ── */
+        .page-header {
+            background: #4a3bb5;
+            color: white;
+            padding: 18px 30px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            border-bottom: 3px solid #3a2da0;
+        }
+        .page-header h1 { font-size: 20px; }
+        .page-header span { font-size: 13px; opacity: .8; }
+
+        /* ── Toggle Variasi Kalimat (konsisten / acak) ── */
+        .variasi-toggle-box {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255,255,255,.08);
+            border: 1px solid rgba(255,255,255,.25);
+            border-radius: 10px;
+            padding: 8px 14px;
+            flex-shrink: 0;
+        }
+        .variasi-toggle-box .vt-label {
+            font-size: 12px;
+            line-height: 1.3;
+            text-align: right;
+        }
+        .variasi-toggle-box .vt-label strong { font-size: 13px; }
+        .variasi-toggle-box .vt-mode-text {
+            display: block;
+            font-weight: bold;
+        }
+        .variasi-toggle-box .vt-mode-text.konsisten { color: #6bffb0; }
+        .variasi-toggle-box .vt-mode-text.acak      { color: #ffd93d; }
+        .vt-switch {
+            position: relative;
+            width: 46px;
+            height: 24px;
+            flex-shrink: 0;
+        }
+        .vt-switch input { opacity: 0; width: 0; height: 0; }
+        .vt-slider {
+            position: absolute; cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #888;
+            transition: .2s;
+            border-radius: 24px;
+        }
+        .vt-slider::before {
+            position: absolute;
+            content: "";
+            height: 18px; width: 18px;
+            left: 3px; bottom: 3px;
+            background-color: white;
+            transition: .2s;
+            border-radius: 50%;
+        }
+        .vt-switch input:checked + .vt-slider { background-color: #2ecc71; }
+        .vt-switch input:checked + .vt-slider::before { transform: translateX(22px); }
+
+        /* ── Layout ── */
+        .main-wrap {
+            max-width: 1100px;
+            margin: 24px auto;
+            padding: 0 16px 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* ── Card ── */
+        .card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 18px rgba(0,0,0,.18);
+            overflow: hidden;
+        }
+        .card-head {
+            background: #5F4EDA;
+            color: white;
+            padding: 12px 20px;
+            font-weight: bold;
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .card-body { padding: 20px; }
+
+        /* ── Form Controls ── */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 14px;
+            margin-bottom: 16px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 9px 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color .2s;
+        }
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #5F4EDA;
+        }
+
+        /* ── Mode Tabs ── */
+        .mode-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+        }
+        .mode-tab {
+            padding: 8px 18px;
+            border: 2px solid #5F4EDA;
+            border-radius: 20px;
+            background: white;
+            color: #5F4EDA;
+            font-weight: bold;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all .2s;
+        }
+        .mode-tab.active {
+            background: #5F4EDA;
+            color: white;
+        }
+        .mode-tab:hover:not(.active) { background: #eee8ff; }
+
+        .mode-panel { display: none; }
+        .mode-panel.active { display: block; }
+
+        /* ── Buttons ── */
+        .btn {
+            padding: 10px 22px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all .2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn:disabled { opacity: .5; cursor: not-allowed; }
+        .btn-primary   { background: #5F4EDA; color: white; }
+        .btn-primary:hover:not(:disabled)   { background: #4a3bb5; }
+        .btn-success   { background: #28a745; color: white; }
+        .btn-success:hover:not(:disabled)   { background: #218838; }
+        .btn-danger    { background: #dc3545; color: white; }
+        .btn-danger:hover:not(:disabled)    { background: #c82333; }
+        .btn-secondary { background: #6c757d; color: white; }
+        .btn-secondary:hover:not(:disabled) { background: #545b62; }
+
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+        }
+
+        /* ── Preview Table ── */
+        .preview-wrap { overflow-x: auto; }
+        table.preview-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            min-width: 700px;
+        }
+        .preview-table th {
+            background: #5F4EDA;
+            color: white;
+            padding: 9px 12px;
+            text-align: left;
+            white-space: nowrap;
+        }
+        .preview-table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #eee;
+            vertical-align: top;
+        }
+        .preview-table tr:hover td { background: #f5f0ff; }
+        .preview-table tr.selected td { background: #e8e0ff; }
+
+        /* ── Status Badge ── */
+        .badge {
+            display: inline-block;
+            padding: 3px 9px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+        .badge-new     { background: #d4edda; color: #155724; }
+        .badge-update  { background: #fff3cd; color: #856404; }
+        .badge-success { background: #cce5ff; color: #004085; }
+        .badge-error   { background: #f8d7da; color: #721c24; }
+        .badge-pending { background: #e2e3e5; color: #383d41; }
+
+        /* ── Progress ── */
+        .progress-bar-wrap {
+            background: #e9ecef;
+            border-radius: 8px;
+            height: 18px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-bar {
+            background: linear-gradient(90deg, #5F4EDA, #28a745);
+            height: 100%;
+            width: 0%;
+            transition: width .3s;
+            border-radius: 8px;
+        }
+
+        /* ── Log ── */
+        .log-box {
+            background: #1a1a2e;
+            color: #a8ff78;
+            border-radius: 8px;
+            padding: 14px;
+            font-family: monospace;
+            font-size: 12px;
+            height: 200px;
+            overflow-y: auto;
+            line-height: 1.7;
+        }
+        .log-box .log-err  { color: #ff6b6b; }
+        .log-box .log-ok   { color: #a8ff78; }
+        .log-box .log-info { color: #74b9ff; }
+        .log-box .log-warn { color: #ffd93d; }
+
+        /* ── Summary Stats ── */
+        .stats-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .stat-box {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 12px 18px;
+            text-align: center;
+            min-width: 100px;
+            border: 2px solid #e9ecef;
+        }
+        .stat-box .stat-num { font-size: 26px; font-weight: bold; color: #5F4EDA; }
+        .stat-box .stat-lbl { font-size: 11px; color: #777; text-transform: uppercase; }
+
+        /* ── Detail JSON tooltip ── */
+        .json-cell {
+            max-width: 220px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            cursor: pointer;
+            color: #5F4EDA;
+            text-decoration: underline dotted;
+        }
+
+        /* ── Modal ── */
+        .modal-overlay {
+            display: none;
+            position: fixed; top:0; left:0; width:100%; height:100%;
+            background: rgba(0,0,0,.55);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal-box {
+            background: white;
+            border-radius: 10px;
+            max-width: 700px;
+            width: 95%;
+            max-height: 85vh;
+            overflow: auto;
+            padding: 24px;
+            box-shadow: 0 8px 40px rgba(0,0,0,.3);
+        }
+        .modal-box h3 { margin-bottom: 14px; color: #5F4EDA; }
+        .modal-box pre {
+            background: #f4f0ff;
+            padding: 14px;
+            border-radius: 6px;
+            font-size: 12px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .modal-close {
+            float: right;
+            cursor: pointer;
+            font-size: 20px;
+            color: #999;
+        }
+        .modal-close:hover { color: #333; }
+
+        /* ── Select All ── */
+        .select-all-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 10px;
+            font-size: 13px;
+            color: #555;
+        }
+        .select-all-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .preview-search-wrap {
+            position: relative;
+            min-width: 220px;
+        }
+        .preview-search-wrap input {
+            width: 100%;
+            padding: 7px 30px 7px 12px;
+            border: 1px solid #d5d5e0;
+            border-radius: 8px;
+            font-size: 13px;
+            outline: none;
+            transition: border-color .15s;
+        }
+        .preview-search-wrap input:focus {
+            border-color: #6c63ff;
+        }
+        .preview-search-wrap .search-icon {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 13px;
+            color: #999;
+            pointer-events: none;
+        }
+        .preview-search-count {
+            font-size: 11px;
+            color: #999;
+            margin-top: 2px;
+        }
+
+        /* ── Empty state ── */
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #aaa;
+        }
+        .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+
+        .spinner-inline {
+            display: inline-block;
+            width: 14px; height: 14px;
+            border: 2px solid rgba(255,255,255,.4);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin .7s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── Server Switcher ── */
+        .srv-label {
+            font-size: 11px;
+            font-weight: bold;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            margin-bottom: 8px;
+            display: block;
+        }
+        .srv-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .srv-btn {
+            background: #f4f0ff;
+            border: 2px solid #c9baff;
+            color: #5F4EDA;
+            border-radius: 8px;
+            padding: 7px 16px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all .2s;
+            font-family: monospace;
+            line-height: 1.4;
+            text-align: left;
+        }
+        .srv-btn:hover:not(.active) {
+            background: #e8e0ff;
+            border-color: #5F4EDA;
+        }
+        .srv-btn.active {
+            background: #5F4EDA;
+            border-color: #4a3bb5;
+            color: white;
+        }
+        .srv-btn .srv-name   { display: block; font-size: 13px; }
+        .srv-btn .srv-domain { display: block; font-size: 10px; opacity: .75; font-weight: normal; }
+        .hdr-srv-badge {
+            display: inline-block;
+            background: rgba(255,255,255,.2);
+            border: 1px solid rgba(255,255,255,.35);
+            border-radius: 12px;
+            padding: 2px 10px;
+            font-size: 12px;
+            font-family: monospace;
+            margin-left: 4px;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="page-header">
+    <div>
+        <h1>📊 Transfer Data Psikogram JSON: <span id="hdr-src">nilai3_json</span> → <span id="hdr-dst">rekap_nilai1</span></h1>
+        <span>Sumber: tabel <strong id="hdr-src2">nilai3_json</strong> &nbsp;|&nbsp; Tujuan: tabel <strong id="hdr-dst2">rekap_nilai1</strong> &nbsp;|&nbsp; Src: <span id="hdr-srv-src" class="hdr-srv-badge">lidan-co-id.pages.dev</span> → Dst: psikogram_db &nbsp;|&nbsp; <strong style="color:#ffd93d;">Format: JSON</strong></span>
+    </div>
+
+    <!-- Toggle: Variasi Kalimat — konsisten (id_x sama = kalimat sama) vs acak murni -->
+    <div class="variasi-toggle-box" title="Konsisten: id_x sama selalu dapat kalimat sama. Acak: kalimat bisa berubah tiap kali di-generate ulang, walau id_x sama.">
+        <div class="vt-label">
+            <strong>Variasi Kalimat</strong>
+            <span class="vt-mode-text" id="vt-mode-text">Konsisten</span>
+        </div>
+        <label class="vt-switch">
+            <input type="checkbox" id="vt-switch-input" onchange="onVariasiModeToggle(this.checked)">
+            <span class="vt-slider"></span>
+        </label>
+    </div>
+</div>
+
+<script>
+    // Sinkronkan UI toggle dengan mode tersimpan di localStorage saat halaman dibuka.
+    // checked = ON = 'acak', unchecked = OFF = 'konsisten' (default).
+    function refreshVariasiToggleUI() {
+        const mode = getVariasiMode();
+        const input = document.getElementById('vt-switch-input');
+        const text  = document.getElementById('vt-mode-text');
+        if (!input || !text) return;
+        input.checked = (mode === 'acak');
+        text.textContent = (mode === 'acak') ? 'Acak' : 'Konsisten';
+        text.className = 'vt-mode-text ' + (mode === 'acak' ? 'acak' : 'konsisten');
+    }
+
+    function onVariasiModeToggle(isAcak) {
+        setVariasiMode(isAcak ? 'acak' : 'konsisten');
+        refreshVariasiToggleUI();
+    }
+
+    refreshVariasiToggleUI();
+</script>
+
+<!-- Main Wrap -->
+<div class="main-wrap">
+
+    <!-- ══ PILIH SERVER SUMBER ══ -->
+    <div class="card">
+        <div class="card-head">🌐 Server Sumber Data</div>
+        <div class="card-body">
+            <span class="srv-label">Pilih server untuk membaca data sumber:</span>
+            <div class="srv-grid" id="serverGrid"><!-- filled by JS --></div>
+            <div id="srv-info-strip" style="
+                margin-top:12px; padding:10px 14px;
+                background:#f0edff; border-radius:8px; border-left:4px solid #5F4EDA;
+                font-size:13px; display:flex; align-items:center; gap:10px;">
+                <span style="font-size:16px;">🔗</span>
+                <span>API Sumber aktif: <code id="srv-api-display" style="font-size:12px; background:#e8e0ff; padding:2px 7px; border-radius:4px;"></code></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ KONFIGURASI TABEL ══ -->
+    <div class="card">
+        <div class="card-head">🗄️ Konfigurasi Tabel</div>
+        <div class="card-body">
+            <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); align-items: end;">
+                <div class="form-group">
+                    <label>📥 Tabel Sumber (Baca Data)</label>
+                    <div style="display:flex; gap:8px;">
+                        <input type="text" id="cfg-src-table" value="nilai3_json" placeholder="nama_tabel_sumber"
+                            oninput="onTableInput()" style="flex:1;">
+                        <button class="btn btn-secondary" style="padding:9px 12px; white-space:nowrap;"
+                            onclick="resetSrcTable()">↩ Reset</button>
+                    </div>
+                    <div style="font-size:11px; color:#888; margin-top:4px;">Default: <code>nilai3_json</code></div>
+                </div>
+                <div class="form-group">
+                    <label>📤 Tabel Tujuan (Simpan Rekap)</label>
+                    <div style="display:flex; gap:8px;">
+                        <input type="text" id="cfg-dst-table" value="rekap_nilai1" placeholder="nama_tabel_tujuan"
+                            oninput="onTableInput()" style="flex:1;">
+                        <button class="btn btn-secondary" style="padding:9px 12px; white-space:nowrap;"
+                            onclick="resetDstTable()">↩ Reset</button>
+                    </div>
+                    <div style="font-size:11px; color:#888; margin-top:4px;">Default: <code>rekap_nilai1</code></div>
+                </div>
+                <div class="form-group" style="display:flex; flex-direction:column; justify-content:flex-end;">
+                    <button class="btn btn-primary" onclick="applyTableConfig()" style="width:100%;">
+                        ✅ Terapkan Konfigurasi
+                    </button>
+                    <div style="font-size:11px; color:#888; margin-top:4px; text-align:center;">
+                        Terapkan sebelum ambil data
+                    </div>
+                </div>
+            </div>
+
+            <!-- Info strip -->
+            <div id="table-info-strip" style="
+                margin-top:14px; padding:10px 14px;
+                background:#f0edff; border-radius:8px; border-left:4px solid #5F4EDA;
+                font-size:13px; display:flex; align-items:center; gap:10px;">
+                <span style="font-size:18px;">ℹ️</span>
+                <span>Aktif: Membaca dari tabel <strong id="info-src">nilai3_json</strong>,
+                menyimpan ke tabel <strong id="info-dst">rekap_nilai1</strong></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ PANEL KONFIGURASI TRANSFER ══ -->
+    <div class="card">
+        <div class="card-head">⚙️ Pengaturan Transfer</div>
+        <div class="card-body">
+
+            <!-- Mode Tabs -->
+            <div class="mode-tabs">
+                <button class="mode-tab active" onclick="switchMode('single')">🎯 Satu Peserta</button>
+                <button class="mode-tab"        onclick="switchMode('range')">📋 Range id_x</button>
+                <button class="mode-tab"        onclick="switchMode('all')">🌐 Semua Data</button>
+                <button class="mode-tab"        onclick="switchMode('date_single')">📅 Satu Tanggal</button>
+                <button class="mode-tab"        onclick="switchMode('date_range')">🗓️ Range Tanggal</button>
+            </div>
+
+            <!-- Mode: Single -->
+            <div class="mode-panel active" id="panel-single">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>id_x Peserta</label>
+                        <input type="number" id="input-single-id" placeholder="Contoh: 5" min="1">
+                    </div>
+                </div>
+                <div class="btn-row">
+                    <button class="btn btn-primary" onclick="fetchPreview('single')">🔍 Ambil &amp; Preview</button>
+                </div>
+            </div>
+
+            <!-- Mode: Range -->
+            <div class="mode-panel" id="panel-range">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>id_x Dari</label>
+                        <input type="number" id="input-range-from" placeholder="Contoh: 1" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label>id_x Sampai</label>
+                        <input type="number" id="input-range-to" placeholder="Contoh: 10" min="1">
+                    </div>
+                </div>
+                <div class="btn-row">
+                    <button class="btn btn-primary" onclick="fetchPreview('range')">🔍 Ambil &amp; Preview</button>
+                </div>
+            </div>
+
+            <!-- Mode: All -->
+            <div class="mode-panel" id="panel-all">
+                <p style="color:#777; font-size:14px; margin-bottom:12px;">
+                    ⚠️ Mode ini akan mengambil <strong>seluruh data</strong> dari tabel <code>nilai3_json</code>. Pastikan koneksi stabil.
+                </p>
+                <div class="btn-row">
+                    <button class="btn btn-primary" onclick="fetchPreview('all')">🔍 Ambil &amp; Preview Semua</button>
+                </div>
+            </div>
+
+            <!-- Mode: Satu Tanggal -->
+            <div class="mode-panel" id="panel-date_single">
+                <p style="color:#777; font-size:14px; margin-bottom:12px;">
+                    Filter berdasarkan <strong>tgl_tes</strong> di dalam data biodata (x_02).
+                </p>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Tanggal Tes</label>
+                        <input type="date" id="input-date-single">
+                    </div>
+                </div>
+                <div class="btn-row">
+                    <button class="btn btn-primary" onclick="fetchPreview('date_single')">🔍 Ambil &amp; Preview</button>
+                </div>
+            </div>
+
+            <!-- Mode: Range Tanggal -->
+            <div class="mode-panel" id="panel-date_range">
+                <p style="color:#777; font-size:14px; margin-bottom:12px;">
+                    Filter berdasarkan <strong>tgl_tes</strong> di dalam data biodata (x_02).
+                </p>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Tanggal Dari</label>
+                        <input type="date" id="input-date-from">
+                    </div>
+                    <div class="form-group">
+                        <label>Tanggal Sampai</label>
+                        <input type="date" id="input-date-to">
+                    </div>
+                </div>
+                <div class="btn-row">
+                    <button class="btn btn-primary" onclick="fetchPreview('date_range')">🔍 Ambil &amp; Preview</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ PREVIEW DATA ══ -->
+    <div class="card" id="card-preview" style="display:none;">
+        <div class="card-head">👁️ Preview Data — Siap Transfer</div>
+        <div class="card-body">
+
+            <!-- Stats -->
+            <div class="stats-row" id="stats-row">
+                <div class="stat-box"><div class="stat-num" id="stat-total">0</div><div class="stat-lbl">Total Data</div></div>
+                <div class="stat-box"><div class="stat-num" id="stat-new" style="color:#28a745;">0</div><div class="stat-lbl">Baru (POST)</div></div>
+                <div class="stat-box"><div class="stat-num" id="stat-update" style="color:#e6a817;">0</div><div class="stat-lbl">Update (PUT)</div></div>
+                <div class="stat-box"><div class="stat-num" id="stat-selected">0</div><div class="stat-lbl">Dipilih</div></div>
+            </div>
+
+            <!-- Select All -->
+            <div class="select-all-wrap">
+                <div class="select-all-left">
+                    <input type="checkbox" id="chk-all" onchange="toggleSelectAll(this.checked)">
+                    <label for="chk-all" style="cursor:pointer;">Pilih semua data dalam tabel</label>
+                </div>
+                <div>
+                    <div class="preview-search-wrap">
+                        <input type="text" id="preview-search" placeholder="Cari id_x, kode, atau nama..." oninput="filterPreviewTable(this.value)">
+                        <span class="search-icon">🔍</span>
+                    </div>
+                    <div class="preview-search-count" id="preview-search-count"></div>
+                </div>
+            </div>
+
+            <!-- Table Preview -->
+            <div class="preview-wrap">
+                <table class="preview-table" id="preview-table">
+                    <thead>
+                        <tr>
+                            <th>✓</th>
+                            <th>id_x (sumber)</th>
+                            <th>Kode (x_01)</th>
+                            <th>Nama</th>
+                            <th>IQ</th>
+                            <th>Kemampuan (preview)</th>
+                            <th>Kepribadian (preview)</th>
+                            <th>Status di rekap_nilai1</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="preview-tbody"></tbody>
+                </table>
+            </div>
+
+            <div class="empty-state" id="empty-state" style="display:none;">
+                <div class="icon">📭</div>
+                <div>Tidak ada data ditemukan</div>
+            </div>
+
+            <!-- Transfer Button -->
+            <div class="btn-row" style="margin-top:20px;">
+                <button class="btn btn-success" id="btn-transfer" onclick="startTransfer()" disabled>
+                    🚀 Transfer Data Terpilih
+                </button>
+                <button class="btn btn-secondary" onclick="resetAll()">🔄 Reset</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ PROGRESS & LOG ══ -->
+    <div class="card" id="card-progress" style="display:none;">
+        <div class="card-head">📡 Progress Transfer</div>
+        <div class="card-body">
+            <div class="stats-row">
+                <div class="stat-box"><div class="stat-num" id="prog-done">0</div><div class="stat-lbl">Selesai</div></div>
+                <div class="stat-box"><div class="stat-num" id="prog-ok" style="color:#28a745;">0</div><div class="stat-lbl">Berhasil</div></div>
+                <div class="stat-box"><div class="stat-num" id="prog-fail" style="color:#dc3545;">0</div><div class="stat-lbl">Gagal</div></div>
+                <div class="stat-box"><div class="stat-num" id="prog-total">0</div><div class="stat-lbl">Total</div></div>
+            </div>
+
+            <div class="progress-bar-wrap">
+                <div class="progress-bar" id="prog-bar"></div>
+            </div>
+            <div style="font-size:12px; color:#777; margin-bottom:12px;" id="prog-label">Menunggu...</div>
+
+            <div class="log-box" id="log-box"></div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ══ MODAL JSON DETAIL ══ -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+    <div class="modal-box">
+        <span class="modal-close" onclick="document.getElementById('modal-overlay').classList.remove('open')">✕</span>
+        <h3 id="modal-title">Detail Data</h3>
+        <div id="modal-content"></div>
+    </div>
+</div>
+
+<!-- Load engine -->
+<script>
+// =========================================================
+// SERVER LIST — tambah / kurangi di sini saja
+// =========================================================
+const SERVERS = [
+    { label: 'Lidan',     domain: 'lidan-co-id.pages.dev', path: '/api/contacts_filter_dinamis6' },
+    { label: 'Tabi',      domain: 'tabi.my.id',             path: '/api/contacts_filter_dinamis6' },
+    { label: 'Mobeli',    domain: 'mobeli.my.id',           path: '/api/contacts_filter_dinamis6' },
+    { label: 'TalentMap', domain: 'talentmap.my.id',        path: '/api/contacts_filter_dinamis6' },
+];
+
+let activeSrvIdx = 0;
+
+// =========================================================
+// KONFIGURASI
+// =========================================================
+const CFG = {
+    get API()  { return `https://${SERVERS[activeSrvIdx].domain}${SERVERS[activeSrvIdx].path}`; },
+    API_DST  : 'https://lidan-co-id.pages.dev/api/db_psikogram1',  // Tujuan TETAP
+    SRC_TABLE  : 'nilai3_json',   // Diupdate dinamis via applyTableConfig()
+    DST_TABLE  : 'rekap_nilai1',  // Diupdate dinamis via applyTableConfig()
+    SECRET     : 'admin',
+    DELAY_MS   : 300
+};
+
+// Default table names (untuk tombol reset)
+const DEFAULT_TABLES = { SRC: 'nilai3_json', DST: 'rekap_nilai1' };
+
+// =========================================================
+// KONSTANTA GAYA BELAJAR VAK & TEMPERAMEN
+// (disalin persis dari index_final_gabungan-ssc.html agar hasil
+//  yang disimpan ke x_18 identik dengan yang ditampilkan di laporan)
+// =========================================================
+const LEARNING_STYLES = {
+    A: {
+        name: 'VISUAL', color: '#4a90e2', icon: '👁️',
+        description: 'Belajar paling efektif dengan melihat {dan|serta} mengamati',
+        characteristicsPool: [
+            ['Lebih {mudah|gampang} mengingat apa yang dilihat','Suka diagram, grafik, {dan|serta} gambar','Mengingat wajah lebih baik dari nama','Lebih suka membaca instruksi sendiri','Sering {membuat|menciptakan} catatan visual {atau|ataupun} mind map'],
+            ['Ingatan visual lebih kuat dari ingatan suara','Nyaman belajar dengan tabel {dan|serta} bagan','Wajah lebih {mudah|gampang} dikenali dari nama','Panduan tertulis lebih disukai dari penjelasan lisan','Catatan bergambar {membantu|menunjang} pemahaman'],
+            ['Informasi visual lebih {mudah|gampang} diingat','Belajar efektif dengan skema {dan|serta} ilustrasi','Lebih {mudah|gampang} ingat wajah daripada nama','Instruksi tertulis lebih jelas dari arahan lisan','Suka {membuat|menciptakan} sketsa {atau|ataupun} catatan berwarna']
+        ],
+        tipsPool: [
+            ['{Gunakan|Pakai|Manfaatkan} stabilo warna-warni saat membaca','{Buat|Ciptakan} diagram, flowchart, {atau|ataupun} mind map','Tonton video pembelajaran {atau|ataupun} tutorial visual','{Gunakan|Pakai|Manfaatkan} flashcard dengan gambar','Visualisasikan konsep dalam bentuk gambar mental'],
+            ['Tandai poin {penting|krusial} dengan warna berbeda','Ubah catatan menjadi diagram {atau|ataupun} peta pikiran','Cari video {atau|ataupun} animasi yang menjelaskan materi','{Buat|Ciptakan} kartu belajar dengan ilustrasi pendukung','Gambarkan konsep yang sedang dipelajari'],
+            ['Pakai kode warna {untuk|guna} membedakan topik','Sajikan materi dalam tabel perbandingan','Perkaya pemahaman dengan video edukasi','{Buat|Ciptakan} kartu ringkasan bergambar yang praktis','Ciptakan gambaran mental saat belajar topik baru']
+        ]
+    },
+    B: {
+        name: 'AUDITORY', color: '#f39c12', icon: '👂',
+        description: 'Belajar paling efektif dengan mendengar {dan|serta} berbicara',
+        characteristicsPool: [
+            ['Lebih {mudah|gampang} mengingat apa yang didengar','Suka berdiskusi {dan|serta} menjelaskan kepada orang lain','Mengingat nama lebih baik dari wajah','Lebih suka mendengarkan penjelasan daripada membaca','Sering berbicara sendiri saat belajar'],
+            ['Informasi yang didengar lebih {mudah|gampang} diingat','Menyukai sesi diskusi {untuk|guna} mempertegas pemahaman','Nama orang lebih {mudah|gampang} diingat dari wajahnya','Penjelasan lisan terasa lebih {membantu|menunjang} dari teks','Mengulang materi dengan suara adalah cara belajar favorit'],
+            ['Memori lebih kuat melalui pendengaran','Belajar dalam kelompok meningkatkan pemahaman','Mengingat suara lebih {mudah|gampang} dari tampilan visual','Lebih suka mendengar rekaman dari membaca teks panjang','Melafalkan materi dengan lantang memperkuat ingatan']
+        ],
+        tipsPool: [
+            ['Rekam catatan {dan|serta} dengarkan kembali','Diskusikan materi dengan teman {atau|ataupun} guru','Belajar sambil mendengarkan musik instrumental','Bacakan materi dengan keras saat belajar','Ikuti diskusi kelompok secara aktif'],
+            ['Rekam ringkasan materi {dan|serta} putar ulang','Jadikan diskusi dengan teman sebagai metode belajar','Pilih musik tanpa lirik saat mengerjakan tugas','Biasakan membaca nyaring saat mengulang pelajaran','Bergabung dalam kelompok belajar secara rutin'],
+            ['Simpan catatan dalam format rekaman suara','Ajak teman saling menjelaskan topik belajar','Dengarkan podcast {atau|ataupun} audio edukasi yang relevan','Ulang materi dengan cara mengajarkan kembali','Aktif dalam forum {atau|ataupun} diskusi online']
+        ]
+    },
+    C: {
+        name: 'KINESTETIK', color: '#2ecc71', icon: '🤸',
+        description: 'Belajar paling efektif dengan bergerak {dan|serta} melakukan langsung',
+        characteristicsPool: [
+            ['Belajar lebih efektif dengan praktik langsung','Suka eksperimen {dan|serta} mencoba sendiri','Susah diam dalam waktu lama','Mengingat apa yang dilakukan bukan yang dibaca','Ekspresif dengan gerakan tubuh'],
+            ['Pemahaman terbentuk lewat pengalaman langsung','Senang mencoba tanpa {harus|wajib} menunggu arahan','Duduk lama {membuat|menciptakan} konsentrasi buyar','Ingatan terkuat dari hal yang pernah dilakukan','Bahasa tubuh adalah ekspresi alami saat bicara'],
+            ['Praktik langsung jauh lebih efektif dari teori','Cepat ingin mencoba tanpa banyak menunggu','Perlu bergerak selama proses belajar','Materi lebih diingat saat dilakukan sambil bergerak','Isyarat fisik sering muncul saat berkomunikasi']
+        ],
+        tipsPool: [
+            ['{Buat|Ciptakan} proyek {atau|ataupun} model nyata dari materi','Ambil jeda singkat {dan|serta} bergerak setelah belajar','{Gunakan|Pakai|Manfaatkan} role play {atau|ataupun} simulasi','Tulis {atau|ataupun} gambar sambil mendengar penjelasan','Kunjungi langsung lokasi yang berkaitan dengan topik'],
+            ['Wujudkan materi dalam bentuk karya nyata','Sisipkan gerakan ringan {setiap|tiap} 30–45 menit belajar','Coba peran {atau|ataupun} situasi nyata {untuk|guna} memahami materi','Tuliskan poin {penting|krusial} sambil menyimak','Perkuat pemahaman dengan kunjungan ke tempat relevan'],
+            ['Jadikan materi sebagai bahan uji coba nyata','Manfaatkan jeda aktif {untuk|guna} {menjaga|mempertahankan} fokus belajar','Praktikkan konsep dalam permainan peran sederhana','Coret-coret {atau|ataupun} gambar kasar sambil menyimak','Perkaya belajar dengan pengalaman di lapangan']
+        ]
+    }
+};
+
+const TEMPERAMENTS = {
+    A: {
+        name: 'SANGUINIS', color: '#f1c40f', icon: '😄',
+        tagline: 'Si Periang yang Populer',
+        description: 'Ekstrovert, antusias, {dan|serta} sosial. Suka menjadi pusat perhatian {dan|serta} {membuat|menciptakan} orang lain senang.',
+        characteristics: ['Ceria, optimis, {dan|serta} penuh semangat','{Mudah|Gampang} bergaul {dan|serta} populer','Suka berbicara {dan|serta} menghibur','Spontan {dan|serta} kreatif','Tidak suka rutinitas yang membosankan','Emosional {dan|serta} ekspresif'],
+        strengths: ['Komunikator yang baik','Memotivasi orang lain','{Mudah|Gampang} beradaptasi','Antusiasme tinggi','Kreatif {dan|serta} inovatif'],
+        weaknesses: ['Kurang disiplin','{Mudah|Gampang} terdistraksi','Tidak detail-oriented','Terlalu banyak bicara','Sulit menepati janji'],
+        strengthsPool: [
+            ['Komunikator yang baik','Memotivasi orang lain','{Mudah|Gampang} beradaptasi','Antusiasme tinggi','Kreatif {dan|serta} inovatif'],
+            ['Pandai menyampaikan gagasan','Pembangkit semangat tim','Fleksibel di berbagai situasi','Penuh energi positif','Pemikiran segar {dan|serta} inovatif'],
+            ['Berbicara dengan efektif','Piawai memotivasi orang lain','Cepat beradaptasi dengan perubahan','Antusias {dan|serta} bersemangat','Kaya ide {dan|serta} kreativitas']
+        ],
+        weaknessesPool: [
+            ['Kurang disiplin','{Mudah|Gampang} terdistraksi','Tidak detail-oriented','Terlalu banyak bicara','Sulit menepati janji'],
+            ['Disiplin masih perlu ditingkatkan','Fokus {mudah|gampang} teralihkan','Kurang teliti pada detail','Cenderung mendominasi percakapan','Komitmen perlu lebih dijaga'],
+            ['Konsistensi diri masih lemah','Konsentrasi {mudah|gampang} buyar','Kurang perhatian pada hal kecil','Kurang memberi ruang bicara orang lain','Kurang tepat waktu']
+        ],
+        careers: ['Sales & Marketing','Public Relations','Event Organizer','Entertainer','Presenter','Teacher'],
+        tipsPool: [
+            ['Buatlah daftar prioritas harian {agar|supaya} energimu terarah dengan baik','{Latih|Asah} diri {untuk|guna} mendengarkan lebih banyak sebelum berbicara','{Selesaikan|Tuntaskan} satu pekerjaan hingga tuntas sebelum memulai yang baru','Biasakan mencatat janji {dan|serta} komitmen {penting|krusial} di agenda','Kelola waktu dengan lebih disiplin {agar|supaya} produktivitas meningkat'],
+            ['{Gunakan|Pakai|Manfaatkan} to-do list {setiap|tiap} pagi {untuk|guna} {menjaga|mempertahankan} fokus sepanjang hari','{Berlatih|Latihlah} menjadi pendengar aktif dalam {setiap|tiap} percakapan','{Tuntaskan|Selesaikan} satu tanggung jawab dulu sebelum beralih ke hal lain','{Catat|Tuliskan} {setiap|tiap} janji {agar|supaya} kepercayaan orang lain {tetap|senantiasa} terjaga','{Bangun|Ciptakan} rutinitas yang konsisten {untuk|guna} mendukung kedisiplinan'],
+            ['Mulai hari dengan menetapkan tiga hal utama yang ingin dicapai','{Latih|Asah} kesabaran dalam berdiskusi {dan|serta} beri ruang orang lain berbicara','Jangan berpindah tugas sebelum yang pertama selesai dengan baik','Manfaatkan pengingat digital {untuk|guna} memantau komitmenmu','Disiplin waktu adalah kunci {agar|supaya} potensimu berkembang maksimal']
+        ]
+    },
+    B: {
+        name: 'KOLERIS', color: '#e67e22', icon: '💪',
+        tagline: 'Si Pemimpin yang Kuat',
+        description: 'Ekstrovert, tegas, {dan|serta} berorientasi pada tujuan. Suka memimpin {dan|serta} mengambil keputusan.',
+        characteristics: ['Tegas {dan|serta} percaya diri','Berorientasi pada hasil','Suka tantangan {dan|serta} kompetisi','Pengambil keputusan yang {cepat|segera}','Produktif {dan|serta} efisien','Tidak sabaran dengan ketidakefisienan'],
+        strengths: ['Kepemimpinan alami','Berani mengambil risiko','Orientasi tujuan yang kuat','Tegas dalam keputusan','Produktivitas tinggi'],
+        weaknesses: ['Terlalu bossy','Kurang sensitif','Tidak sabaran','Sulit menerima kritik','Workaholic'],
+        strengthsPool: [
+            ['Kepemimpinan alami','Berani mengambil risiko','Orientasi tujuan yang kuat','Tegas dalam keputusan','Produktivitas tinggi'],
+            ['Jiwa pemimpin yang menonjol','Tidak takut mengambil risiko','Fokus {dan|serta} terarah pada target','Pengambil keputusan yang tegas','Konsisten menghasilkan hasil terbaik'],
+            ['Pemimpin yang dipercaya tim','Berani bertindak di bawah tekanan','Tidak {mudah|gampang} terpengaruh distraksi','Cepat {dan|serta} jelas dalam memutuskan','Produktif {dan|serta} {selalu|senantiasa} berenergi']
+        ],
+        weaknessesPool: [
+            ['Terlalu bossy','Kurang sensitif','Tidak sabaran','Sulit menerima kritik','Workaholic'],
+            ['Cenderung terlalu mengatur','Kurang peka terhadap perasaan orang','Toleransi rendah terhadap kelambatan','Sulit menerima masukan','Sulit membatasi jam kerja'],
+            ['Terlalu dominan dalam tim','Empati masih perlu dikembangkan','{Mudah|Gampang} tidak sabar','Defensif terhadap kritik','Cenderung mengabaikan istirahat']
+        ],
+        careers: ['CEO/Manager','Entrepreneur','Politisi','Direktur','Pilot','Lawyer'],
+        tipsPool: [
+            ['{Latih|Asah} {kemampuan|kecakapan} empati dengan menempatkan diri pada posisi orang lain','Biasakan memberikan apresiasi tulus kepada rekan tim secara rutin','Kenali pemicu amarahmu {dan|serta} beri jeda sebelum bereaksi','Percayakan tugas kepada tim tanpa mengatur {setiap|tiap} detailnya','Sisihkan waktu {untuk|guna} istirahat {dan|serta} kehidupan pribadi di luar pekerjaan'],
+            ['Pelajari cara mendengarkan dengan penuh perhatian tanpa menyela','Ungkapkan penghargaan kepada anggota tim atas kontribusi mereka','{Latih|Asah} diri {untuk|guna} merespons dengan kepala dingin dalam tekanan','Delegasikan dengan jelas {dan|serta} percayai {kemampuan|kecakapan} timmu','{Jaga|Pertahankan} keseimbangan antara ambisi kerja {dan|serta} kebutuhan pribadimu'],
+            ['Kembangkan kepekaan terhadap perasaan {dan|serta} kebutuhan orang di sekitarmu','Jadikan apresiasi sebagai bagian dari gaya kepemimpinanmu sehari-hari','Ambil napas dalam-dalam sebelum merespons situasi yang memancing emosi','Beri tim ruang {untuk|guna} berkembang tanpa pengawasan berlebihan','Tetapkan batas waktu kerja yang sehat {agar|supaya} energimu {tetap|senantiasa} terjaga']
+        ]
+    },
+    C: {
+        name: 'MELANKOLIS', color: '#9b59b6', icon: '🤔',
+        tagline: 'Si Pemikir yang Perfeksionis',
+        description: 'Introvert, analitis, {dan|serta} detail-oriented. Suka kesempurnaan {dan|serta} kedalaman.',
+        characteristics: ['Perfeksionis {dan|serta} teliti','Berpikir mendalam {dan|serta} analitis','Sensitif {dan|serta} idealis','Loyal {dan|serta} setia','Suka keteraturan {dan|serta} struktur','Cenderung pesimistis'],
+        strengths: ['Perhatian pada detail','Analisis mendalam','Standar tinggi','Kreatif {dan|serta} artistik','{Dapat|Bisa|Mampu} diandalkan'],
+        weaknesses: ['Terlalu kritis','Overthinking','Perfeksionisme berlebihan','Sulit puas','{Mudah|Gampang} depresi'],
+        strengthsPool: [
+            ['Perhatian pada detail','Analisis mendalam','Standar kerja tinggi','Kreatif {dan|serta} artistik','{Dapat|Bisa|Mampu} diandalkan'],
+            ['Teliti {dan|serta} cermat','Berpikir secara mendalam','Berkomitmen pada kualitas','Jiwa seni yang kuat','Konsisten {dan|serta} terpercaya'],
+            ['Tidak {mudah|gampang} melewatkan detail','Analitis {dan|serta} kritis','Menghasilkan pekerjaan berkualitas','Kreativitas yang mendalam','Stabil {dan|serta} {bisa|dapat|mampu} diandalkan']
+        ],
+        weaknessesPool: [
+            ['Terlalu kritis','Overthinking','Perfeksionisme berlebihan','Sulit merasa puas','Rentan terhadap tekanan emosi'],
+            ['{Mudah|Gampang} mengkritik diri sendiri','Terlalu lama menganalisis','Standar terlalu tinggi','Kepuasan sulit dicapai','Sensitif terhadap tekanan'],
+            ['Kritis terhadap diri {dan|serta} orang lain','Terjebak dalam analisis berlebih','Sulit menerima hasil yang tidak sempurna','Ekspektasi yang sulit terpenuhi','Emosi {mudah|gampang} terpengaruh situasi']
+        ],
+        careers: ['Scientist','Analyst','Artist','Writer','Programmer','Accountant'],
+        tipsPool: [
+            ['Terimalah bahwa hasil yang cukup baik jauh lebih berharga dari yang tidak selesai','{Latih|Asah} diri {untuk|guna} segera mengambil tindakan tanpa menunggu kondisi sempurna','Rayakan {setiap|tiap} kemajuan kecil sebagai bagian dari perjalanan panjang','Pandanglah kritik sebagai masukan berharga yang {membantu|menunjang} pertumbuhanmu','Tetapkan standar yang realistis {agar|supaya} kamu tidak {mudah|gampang} kelelahan'],
+            ['Ingat bahwa kesempurnaan adalah perjalanan, bukan tujuan akhir','Kurangi waktu analisis berlebih {dan|serta} mulailah melangkah lebih {cepat|segera}','Fokus pada proses {dan|serta} pembelajaran, bukan hanya hasil akhir','{Latih|Asah} keterbukaan dalam menerima masukan dari orang-orang tepercaya','Kenali batasmu {dan|serta} beri dirimu izin {untuk|guna} tidak {selalu|senantiasa} sempurna'],
+            ['Bebaskan dirimu dari tekanan {harus|wajib} sempurna dalam {setiap|tiap} hal','Ambil keputusan dengan informasi yang cukup, bukan yang lengkap','Jadikan {setiap|tiap} langkah maju sebagai pencapaian yang layak disyukuri','Ubah cara pandang terhadap kritik menjadi bahan bakar perbaikan diri','Sesuaikan ekspektasi {agar|supaya} kamu {dapat|bisa|mampu} menikmati prosesnya']
+        ]
+    },
+    D: {
+        name: 'PHLEGMATIS', color: '#3498db', icon: '😌',
+        tagline: 'Si Pendamai yang Tenang',
+        description: 'Introvert, tenang, {dan|serta} damai. Suka harmoni {dan|serta} menghindari konflik.',
+        characteristics: ['Tenang {dan|serta} sabar','Pendamai {dan|serta} diplomatik','Pendengar yang baik','Stabil {dan|serta} konsisten','Tidak suka konflik','Santai {dan|serta} easy-going'],
+        strengths: ['{Kemampuan|Kecakapan} diplomasi','Sabar {dan|serta} tenang','Pendengar yang baik','Konsisten {dan|serta} stabil','{Mudah|Gampang} bergaul'],
+        weaknesses: ['Kurang inisiatif','Terlalu pasif','Sulit {membuat|menciptakan} keputusan','Menghindari konfrontasi','Kurang ambisi'],
+        strengthsPool: [
+            ['{Kemampuan|Kecakapan} diplomasi yang baik','Sabar {dan|serta} tenang','Pendengar yang baik','Konsisten {dan|serta} stabil','{Mudah|Gampang} bergaul'],
+            ['Pandai meredakan konflik','Tidak {mudah|gampang} terpancing emosi','Membuat orang nyaman bercerita','Kinerja yang stabil {dan|serta} andal','Ramah di berbagai lingkungan'],
+            ['Pendekatan diplomatik yang elegan','Tenang dalam situasi tekanan','Pendengar aktif yang empatik','{Dapat|Bisa|Mampu} diandalkan jangka panjang','{Mudah|Gampang} akrab dengan siapa saja']
+        ],
+        weaknessesPool: [
+            ['Kurang inisiatif','Terlalu pasif','Sulit {membuat|menciptakan} keputusan','Menghindari konfrontasi','Kurang ambisi'],
+            ['Jarang bertindak tanpa diminta','Cenderung menunggu situasi','Keputusan sering tertunda','Menghindari konflik yang perlu diselesaikan','Motivasi diri masih perlu diperkuat'],
+            ['Inisiatif kurang terlihat','Terlalu santai dalam situasi kritis','Lambat dalam mengambil keputusan','Mengorbankan solusi demi kenyamanan','Potensi belum dimaksimalkan']
+        ],
+        careers: ['Counselor','Mediator','HR','Customer Service','Nurse','Social Worker'],
+        tipsPool: [
+            ['{Latih|Asah} diri {untuk|guna} mengambil inisiatif tanpa {harus|wajib} menunggu diminta','Hadapi konflik yang perlu diselesaikan dengan kepala dingin {dan|serta} hati terbuka','Tetapkan tujuan jangka pendek yang spesifik {agar|supaya} {mudah|gampang} diukur {dan|serta} dicapai','{Latih|Asah} {kemampuan|kecakapan} pengambilan keputusan dengan mulai dari pilihan-pilihan kecil','Coba hal-hal baru sesekali {untuk|guna} memperluas wawasan {dan|serta} kemampuanmu'],
+            ['Beranikan diri {untuk|guna} memulai sesuatu tanpa menunggu momen yang tepat','Jangan biarkan ketidaknyamanan menghalangimu dari menyelesaikan masalah {penting|krusial}','{Buat|Ciptakan} rencana dengan target yang jelas {agar|supaya} langkahmu lebih terarah','Biasakan {membuat|menciptakan} keputusan tepat waktu meskipun belum sempurna','Keluar dari rutinitas sesekali {untuk|guna} menemukan potensi baru dalam dirimu'],
+            ['Jadilah orang yang pertama bertindak dalam situasi yang membutuhkan solusi','{Selesaikan|Tuntaskan} konflik yang ada sebelum berkembang menjadi masalah yang lebih besar','Tuliskan tujuanmu secara konkret {agar|supaya} lebih {mudah|gampang} diperjuangkan {setiap|tiap} hari','Percayai pertimbanganmu sendiri {dan|serta} latih keberanian dalam memutuskan','Tantang dirimu dengan pengalaman baru yang {dapat|bisa|mampu} memperkaya perspektifmu']
+        ]
+    }
+};
+
+// Seeded shuffle deterministik berdasarkan token (sama persis dengan index_final_gabungan-ssc.html)
+function seededRandom(seed) {
+    let h = 0;
+    for (let i = 0; i < seed.length; i++) {
+        h = Math.imul(31, h) + seed.charCodeAt(i) | 0;
+    }
+    return function() {
+        h ^= h << 13; h ^= h >> 17; h ^= h << 5;
+        return (h >>> 0) / 4294967296;
+    };
+}
+
+// Resolve spintax {opsi1|opsi2} di tiap kalimat sebuah array, pakai rng yang sama
+// (kelanjutan dari rng yang dipakai untuk pilih versi + acak urutan) supaya tetap
+// deterministik per seed di mode konsisten, dan beda tiap generate di mode acak.
+function resolveSpintaxArr(arr, rng) {
+    const PE = window.PsikogramEngine;
+    if (!PE || !PE.parseSpintax) return arr;
+    return arr.map(s => (typeof s === 'string' ? PE.parseSpintax(s, rng) : s));
+}
+
+// Sama seperti resolveSpintaxArr, tapi untuk satu string tunggal (mis. deskripsi/tagline)
+// yang tidak lewat pool getVariasi*, supaya spintax di dalamnya tidak lolos mentah ke x_18.
+function resolveSpintaxStr(str, rng) {
+    const PE = window.PsikogramEngine;
+    if (!PE || !PE.parseSpintax || typeof str !== 'string') return str;
+    return PE.parseSpintax(str, rng);
+}
+
+function getVariasiTips(temperamenKey, token) {
+    const pool = TEMPERAMENTS[temperamenKey].tipsPool;
+    const rng  = getRandFn(token + temperamenKey);
+    const varIdx = Math.floor(rng() * pool.length);
+    const tips   = [...pool[varIdx]];
+    for (let i = tips.length - 1; i > 0; i--) {
+        const j = Math.floor(rng() * (i + 1));
+        [tips[i], tips[j]] = [tips[j], tips[i]];
+    }
+    return resolveSpintaxArr(tips, rng);
+}
+
+function getVariasiVak(vakKey, type, token) {
+    const pool = LEARNING_STYLES[vakKey][type + 'Pool'];
+    if (!pool) return LEARNING_STYLES[vakKey][type === 'characteristics' ? 'characteristics' : 'tips'] || [];
+    const seed = token + vakKey + type;
+    const rng  = getRandFn(seed);
+    const varIdx = Math.floor(rng() * pool.length);
+    const items   = [...pool[varIdx]];
+    for (let i = items.length - 1; i > 0; i--) {
+        const j = Math.floor(rng() * (i + 1));
+        [items[i], items[j]] = [items[j], items[i]];
+    }
+    return resolveSpintaxArr(items, rng);
+}
+
+function getVariasiTempAttr(tempKey, type, token) {
+    const pool = TEMPERAMENTS[tempKey][type + 'Pool'];
+    if (!pool) return TEMPERAMENTS[tempKey][type] || [];
+    const seed = token + tempKey + type;
+    const rng  = getRandFn(seed);
+    const varIdx = Math.floor(rng() * pool.length);
+    const items   = [...pool[varIdx]];
+    for (let i = items.length - 1; i > 0; i--) {
+        const j = Math.floor(rng() * (i + 1));
+        [items[i], items[j]] = [items[j], items[i]];
+    }
+    return resolveSpintaxArr(items, rng);
+}
+
+// =========================================================
+// HITUNG VAK & TEMPERAMEN dari x_07 sumber (nilai3_json)
+// Mengembalikan objek gabungan { vak, temperamen } untuk disimpan ke x_18
+// =========================================================
+function hitungVakTemperamen(rawRow, token) {
+    let x07 = {};
+    try { x07 = JSON.parse(rawRow.x_07 || '{}'); } catch(e) {}
+
+    const out = { vak: null, temperamen: null };
+
+    // ── VAK ──
+    const vakKey = x07['tes-gaya-belajar-vak'] !== undefined ? 'tes-gaya-belajar-vak'
+                 : (x07['who_1'] !== undefined ? 'who_1' : null);
+    const vakStr = vakKey ? x07[vakKey] : null;
+
+    if (vakStr) {
+        const vakArr  = vakStr.split(';').filter(v => v.trim() !== '');
+        const vakSkor = { A: 0, B: 0, C: 0 };
+        vakArr.forEach(v => { if (vakSkor[v] !== undefined) vakSkor[v]++; });
+        const total   = vakArr.length || 15;
+        const vakPct  = {
+            A: Math.round((vakSkor.A / total) * 100),
+            B: Math.round((vakSkor.B / total) * 100),
+            C: Math.round((vakSkor.C / total) * 100)
+        };
+        const vakDom = Object.keys(vakSkor).reduce((a, b) => vakSkor[a] > vakSkor[b] ? a : b);
+        const vakS   = LEARNING_STYLES[vakDom];
+
+        out.vak = {
+            dominan       : vakDom,
+            nama          : vakS.name,
+            deskripsi     : resolveSpintaxStr(vakS.description, getRandFn(token + vakDom + 'deskripsi')),
+            skor          : vakSkor,
+            persentase    : vakPct,
+            total         : total,
+            karakteristik : getVariasiVak(vakDom, 'characteristics', token),
+            tips          : getVariasiVak(vakDom, 'tips', token)
+        };
+    }
+
+    // ── Temperamen ──
+    const tempKey = x07['input-tes-temperamen'] !== undefined ? 'input-tes-temperamen'
+                  : (x07['who_4'] !== undefined ? 'who_4' : null);
+    const tempStr = tempKey ? x07[tempKey] : null;
+
+    if (tempStr) {
+        const tempArr   = tempStr.split(';').filter(v => v !== '');
+        const tempSkor  = { A: 0, B: 0, C: 0, D: 0 };
+        tempArr.forEach(v => { if (tempSkor[v] !== undefined) tempSkor[v]++; });
+        const tempTotal = 26;
+        const tempDom   = Object.keys(tempSkor).reduce((a, b) => tempSkor[a] > tempSkor[b] ? a : b);
+        const tempS     = TEMPERAMENTS[tempDom];
+        const tempPct   = {};
+        Object.keys(tempSkor).forEach(k => { tempPct[k] = Math.round((tempSkor[k] / tempTotal) * 100); });
+
+        out.temperamen = {
+            dominan    : tempDom,
+            nama       : tempS.name,
+            tagline    : resolveSpintaxStr(tempS.tagline, getRandFn(token + tempDom + 'tagline')),
+            deskripsi  : resolveSpintaxStr(tempS.description, getRandFn(token + tempDom + 'deskripsi')),
+            skor       : tempSkor,
+            persentase : tempPct,
+            total      : tempTotal,
+            kekuatan   : getVariasiTempAttr(tempDom, 'strengths', token),
+            kelemahan  : getVariasiTempAttr(tempDom, 'weaknesses', token),
+            tips       : getVariasiTips(tempDom, token)
+        };
+    }
+
+    if (!out.vak && !out.temperamen) return null;
+    return out;
+}
+
+// =========================================================
+// SERVER SWITCHER
+// =========================================================
+function renderServerGrid() {
+    const grid = document.getElementById('serverGrid');
+    if (!grid) return;
+    grid.innerHTML = SERVERS.map((s, i) => `
+        <button class="srv-btn${i === activeSrvIdx ? ' active' : ''}" onclick="switchSrcServer(${i})">
+            <span class="srv-name">${i === activeSrvIdx ? '✓ ' : ''}${s.label}</span>
+            <span class="srv-domain">${s.domain}</span>
+        </button>
+    `).join('');
+    updateSrvDisplay();
+}
+
+function switchSrcServer(idx) {
+    if (idx === activeSrvIdx) return;
+    activeSrvIdx = idx;
+    renderServerGrid();
+    if (previewRows.length > 0) {
+        resetAll();
+        showToast('⚠️ Preview direset karena server sumber berubah. Silakan ambil data ulang.');
+    }
+    updateHeaderDisplay();
+}
+
+function updateSrvDisplay() {
+    const srv = SERVERS[activeSrvIdx];
+    const apiUrl = `https://${srv.domain}${srv.path}`;
+    const el = document.getElementById('srv-api-display');
+    if (el) el.textContent = apiUrl;
+    const badge = document.getElementById('hdr-srv-src');
+    if (badge) badge.textContent = srv.domain;
+}
+
+// =========================================================
+// KONFIGURASI TABEL DINAMIS
+// =========================================================
+function applyTableConfig() {
+    const src = document.getElementById('cfg-src-table').value.trim();
+    const dst = document.getElementById('cfg-dst-table').value.trim();
+
+    // Validasi: hanya huruf, angka, underscore
+    const valid = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+    if (!valid.test(src)) {
+        alert('⚠️ Nama tabel sumber tidak valid!\nHanya boleh huruf, angka, dan underscore (_).\nContoh: nilai1, data_psikologi');
+        document.getElementById('cfg-src-table').focus();
+        return;
+    }
+    if (!valid.test(dst)) {
+        alert('⚠️ Nama tabel tujuan tidak valid!\nHanya boleh huruf, angka, dan underscore (_).\nContoh: rekap_nilai1, hasil_psikologi');
+        document.getElementById('cfg-dst-table').focus();
+        return;
+    }
+
+    CFG.SRC_TABLE = src;
+    CFG.DST_TABLE = dst;
+
+    // Update header & info strip
+    updateHeaderDisplay();
+
+    // Tampilkan notifikasi sukses di info strip
+    const strip = document.getElementById('table-info-strip');
+    strip.style.background  = '#d4edda';
+    strip.style.borderColor = '#28a745';
+    strip.innerHTML = `<span style="font-size:18px;">✅</span>
+        <span>Konfigurasi diterapkan! Membaca dari <strong>${src}</strong>,
+        menyimpan ke <strong>${dst}</strong></span>`;
+    setTimeout(() => {
+        strip.style.background  = '#f0edff';
+        strip.style.borderColor = '#5F4EDA';
+        strip.innerHTML = `<span style="font-size:18px;">ℹ️</span>
+            <span>Aktif: Membaca dari tabel <strong id="info-src">${src}</strong>,
+            menyimpan ke tabel <strong id="info-dst">${dst}</strong></span>`;
+    }, 2500);
+
+    // Reset preview jika ada
+    if (previewRows.length > 0) {
+        resetAll();
+        showToast('⚠️ Preview direset karena konfigurasi tabel berubah. Silakan ambil data ulang.');
+    }
+}
+
+function resetSrcTable() {
+    document.getElementById('cfg-src-table').value = DEFAULT_TABLES.SRC;
+    onTableInput();
+}
+
+function resetDstTable() {
+    document.getElementById('cfg-dst-table').value = DEFAULT_TABLES.DST;
+    onTableInput();
+}
+
+function onTableInput() {
+    // Tandai belum diterapkan (strip kuning)
+    const src = document.getElementById('cfg-src-table').value.trim();
+    const dst = document.getElementById('cfg-dst-table').value.trim();
+    const isDiff = src !== CFG.SRC_TABLE || dst !== CFG.DST_TABLE;
+    const strip = document.getElementById('table-info-strip');
+    if (isDiff) {
+        strip.style.background  = '#fff3cd';
+        strip.style.borderColor = '#e6a817';
+        strip.innerHTML = `<span style="font-size:18px;">⚠️</span>
+            <span>Perubahan belum diterapkan. Klik <strong>Terapkan Konfigurasi</strong> untuk menggunakan tabel baru.</span>`;
+    } else {
+        strip.style.background  = '#f0edff';
+        strip.style.borderColor = '#5F4EDA';
+        strip.innerHTML = `<span style="font-size:18px;">ℹ️</span>
+            <span>Aktif: Membaca dari tabel <strong id="info-src">${CFG.SRC_TABLE}</strong>,
+            menyimpan ke tabel <strong id="info-dst">${CFG.DST_TABLE}</strong></span>`;
+    }
+}
+
+function updateHeaderDisplay() {
+    const src = CFG.SRC_TABLE;
+    const dst = CFG.DST_TABLE;
+    ['hdr-src','hdr-src2'].forEach(id => { const el = document.getElementById(id); if(el) el.textContent = src; });
+    ['hdr-dst','hdr-dst2'].forEach(id => { const el = document.getElementById(id); if(el) el.textContent = dst; });
+    updateSrvDisplay();
+}
+
+// Init on load
+document.addEventListener('DOMContentLoaded', () => {
+    renderServerGrid();
+});
+
+function showToast(msg) {
+    let t = document.getElementById('toast-notif');
+    if (!t) {
+        t = document.createElement('div');
+        t.id = 'toast-notif';
+        t.style.cssText = `position:fixed; bottom:24px; right:24px; background:#333; color:white;
+            padding:12px 20px; border-radius:8px; font-size:13px; z-index:9999;
+            box-shadow:0 4px 16px rgba(0,0,0,.3); max-width:340px; line-height:1.5;`;
+        document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.style.display = 'block';
+    setTimeout(() => { t.style.display = 'none'; }, 4000);
+}
+
+// =========================================================
+// STATE
+// =========================================================
+let currentMode    = 'single';
+let previewRows    = [];   // array of { srcRow, mapped, existingId, status }
+
+// =========================================================
+// MODE SWITCH
+// =========================================================
+function switchMode(mode) {
+    currentMode = mode;
+    const modeList = ['single','range','all','date_single','date_range'];
+    document.querySelectorAll('.mode-tab').forEach((t,i) => {
+        t.classList.toggle('active', modeList[i] === mode);
+    });
+    document.querySelectorAll('.mode-panel').forEach(p => {
+        p.classList.toggle('active', p.id === 'panel-' + mode);
+    });
+}
+
+// =========================================================
+// LOG HELPER
+// =========================================================
+function log(msg, type='info') {
+    const box = document.getElementById('log-box');
+    const cls = { ok:'log-ok', err:'log-err', info:'log-info', warn:'log-warn' }[type] || 'log-info';
+    const time = new Date().toLocaleTimeString('id-ID');
+    box.innerHTML += `<div class="${cls}">[${time}] ${msg}</div>`;
+    box.scrollTop = box.scrollHeight;
+}
+
+// =========================================================
+// API HELPERS
+// =========================================================
+async function apiGet(table, params = {}, useAuth = false, useDst = false) {
+    const url = new URL(useDst ? CFG.API_DST : CFG.API);  // useDst=true → psikogram_db
+    url.searchParams.set('table', table);
+    for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
+
+    const headers = { 'Content-Type': 'application/json' };
+    if (useAuth) headers['X-Custom-Auth'] = CFG.SECRET;
+
+    const res = await fetch(url.toString(), { headers });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+}
+
+// Ambil SEMUA data sumber dengan pagination by id_x (batch 100)
+async function fetchAllSource() {
+    let allData = [];
+    let lastId  = null;  // akan diisi id_x terkecil batch sebelumnya
+
+    while (true) {
+        const params = lastId ? { id_x_lt: lastId } : {};
+        const json   = await apiGet(CFG.SRC_TABLE, params);
+        if (!json.success || !json.data || json.data.length === 0) break;
+
+        allData = allData.concat(json.data);
+        const ids = json.data.map(r => r.id_x);
+        lastId   = Math.min(...ids);  // ambil id terkecil untuk batch berikutnya
+
+        if (json.data.length < 100) break;  // batch terakhir, stop
+    }
+    return allData;
+}
+
+async function apiPost(table, body) {
+    const url = new URL(CFG.API_DST);  // POST ke psikogram_db
+    url.searchParams.set('table', table);
+    const res = await fetch(url.toString(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Custom-Auth': CFG.SECRET },
+        body: JSON.stringify(body)
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+}
+
+async function apiPut(table, id_x, body) {
+    const url = new URL(CFG.API_DST);  // PUT ke psikogram_db
+    url.searchParams.set('table', table);
+    url.searchParams.set('id_x', id_x);
+    const res = await fetch(url.toString(), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'X-Custom-Auth': CFG.SECRET },
+        body: JSON.stringify(body)
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+}
+
+// =========================================================
+// FETCH SOURCE DATA
+// =========================================================
+async function fetchSourceData() {
+    if (currentMode === 'single') {
+        const id = parseInt(document.getElementById('input-single-id').value);
+        if (!id) throw new Error('id_x tidak boleh kosong');
+        const json = await apiGet(CFG.SRC_TABLE, { id_x: id });
+        if (!json.success) throw new Error(json.message || 'Data tidak ditemukan');
+        const d = json.data;
+        return Array.isArray(d) ? d : [d];
+    }
+    if (currentMode === 'range') {
+        const from = parseInt(document.getElementById('input-range-from').value);
+        const to   = parseInt(document.getElementById('input-range-to').value);
+        if (!from || !to || from > to) throw new Error('Range id_x tidak valid');
+        // Pagination dalam batas from-to
+        let allData = [];
+        let curTo   = to + 1;
+        while (true) {
+            const json = await apiGet(CFG.SRC_TABLE, { id_x_gt: from - 1, id_x_lt: curTo });
+            if (!json.success || !json.data || json.data.length === 0) break;
+            allData = allData.concat(json.data);
+            const ids = json.data.map(r => r.id_x);
+            curTo = Math.min(...ids); // geser batas atas ke id terkecil batch ini
+            if (json.data.length < 100 || curTo <= from) break;
+        }
+        if (!allData.length) throw new Error('Data tidak ditemukan dalam range tersebut');
+        return allData;
+    }
+    if (currentMode === 'date_single') {
+        const tgl = document.getElementById('input-date-single').value;
+        if (!tgl) throw new Error('Tanggal tes tidak boleh kosong');
+        const json = await apiGet(CFG.SRC_TABLE, { x_02_like: tgl });
+        if (!json.success) throw new Error(json.message || 'Gagal ambil data');
+        // Filter ketat client-side: pastikan tgl_tes benar-benar cocok (bukan kebetulan ada string tanggal lain di x_02)
+        return (json.data || []).filter(row => {
+            try {
+                const bio = JSON.parse(row.x_02 || '{}');
+                return (bio.tgl_tes || '').slice(0, 10) === tgl;
+            } catch { return false; }
+        });
+    }
+    if (currentMode === 'date_range') {
+        const dari   = document.getElementById('input-date-from').value;
+        const sampai = document.getElementById('input-date-to').value;
+        if (!dari || !sampai) throw new Error('Tanggal dari dan sampai tidak boleh kosong');
+        if (dari > sampai) throw new Error('Tanggal dari tidak boleh lebih besar dari tanggal sampai');
+        // Untuk range: ambil per tanggal satu per satu lalu gabung
+        // Generate semua tanggal dalam range
+        const dates = [];
+        let cur = new Date(dari);
+        const end = new Date(sampai);
+        while (cur <= end) {
+            dates.push(cur.toISOString().slice(0, 10));
+            cur.setDate(cur.getDate() + 1);
+        }
+        // Fetch paralel semua tanggal sekaligus
+        const results = await Promise.all(
+            dates.map(tgl => apiGet(CFG.SRC_TABLE, { x_02_like: tgl }))
+        );
+        let allData = [];
+        results.forEach((json, i) => {
+            if (!json.success || !json.data) return;
+            const tgl = dates[i];
+            const filtered = json.data.filter(row => {
+                try {
+                    const bio = JSON.parse(row.x_02 || '{}');
+                    return (bio.tgl_tes || '').slice(0, 10) === tgl;
+                } catch { return false; }
+            });
+            allData = allData.concat(filtered);
+        });
+        // Hapus duplikat (kalau ada id_x sama dari request berbeda)
+        const seen = new Set();
+        return allData.filter(row => {
+            if (seen.has(row.id_x)) return false;
+            seen.add(row.id_x);
+            return true;
+        });
+    }
+    // all
+    return await fetchAllSource();
+}
+
+// =========================================================
+// RESOLVE VARIASI: proses spintax {opsi1|opsi2|opsi3} di semua string
+// leaf dalam sebuah objek/array secara rekursif (mutasi in-place).
+// Dipakai untuk x_13 (karakter/potensi/karir/asmara) yang teks-nya
+// berasal dari config statis di masing-masing engine (sudah diberi
+// tanda spintax), supaya hasil akhirnya bervariasi tapi tetap
+// konsisten selama rand() yang sama dipakai berurutan (seed dari id_x).
+// =========================================================
+function resolveVariasi(node, rand) {
+    if (typeof node === 'string') {
+        return window.PsikogramEngine.parseSpintax(node, rand);
+    }
+    if (Array.isArray(node)) {
+        for (let i = 0; i < node.length; i++) node[i] = resolveVariasi(node[i], rand);
+        return node;
+    }
+    if (node && typeof node === 'object') {
+        for (const k of Object.keys(node)) node[k] = resolveVariasi(node[k], rand);
+        return node;
+    }
+    return node;
+}
+
+// =========================================================
+// HITUNG KARAKTER: dari rawRow → x_12 (angka) & x_13 (kalimat)
+// Menggunakan logika scoring dari KarakterEngine
+// =========================================================
+function hitungKarakter(rawRow) {
+    // Ambil x_07 (jawaban tes karakter)
+    let x07 = {};
+    try { x07 = JSON.parse(rawRow.x_07 || '{}'); } catch(e) {}
+
+    const TES_LIST = ['04','05','06','07','08'];
+    const TES_KEYS = {
+        '04': ['input-tes-temperamen',            'who_4'],
+        '05': ['input-tes-extrovert-vs-introvert', 'who_5'],
+        '06': ['input-tes-sensori-vs-intuitif',    'who_6'],
+        '07': ['input-tes-thinking-vs-feeling',    'who_7'],
+        '08': ['input-tes-pengamat-vs-penilai',    'who_8'],
+    };
+
+    // Ambil data config dari KarakterEngine
+    const KDATA = window.KarakterEngine ? window.KarakterEngine.data : null;
+
+    const x12 = {}; // angka mentah
+    const x13 = {}; // kalimat
+
+    TES_LIST.forEach(tesId => {
+        // Cari jawaban dari berbagai kemungkinan key
+        let rawJawaban = '';
+        for (const key of TES_KEYS[tesId]) {
+            if (x07[key] !== undefined && x07[key] !== '') { rawJawaban = x07[key]; break; }
+        }
+        if (!rawJawaban) return; // skip tes yang belum dikerjakan
+
+        const jawabanArr = rawJawaban.split(';').filter(v => v !== '');
+        const skor = {};
+        let dominan = null;
+        let persen  = {};
+        let total   = jawabanArr.length;
+        let markerPosition = null;
+        let sortedSkor = null;
+        let config  = null;
+
+        if (tesId === '04') {
+            // Temperamen: A B C D
+            ['A','B','C','D'].forEach(k => skor[k] = 0);
+            jawabanArr.forEach(v => { if (skor[v] !== undefined) skor[v]++; });
+            total = 26;
+            Object.keys(skor).forEach(k => { persen[k] = Math.round((skor[k]/total)*100); });
+            dominan    = Object.keys(skor).reduce((a,b) => skor[a] > skor[b] ? a : b);
+            sortedSkor = Object.entries(skor).sort((a,b) => b[1]-a[1]).map(([k,v]) => ({key:k, skor:v}));
+            config     = KDATA ? KDATA.TEMPERAMENTS[dominan] : null;
+
+        } else if (tesId === '05') {
+            // Ekstrovert vs Introvert
+            skor.A = 0; skor.B = 0;
+            jawabanArr.forEach(v => { if (skor[v] !== undefined) skor[v]++; });
+            total = 17;
+            persen = { A: Math.round((skor.A/total)*100), B: Math.round((skor.B/total)*100) };
+            const selisih = Math.abs(skor.A - skor.B);
+            dominan = selisih <= 3 ? 'AMBIVERT' : (skor.A > skor.B ? 'EXTROVERT' : 'INTROVERT');
+            markerPosition = Math.round((skor.A/total)*100);
+            config  = KDATA ? KDATA.PERSONALITY_TYPES[dominan] : null;
+
+        } else if (tesId === '06') {
+            // Sensing vs Intuitif
+            skor.A = 0; skor.B = 0;
+            jawabanArr.forEach(v => { if (skor[v] !== undefined) skor[v]++; });
+            total = skor.A + skor.B;
+            persen = { A: Math.round((skor.A/total)*100), B: Math.round((skor.B/total)*100) };
+            dominan = skor.A >= skor.B ? 'A' : 'B';
+            config  = KDATA ? KDATA.SENSING_TYPES[dominan] : null;
+
+        } else if (tesId === '07') {
+            // Thinking vs Feeling
+            skor.A = 0; skor.B = 0;
+            jawabanArr.forEach(v => { if (skor[v] !== undefined) skor[v]++; });
+            total = 20;
+            persen = { A: Math.round((skor.A/total)*100), B: Math.round((skor.B/total)*100) };
+            dominan = skor.A >= skor.B ? 'THINKING' : 'FEELING';
+            markerPosition = Math.round((skor.A/total)*100);
+            config  = KDATA ? KDATA.DECISION_TYPES[dominan] : null;
+
+        } else if (tesId === '08') {
+            // Judging vs Perceiving
+            skor.A = 0; skor.B = 0;
+            jawabanArr.forEach(v => { if (skor[v] !== undefined) skor[v]++; });
+            total = 10;
+            persen = { A: Math.round((skor.A/total)*100), B: Math.round((skor.B/total)*100) };
+            dominan = skor.A > skor.B ? 'JUDGING' : 'PERCEIVING';
+            markerPosition = Math.round((skor.A/total)*100);
+            config  = KDATA ? KDATA.LIFESTYLE_TYPES[dominan] : null;
+        }
+
+        // x_12: angka mentah
+        const angka = { dominan, skor, persen, total };
+        if (markerPosition !== null) angka.markerPosition = markerPosition;
+        if (sortedSkor)              angka.sortedSkor     = sortedSkor;
+        x12[`tes${tesId}`] = angka;
+
+        // x_13: kalimat (dari config engine)
+        if (config) {
+            x13[`tes${tesId}`] = {
+                nama            : config.name            || '',
+                tagline         : config.tagline         || '',
+                description     : config.description     || config.desc || '',
+                characteristics : config.characteristics || config.traits || [],
+                strengths       : config.strengths       || [],
+                weaknesses      : config.weaknesses      || [],
+                careers         : config.careers         || [],
+                tips            : config.tips            || []
+            };
+        }
+    });
+
+    return {
+        x12: Object.keys(x12).length > 0 ? JSON.stringify(x12) : null,
+        x13: Object.keys(x13).length > 0 ? JSON.stringify(x13) : null,
+    };
+}
+
+
+// =========================================================
+// HITUNG POTENSI: who_1 who_2 who_3 → bagian potensi di x_12 & x_13
+// =========================================================
+function hitungPotensi(rawRow) {
+    let x07 = {};
+    try { x07 = JSON.parse(rawRow.x_07 || '{}'); } catch(e) {}
+
+    const PE = window.PotensiEngine;
+    const x12 = {};
+    const x13 = {};
+
+    // TES 01: Gaya Belajar VAK (who_1)
+    const raw1 = x07['who_1'] || x07['tes-gaya-belajar-vak'] || '';
+    if (raw1) {
+        const arr = raw1.split(';').filter(v => v);
+        const skor = { A:0, B:0, C:0 };
+        arr.forEach(v => { if (skor[v] !== undefined) skor[v]++; });
+        const total = arr.length || 1;
+        const persen = {};
+        Object.keys(skor).forEach(k => persen[k] = Math.round(skor[k]/total*100));
+        const dominan = Object.keys(skor).reduce((a,b) => skor[a] > skor[b] ? a : b);
+        x12['tes01'] = { dominan, skor, persen, total };
+        const cfg = PE ? PE.LEARNING_STYLES[dominan] : null;
+        if (cfg) x13['tes01'] = { nama: cfg.name, description: cfg.description||'', characteristics: cfg.characteristics||[], tips: cfg.tips||[] };
+    }
+
+    // TES 02: Otak Kiri vs Kanan (who_2)
+    const raw2 = x07['who_2'] || x07['input-tes-otak-kiri-&-kanan'] || '';
+    if (raw2) {
+        const arr = raw2.split(';').filter(v => v);
+        let kiri = 0, kanan = 0;
+        arr.forEach(v => { if (v === 'A') kiri++; else if (v === 'B') kanan++; });
+        const total = arr.length || 1;
+        const persen = { A: Math.round(kiri/total*100), B: Math.round(kanan/total*100) };
+        const dominan = kiri === kanan ? 'BALANCED' : kiri > kanan ? 'LEFT' : 'RIGHT';
+        x12['tes02'] = { dominan, skor: { A: kiri, B: kanan }, persen, total };
+        const cfg = PE ? PE.BRAIN_TYPES[dominan] : null;
+        if (cfg) x13['tes02'] = { nama: cfg.name, tagline: cfg.tagline||'', description: cfg.description||'', characteristics: cfg.characteristics||[], tips: cfg.tips||[] };
+    }
+
+    // TES 03: Kecerdasan Majemuk (who_3) — 8 tipe x 10 soal
+    const raw3 = x07['who_3'] || x07['input-tes-kecerdasan-majemuk'] || '';
+    if (raw3 && PE && PE.INTELLIGENCES) {
+        const arr = raw3.split(';').filter(v => v);
+        const types = Object.keys(PE.INTELLIGENCES);
+        const scores = {};
+        types.forEach((name, i) => {
+            scores[name] = arr.slice(i*10, i*10+10).filter(v => v === 'A').length;
+        });
+        const sorted = Object.entries(scores).sort((a,b) => b[1]-a[1]);
+        const dominan = sorted[0][0];
+        x12['tes03'] = { dominan, skor: scores, sorted: sorted.map(([k,v]) => ({nama:k, skor:v})) };
+        const cfg = PE.INTELLIGENCES[dominan];
+        if (cfg) x13['tes03'] = { nama: cfg.name||dominan, description: cfg.description||'', characteristics: cfg.characteristics||[], tips: cfg.tips||[] };
+    }
+
+    return {
+        x12: Object.keys(x12).length > 0 ? x12 : null,
+        x13: Object.keys(x13).length > 0 ? x13 : null,
+    };
+}
+
+// =========================================================
+// HITUNG KARIR: who_20..27 → bagian karir di x_12 & x_13
+// =========================================================
+function hitungKarir(rawRow) {
+    let x07 = {};
+    try { x07 = JSON.parse(rawRow.x_07 || '{}'); } catch(e) {}
+
+    const KE = window.KarirEngine;
+    const x12 = {};
+    const x13 = {};
+
+    // TES 20: RIASEC (who_20)
+    // SAMA dengan karir_engine.js: 108 item = 6 kategori x 18 soal, urutan R,I,A,S,E,C, jawaban B = ya
+    const raw20 = x07['who_20'] || '';
+    if (raw20 && KE) {
+        const arr = raw20.split(';').filter(v => v !== '');
+        const ORDER20 = ['R', 'I', 'A', 'S', 'E', 'C'];
+        const scoresObj = {};
+        ORDER20.forEach((id, i) => {
+            const blok = arr.slice(i * 18, (i + 1) * 18);
+            scoresObj[id] = blok.filter(v => v === 'B').length;
+        });
+        const combined20 = KE.DATA.RIASEC_CATEGORIES.map(c => ({...c, score: scoresObj[c.id]||0}));
+        combined20.sort((a,b) => b.score - a.score);
+        const top3_20 = combined20.slice(0,3);
+        const suggestions20 = KE.DATA.RIASEC_SUGGESTIONS || [];
+        x12['tes20'] = { dominan: combined20[0].id, careerCode: top3_20.map(c=>c.id).join(''), categories: combined20.map(c=>({id:c.id,nama:c.name,score:c.score,color:c.color})), top3: top3_20.map(c=>({id:c.id,nama:c.name,score:c.score})) };
+        x13['tes20'] = { dominan: combined20[0].name, careerCode: top3_20.map(c=>c.id).join(''), categories: combined20.map(c=>({id:c.id,name:c.name,nama:c.name,score:c.score,color:c.color})), top3: top3_20.map(c=>({id:c.id,name:c.name,nama:c.name,desc:c.desc,careers:c.careers,color:c.color})), suggestions: suggestions20 };
+    }
+
+    // TES 21: Jiwa Kepemimpinan (who_21) — skor numerik
+    const raw21 = x07['who_21'] || '';
+    if (raw21 && KE) {
+        const arr = raw21.split(';').filter(v => v);
+        const nilaiMap21 = { A:0, B:1, C:2, D:3 };
+        const totalSkor = arr.reduce((s,v) => s + (nilaiMap21[v.trim()] !== undefined ? nilaiMap21[v.trim()] : (parseInt(v)||0)), 0);
+        const result = KE.DATA.KEPEMIMPINAN_LEVELS.find(l => totalSkor <= l.maxSkor) || KE.DATA.KEPEMIMPINAN_LEVELS[KE.DATA.KEPEMIMPINAN_LEVELS.length-1];
+        x12['tes21'] = { skor: totalSkor, maxSkor: 42 };
+        x13['tes21'] = { title: result.title, description: result.description, characteristics: result.characteristics||[], suggestions: result.suggestions||[] };
+    }
+
+    // TES 22: Gaya Kepemimpinan (who_22)
+    // SAMA dengan karir_engine.js: 28 soal, tiap 7 soal = 1 style, urutan: pat, oto, lais, demo, jawaban A = ya
+    const raw22 = x07['who_22'] || '';
+    if (raw22 && KE) {
+        const arr = raw22.split(';').filter(v => v !== '');
+        const styleOrder22 = ['pat', 'oto', 'lais', 'demo'];
+        const combined22 = KE.DATA.GAYA_KEPEMIMPINAN_STYLES.map(s => {
+            const i = styleOrder22.indexOf(s.id);
+            const blok = arr.slice(i * 7, (i + 1) * 7);
+            const score = blok.filter(v => v === 'A').length;
+            return { ...s, score };
+        });
+        combined22.sort((a,b) => b.score - a.score);
+        const dominan22 = combined22[0];
+        x12['tes22'] = { dominan: dominan22.id||dominan22.name, scores: combined22.map(s=>({id:s.id,name:s.name,nama:s.name,score:s.score,color:s.color,icon:s.icon})) };
+        x13['tes22'] = { styles: combined22.map(s=>({id:s.id,name:s.name,nama:s.name,score:s.score,color:s.color,icon:s.icon})), dominan: { id:dominan22.id, name:dominan22.name, title:dominan22.name, icon:dominan22.icon||'', color:dominan22.color||'', description:dominan22.description||dominan22.desc||'', characteristics:dominan22.characteristics||[], strengths:dominan22.strengths||[], weaknesses:dominan22.weaknesses||[] } };
+    }
+
+    // TES 23: Motivasi (who_23) — total skor
+    const raw23 = x07['who_23'] || '';
+    if (raw23 && KE) {
+        const arr = raw23.split(';').filter(v => v);
+        const nilaiMap23 = { A:1, B:2, C:3, D:4, E:5 };
+        const total = arr.reduce((s,v) => s + (nilaiMap23[v.trim()] !== undefined ? nilaiMap23[v.trim()] : (parseInt(v)||0)), 0);
+        const result = KE.DATA.MOTIVASI_LEVELS.find(l => total >= l.minSkor) || KE.DATA.MOTIVASI_LEVELS[0];
+        x12['tes23'] = { skor: total, maxSkor: 70, persen: Math.round(total/70*100) };
+        x13['tes23'] = { title: result.title||result.level, description: result.description||'', suggestions: result.suggestions||[] };
+    }
+
+    // TES 24: Manajemen Waktu (who_24)
+    const raw24 = x07['who_24'] || '';
+    if (raw24 && KE) {
+        const arr = raw24.split(';').filter(v => v);
+        const nilaiMap24 = { A:3, B:2, C:1, D:0 };
+        const total = arr.reduce((s,v) => s + (nilaiMap24[v.trim()] !== undefined ? nilaiMap24[v.trim()] : (parseInt(v)||0)), 0);
+        const result = KE.DATA.MANWAK_LEVELS ? (KE.DATA.MANWAK_LEVELS.find(l => total >= l.minSkor) || KE.DATA.MANWAK_LEVELS[0]) : null;
+        x12['tes24'] = { skor: total, maxSkor: 30 };
+        if (result) x13['tes24'] = { title: result.title||result.level, description: result.description||'', suggestions: result.suggestions||[] };
+    }
+
+    // TES 25: Stres (who_25)
+    const raw25 = x07['who_25'] || '';
+    if (raw25 && KE) {
+        const arr = raw25.split(';').filter(v => v);
+        // Stres: q1-9 → A=1,B=0; q10-12 → B=1,A=0
+        const total = arr.reduce((s,v,i) => {
+          if (i < 9) return s + (v.trim()==='A' ? 1 : 0);
+          else       return s + (v.trim()==='B' ? 1 : 0);
+        }, 0);
+        const result = KE.DATA.STRES_LEVELS ? (KE.DATA.STRES_LEVELS.find(l => total >= l.minSkor) || KE.DATA.STRES_LEVELS[0]) : null;
+        x12['tes25'] = { skor: total, maxSkor: 12 };
+        if (result) x13['tes25'] = { title: result.title||result.level, description: result.description||'', suggestions: result.suggestions||[] };
+    }
+
+    // TES 27: Keberanian (who_27)
+    const raw27 = x07['who_27'] || '';
+    if (raw27 && KE) {
+        const arr = raw27.split(';').filter(v => v);
+        const nilaiMap27 = { A:4, B:3, C:2, D:1, E:0 };
+        const total = arr.reduce((s,v) => s + (nilaiMap27[v.trim()] !== undefined ? nilaiMap27[v.trim()] : (parseInt(v)||0)), 0);
+        const cfg = KE.DATA.KEBERANIAN_CONFIG;
+        const maxSkor = cfg ? (cfg.maxSkor || 50) : 50;
+        const result = cfg && cfg.levels ? (cfg.levels.find(l => total >= l.minSkor) || cfg.levels[0]) : null;
+        x12['tes27'] = { skor: total, maxSkor, persen: Math.round(total/maxSkor*100) };
+        if (result) x13['tes27'] = { title: result.title||result.level, description: result.description||'', traits: result.traits||[], suggestions: result.suggestions||[] };
+    }
+
+    return {
+        x12: Object.keys(x12).length > 0 ? x12 : null,
+        x13: Object.keys(x13).length > 0 ? x13 : null,
+    };
+}
+
+// =========================================================
+// HITUNG ASMARA: who_9, who_12..18 → bagian asmara di x_12 & x_13
+// =========================================================
+// FIX: Gunakan AsmaraEngine.processRaw() agar konversi huruf→angka
+// (opsiNilai, pointMap) dilakukan SEPENUHNYA oleh engine, bukan
+// dihitung ulang di sini. Ini memastikan nilai yang ditransfer ke DB
+// 100% identik dengan yang ditampilkan di gabungan_asmara.html.
+// =========================================================
+function hitungAsmara(rawRow) {
+    let x07 = {};
+    try { x07 = JSON.parse(rawRow.x_07 || '{}'); } catch(e) {}
+
+    const AE = window.AsmaraEngine;
+    if (!AE || typeof AE.processRaw !== 'function') {
+        console.warn('[hitungAsmara] AsmaraEngine.processRaw tidak tersedia');
+        return { x12: null, x13: null };
+    }
+
+    // Daftar tes asmara dengan key jawaban di x07
+    // (key alternatif: who_9 / input-tes-pola-asuh, dst sesuai engine)
+    const TES_ASMARA = [
+        { id: '09', keys: ['input-tes-pola-asuh', 'who_9']   },
+        { id: '12', keys: ['input-tes-tipe-cinta', 'who_12'] },
+        { id: '13', keys: ['input-tes-jenis-cinta', 'who_13'] },
+        { id: '14', keys: ['input-tes-kecanduan-hubungan', 'who_14'] },
+        { id: '15', keys: ['input-tes-mengenal-pasangan', 'who_15'] },
+        { id: '16', keys: ['input-tes-kesetiaan', 'who_16'] },
+        { id: '17', keys: ['input-tes-sahabat', 'who_17'] },
+        { id: '18', keys: ['input-tes-siap-pendamping', 'who_18'] },
+    ];
+
+    const x12 = {};
+    const x13 = {};
+
+    TES_ASMARA.forEach(({ id, keys }) => {
+        // Cek apakah ada jawaban untuk tes ini (dari salah satu key)
+        const hasData = keys.some(k => x07[k] !== undefined && x07[k] !== '');
+        if (!hasData) return; // peserta belum mengerjakan tes ini, skip
+
+        try {
+            // Serahkan SELURUH perhitungan ke engine — termasuk konversi huruf→angka
+            const result = AE.processRaw(id, x07);
+            const cfg    = result.config;
+            const tipe   = cfg.tipe;
+
+            // ── Susun x12 (angka) per tipe ──────────────────────────────
+            if (tipe === 'pilihan-tertinggi') {
+                x12[`tes${id}`] = {
+                    dominant : result.dominant,
+                    scores   : result.scores,
+                    persen   : result.persen,
+                };
+            } else if (tipe === 'skala-per-tipe') {
+                x12[`tes${id}`] = {
+                    dominant : result.dominant,
+                    scores   : result.scores,
+                };
+            } else if (tipe === 'total-level') {
+                x12[`tes${id}`] = {
+                    level  : result.level,
+                    skor   : result.total,
+                    maxSkor: cfg.maxSkor || null,
+                    minSkor: cfg.minSkor || null,
+                };
+            } else if (tipe === 'pointmap-level') {
+                x12[`tes${id}`] = {
+                    level   : result.level,
+                    skor    : result.total,
+                    maxSkor : cfg.maxSkor || null,
+                    minSkor : cfg.minSkor || null,
+                    skorList: result.skorList || [],
+                };
+            }
+
+            // ── Susun x13 (teks/kalimat) — ambil dari typeInfo engine ───
+            const ti = result.typeInfo;
+            if (ti) {
+                const entry = {
+                    description    : ti.description    || '',
+                    characteristics: ti.characteristics || [],
+                    advice         : ti.advice || ti.tips || ti.suggestions || [],
+                };
+                // Tambah field nama/title sesuai tipe
+                if (tipe === 'pilihan-tertinggi') {
+                    entry.nama = ti.name || '';
+                    if (ti.strengths)     entry.strengths     = ti.strengths;
+                    if (ti.ideal_partner) entry.ideal_partner = ti.ideal_partner;
+                    if (ti.impact)        entry.impact        = ti.impact;
+                } else if (tipe === 'skala-per-tipe') {
+                    entry.nama = ti.name || '';
+                } else {
+                    // total-level & pointmap-level: gunakan title
+                    entry.title = ti.title || '';
+                    if (ti.warning)    entry.warning    = ti.warning    || null;
+                    if (ti.indicators) entry.indicators = ti.indicators || [];
+                    if (ti.risks)      entry.risks      = ti.risks      || [];
+                    if (ti.strengths)  entry.strengths  = ti.strengths  || [];
+                    if (ti.weaknesses) entry.weaknesses = ti.weaknesses || [];
+                    if (ti.colorClass) entry.colorClass = ti.colorClass;
+                    if (ti.color)      entry.color      = ti.color;
+                    if (ti.icon)       entry.icon       = ti.icon;
+                }
+                x13[`tes${id}`] = entry;
+            }
+
+        } catch(e) {
+            console.warn('[hitungAsmara] tes' + id + ' error:', e.message);
+        }
+    });
+
+    return {
+        x12: Object.keys(x12).length > 0 ? x12 : null,
+        x13: Object.keys(x13).length > 0 ? x13 : null,
+    };
+}
+
+// =========================================================
+// MAP DATA: dari rawData → kelompok x_01..x_13
+// =========================================================
+function mapData(rawRow) {
+    // Pastikan engine tersedia
+    if (!window.PsikogramEngine) throw new Error('PsikogramEngine belum dimuat. Pastikan psikogram-engine-json.js tersedia.');
+
+    const randPsikogram = getRandFn(String(rawRow.id_x) + '_psikogram');
+    const hasil = window.PsikogramEngine.hitungPsikogram(rawRow, rawRow.id_x, randPsikogram);
+    const { kekuatanKelemahan, minatData, aspekPsikologis } = window.PsikogramEngine;
+    const {
+        identitas, IQ, resultScores, konsistensi,
+        sorted_desc, sorted_asc,
+        kelebihan, kelemahan, rekomendasi, minat3
+    } = hasil;
+
+    // ── KEL 1: Kode peserta (x_01 dari sumber) ──
+    const kel1 = rawRow.x_01 || '';
+
+    // ── KEL 2: Biodata ──
+    // Format JSON baru: ambil semua field yang tersedia
+    const rawBio = Array.isArray(rawRow) ? rawRow[0] : rawRow;
+    let bioParsed = {};
+    try { bioParsed = JSON.parse(rawBio.x_02 || '{}'); } catch(e) {}
+
+    // ── KEL 15-17: Copy PERSIS dari kolom sumber x_05, x_06, x_07 ──
+    // (tidak diolah/diubah sama sekali, disalin apa adanya ke x_15, x_16, x_17 tujuan)
+    const kel15 = rawBio.x_05 !== undefined ? rawBio.x_05 : null;
+    const kel16 = rawBio.x_06 !== undefined ? rawBio.x_06 : null;
+    const kel17 = rawBio.x_07 !== undefined ? rawBio.x_07 : null;
+
+    // ── KEL 18: Hasil VAK & Temperamen (dihitung dari x_07 sumber, token = x_01) ──
+    const vakTempResult = hitungVakTemperamen(rawBio, kel1);
+    const kel18 = vakTempResult ? JSON.stringify(vakTempResult) : null;
+
+    const kel2 = JSON.stringify({
+        nama        : identitas.nama       || bioParsed.nama        || '',
+        jk          : identitas.jk         || bioParsed.jenis_kelamin|| bioParsed.gender || '',
+        usia        : identitas.usia       || bioParsed.usia        || '',
+        tanggal     : identitas.tanggal    || bioParsed.tgl_tes     || '',
+        tanggal_ttd : identitas.tanggalTTD || bioParsed.tgl_tes     || '',
+        pendidikan  : bioParsed.pendidikan || '',
+        status      : bioParsed.status     || '',
+        id_sumber   : rawRow.id_x
+    });
+
+    // ── KEL 3: Kemampuan (skor + label) ──
+    const kemampuanAspek = aspekPsikologis.filter(([sec]) => sec === 'KEMAMPUAN' || sec === null)
+        .slice(0, 6); // index 0-5: kemampuan umum s/d penalaran numerik
+    const kel3_obj = { skor_iq: IQ };
+    ['Kemampuan Umum','Daya Tangkap Visual','Kemampuan Berpikir Logis',
+     'Kemampuan Berpikir Abstrak','Penalaran Verbal','Penalaran Numerik'].forEach((nama, i) => {
+        const key = nama.toLowerCase().replace(/ /g,'_');
+        kel3_obj[key] = resultScores[i];
+    });
+    const kel3 = JSON.stringify(kel3_obj);
+
+    // ── KEL 4: Kepribadian (index 6-10) ──
+    const kel4_obj = {};
+    ['Hasrat Berprestasi','Daya Tahan Stress','Kepercayaan Diri','Relasi Sosial','Kerjasama'].forEach((nama, i) => {
+        const key = nama.toLowerCase().replace(/ /g,'_');
+        kel4_obj[key] = resultScores[6 + i];
+    });
+    const kel4 = JSON.stringify(kel4_obj);
+
+    // ── KEL 5: Sikap Kerja (index 11-13) ──
+    const kel5_obj = {};
+    ['Sistematika Kerja','Inisiatif','Kemandirian'].forEach((nama, i) => {
+        const key = nama.toLowerCase().replace(/ /g,'_');
+        kel5_obj[key] = resultScores[11 + i];
+    });
+    const kel5 = JSON.stringify(kel5_obj);
+
+    // ── KEL 6: IQ ──
+    const kel6 = String(IQ);
+
+    // ── KEL 7: Kekuatan / Kelebihan ──
+    const kekuatanArr = [0,1,2].map(i => {
+        const teks = kelebihan[i] !== null
+            ? kelebihan[i]
+            : kekuatanKelemahan[sorted_desc[i].index].teks2;
+        return teks;
+    });
+    const kel7 = JSON.stringify(kekuatanArr);
+
+    // ── KEL 8: Kelemahan ──
+    const kelemahanArr = [0,1,2].map(i => {
+        const teks = kelemahan[i] !== null
+            ? kelemahan[i]
+            : kekuatanKelemahan[sorted_asc[i].index].teks3;
+        return teks;
+    });
+    const kel8 = JSON.stringify(kelemahanArr);
+
+    // ── KEL 9: Rekomendasi ──
+    const rekomendasiArr = [0,1,2].map(i => {
+        const teks = rekomendasi[i] !== null
+            ? rekomendasi[i]
+            : kekuatanKelemahan[sorted_asc[i].index].teks5;
+        return teks;
+    });
+    const kel9 = JSON.stringify(rekomendasiArr);
+
+    // ── KEL 10: Arah Minat ──
+    const minatArr = minat3.map(({ singkatan, namaOverride, ketOverride }) => {
+        const item = minatData.find(m => m.singkatan === singkatan);
+        if (!item) return { singkatan, nama: singkatan, keterangan: '' };
+        return {
+            singkatan,
+            nama       : namaOverride ? namaOverride.toUpperCase() : item.arah_minat,
+            keterangan : ketOverride  ? ketOverride                : item.keterangan_minat
+        };
+    });
+    const kel10 = JSON.stringify(minatArr);
+
+    // ── KEL 11: Tanggal transfer ──
+    const now  = new Date();
+    const kel11 = now.toLocaleDateString('id-ID', {
+        day:'2-digit', month:'long', year:'numeric',
+        hour:'2-digit', minute:'2-digit'
+    });
+
+    // ── KEL 12 & 13: Karakter (angka & kalimat) ──
+    // ── Hitung semua engine ──
+    const karakter = hitungKarakter(rawRow);
+    const potensi  = hitungPotensi(rawRow);
+    const karir    = hitungKarir(rawRow);
+    const asmara   = hitungAsmara(rawRow);
+
+    // ── Gabungkan ke x_12 (angka) dan x_13 (kalimat) ──
+    const x12_obj = {};
+    if (karakter.x12) x12_obj.karakter = JSON.parse(karakter.x12);
+    if (potensi.x12)  x12_obj.potensi  = potensi.x12;
+    if (karir.x12)    x12_obj.karir    = karir.x12;
+    if (asmara.x12)   x12_obj.asmara   = asmara.x12;
+
+    const x13_obj = {};
+    if (karakter.x13) x13_obj.karakter = JSON.parse(karakter.x13);
+    if (potensi.x13)  x13_obj.potensi  = potensi.x13;
+    if (karir.x13)    x13_obj.karir    = karir.x13;
+    if (asmara.x13)   x13_obj.asmara   = asmara.x13;
+
+    // ── Proses variasi spintax {opsi1|opsi2|opsi3} di seluruh kalimat x_13 ──
+    // Seed dari id_x → acak antar peserta, tapi konsisten untuk id_x yang sama
+    // setiap kali di-generate ulang (mis. saat transfer diulang / recap dibuka lagi).
+    const PE = window.PsikogramEngine;
+    if (PE && PE.parseSpintax) {
+        const randX13 = getRandFn(String(rawRow.id_x) + '_x13');
+        resolveVariasi(x13_obj, randX13);
+    }
+
+    return {
+        x_01 : kel1,          // kode peserta
+        x_02 : kel2,          // biodata (JSON)
+        x_03 : kel3,          // kemampuan (JSON)
+        x_04 : kel4,          // kepribadian (JSON)
+        x_05 : kel5,          // sikap kerja (JSON)
+        x_06 : kel6,          // IQ (angka)
+        x_07 : kel7,          // kekuatan (JSON array)
+        x_08 : kel8,          // kelemahan (JSON array)
+        x_09 : kel9,          // rekomendasi (JSON array)
+        x_10 : kel10,         // arah minat (JSON array)
+        x_11 : kel11,         // tanggal transfer
+        x_12 : Object.keys(x12_obj).length > 0 ? JSON.stringify(x12_obj) : null,
+        x_13 : Object.keys(x13_obj).length > 0 ? JSON.stringify(x13_obj) : null,
+        x_15 : kel15,          // copy persis dari sumber x_05
+        x_16 : kel16,          // copy persis dari sumber x_06
+        x_17 : kel17,          // copy persis dari sumber x_07
+        x_18 : kel18,          // hasil VAK & Temperamen (JSON gabungan)
+    };
+}
+
+// =========================================================
+// FETCH PREVIEW
+// =========================================================
+async function fetchPreview(mode) {
+    currentMode = mode;
+    previewRows = [];
+
+    // Tunggu semua engine siap sebelum proses (hindari race condition)
+    if (window._enginesReady) {
+        try { await window._enginesReady; } catch(e) {}
+    }
+
+    const cardPreview  = document.getElementById('card-preview');
+    const tbody        = document.getElementById('preview-tbody');
+    const emptyState   = document.getElementById('empty-state');
+    const btnTransfer  = document.getElementById('btn-transfer');
+    const chkAll       = document.getElementById('chk-all');
+
+    cardPreview.style.display = 'none';
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:24px; color:#777;">
+        <div id="preview-progress-wrap" style="max-width:320px; margin:0 auto;">
+            <div style="font-size:13px; margin-bottom:8px;" id="preview-progress-label">Mengambil data sumber...</div>
+            <div style="background:#eee; border-radius:8px; height:10px; overflow:hidden;">
+                <div id="preview-progress-bar" style="background:#5F4EDA; height:100%; width:0%; transition:width .15s;"></div>
+            </div>
+            <div style="font-size:12px; color:#999; margin-top:6px;" id="preview-progress-count">0 / 0</div>
+        </div>
+    </td></tr>`;
+    cardPreview.style.display = 'block';
+    emptyState.style.display = 'none';
+    btnTransfer.disabled = true;
+    chkAll.checked = false;
+
+    // Helper untuk update progres di dalam tbody
+    function updatePreviewProgress(done, total, label) {
+        const labelEl = document.getElementById('preview-progress-label');
+        const barEl   = document.getElementById('preview-progress-bar');
+        const countEl = document.getElementById('preview-progress-count');
+        if (!labelEl || !barEl || !countEl) return;
+        if (label) labelEl.textContent = label;
+        const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+        barEl.style.width = pct + '%';
+        countEl.textContent = `${done} / ${total}`;
+    }
+
+    try {
+        // 1. Ambil data sumber
+        const srcData = await fetchSourceData();
+        if (!srcData || srcData.length === 0) {
+            tbody.innerHTML = '';
+            emptyState.style.display = 'block';
+            updateStats();
+            return;
+        }
+
+        // 2. Hitung mapping untuk setiap baris
+        const rows = [];
+        updatePreviewProgress(0, srcData.length, 'Memproses data peserta...');
+        for (let i = 0; i < srcData.length; i++) {
+            const raw = srcData[i];
+            try {
+                const mapped = mapData(raw);
+                rows.push({ srcRow: raw, mapped, existingId: null, status: 'pending', checked: false });
+            } catch(e) {
+                rows.push({ srcRow: raw, mapped: null, existingId: null, status: 'error', errMsg: e.message, checked: false });
+            }
+            updatePreviewProgress(i + 1, srcData.length, 'Memproses data peserta...');
+        }
+
+        // 3. Cek apakah x_01 sudah ada di rekap_nilai1
+        //    Kumpulkan semua kode x_01 unik, cek satu per satu
+        const kodePeserta = [...new Set(rows.filter(r => r.mapped).map(r => r.mapped.x_01))];
+        updatePreviewProgress(0, kodePeserta.length, 'Mengecek status data di rekap_nilai1...');
+        for (let i = 0; i < kodePeserta.length; i++) {
+            const kode = kodePeserta[i];
+            try {
+                const cek = await apiGet(CFG.DST_TABLE, { x_01_eq: kode }, true, true);
+                if (cek.success && cek.data && cek.data.length > 0) {
+                    // Sudah ada — ambil id_x rekap
+                    const existId = cek.data[0].id_x;
+                    rows.filter(r => r.mapped && r.mapped.x_01 === kode).forEach(r => {
+                        r.existingId = existId;
+                        r.status = 'update';
+                    });
+                } else {
+                    rows.filter(r => r.mapped && r.mapped.x_01 === kode).forEach(r => {
+                        r.status = 'new';
+                    });
+                }
+            } catch(e) {
+                rows.filter(r => r.mapped && r.mapped.x_01 === kode).forEach(r => {
+                    r.status = 'new'; // anggap baru jika gagal cek
+                });
+            }
+            updatePreviewProgress(i + 1, kodePeserta.length, 'Mengecek status data di rekap_nilai1...');
+        }
+
+        previewRows = rows;
+        renderPreviewTable();
+        updateStats();
+        updateTransferBtn();
+
+    } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="9" style="color:#dc3545; padding:14px;">❌ Error: ${err.message}</td></tr>`;
+    }
+}
+
+// =========================================================
+// RENDER PREVIEW TABLE
+// =========================================================
+function renderPreviewTable() {
+    const tbody = document.getElementById('preview-tbody');
+    tbody.innerHTML = '';
+
+    if (previewRows.length === 0) {
+        document.getElementById('empty-state').style.display = 'block';
+        return;
+    }
+
+    previewRows.forEach((row, idx) => {
+        const tr = document.createElement('tr');
+        tr.id = `row-${idx}`;
+        if (row.checked) tr.classList.add('selected');
+        tr.dataset.search = [
+            row.srcRow.id_x,
+            row.mapped ? row.mapped.x_01 : '',
+            row.mapped ? (() => { try { return JSON.parse(row.mapped.x_02).nama; } catch { return ''; } })() : ''
+        ].join(' ').toLowerCase();
+
+        const statusBadge = row.status === 'new'    ? '<span class="badge badge-new">🆕 Baru</span>'   :
+                            row.status === 'update' ? '<span class="badge badge-update">✏️ Update</span>' :
+                            row.status === 'error'  ? '<span class="badge badge-error">❌ Error</span>'  :
+                                                      '<span class="badge badge-pending">⏳ Pending</span>';
+
+        const nama    = row.mapped ? (() => { try { return JSON.parse(row.mapped.x_02).nama; } catch { return '-'; } })() : '-';
+        const iq      = row.mapped ? row.mapped.x_06 : '-';
+        const kemampJSON = row.mapped ? row.mapped.x_03 : '{}';
+        const kepribJSON = row.mapped ? row.mapped.x_04 : '{}';
+
+        const kemampPreview = row.mapped
+            ? Object.entries(JSON.parse(kemampJSON || '{}')).filter(([k]) => k !== 'skor_iq')
+                .slice(0,2).map(([k,v]) => `${k.replace(/_/g,' ')}:${v}`).join(', ')
+            : '-';
+        const kepribPreview = row.mapped
+            ? Object.entries(JSON.parse(kepribJSON || '{}')).slice(0,2)
+                .map(([k,v]) => `${k.replace(/_/g,' ')}:${v}`).join(', ')
+            : '-';
+
+        tr.innerHTML = `
+            <td style="text-align:center;">
+                <input type="checkbox" id="chk-${idx}"
+                    ${row.status === 'error' ? 'disabled' : ''}
+                    ${row.checked ? 'checked' : ''}
+                    onchange="toggleRow(${idx}, this.checked)">
+            </td>
+            <td><strong>${row.srcRow.id_x}</strong></td>
+            <td>${row.mapped ? row.mapped.x_01 : '<em style="color:#aaa;">-</em>'}</td>
+            <td>${nama}</td>
+            <td style="text-align:center;"><strong>${iq}</strong></td>
+            <td class="json-cell" onclick="showModal('Kemampuan – Peserta ${row.srcRow.id_x}', kemampJSON_${idx})"
+                title="Klik untuk lihat detail">
+                ${kemampPreview}...
+            </td>
+            <td class="json-cell" onclick="showModal('Kepribadian – Peserta ${row.srcRow.id_x}', kepribJSON_${idx})"
+                title="Klik untuk lihat detail">
+                ${kepribPreview}...
+            </td>
+            <td>${statusBadge} ${row.existingId ? `<small style="color:#999;">id_x:${row.existingId}</small>` : ''}</td>
+            <td>
+                <button class="btn btn-primary" style="padding:4px 10px; font-size:12px;"
+                    onclick="showDetailModal(${idx})">👁️ Detail</button>
+            </td>`;
+        tbody.appendChild(tr);
+
+        // Store JSON ke window untuk onclick
+        window[`kemampJSON_${idx}`]  = kemampJSON;
+        window[`kepribJSON_${idx}`]  = kepribJSON;
+
+        if (row.status === 'error') {
+            const errTr = document.createElement('tr');
+            errTr.innerHTML = `<td colspan="9" style="background:#fff5f5; color:#dc3545; font-size:12px; padding:6px 14px;">
+                ⚠️ Gagal memproses id_x ${row.srcRow.id_x}: ${row.errMsg}</td>`;
+            tbody.appendChild(errTr);
+        }
+    });
+
+    // Terapkan ulang filter pencarian yang sedang aktif (jika ada)
+    const searchInput = document.getElementById('preview-search');
+    filterPreviewTable(searchInput ? searchInput.value : '');
+}
+
+// =========================================================
+// SEARCH / FILTER PREVIEW TABLE
+// =========================================================
+function filterPreviewTable(keyword) {
+    const q = (keyword || '').trim().toLowerCase();
+    const tbody = document.getElementById('preview-tbody');
+    const rows = tbody ? Array.from(tbody.querySelectorAll('tr[id^="row-"]')) : [];
+    let visibleCount = 0;
+
+    rows.forEach(tr => {
+        const match = !q || (tr.dataset.search || '').includes(q);
+        tr.style.display = match ? '' : 'none';
+        if (match) visibleCount++;
+
+        // Sembunyikan juga baris error yang menyertai row terkait
+        const next = tr.nextElementSibling;
+        if (next && !next.id) {
+            next.style.display = match ? '' : 'none';
+        }
+    });
+
+    const countEl = document.getElementById('preview-search-count');
+    if (countEl) {
+        countEl.textContent = q ? `${visibleCount} dari ${rows.length} data cocok` : '';
+    }
+}
+
+// =========================================================
+// TOGGLE ROW / SELECT ALL
+// =========================================================
+function toggleRow(idx, checked) {
+    previewRows[idx].checked = checked;
+    const tr = document.getElementById(`row-${idx}`);
+    if (tr) tr.classList.toggle('selected', checked);
+    updateStats();
+    updateTransferBtn();
+    // Update chk-all state
+    const allCheckable = previewRows.filter(r => r.status !== 'error');
+    const allChecked   = allCheckable.every(r => r.checked);
+    document.getElementById('chk-all').checked = allChecked && allCheckable.length > 0;
+}
+
+function toggleSelectAll(checked) {
+    previewRows.forEach((row, idx) => {
+        if (row.status === 'error') return;
+        const tr = document.getElementById(`row-${idx}`);
+        // Jika sedang ada pencarian aktif, hanya pilih baris yang terlihat (cocok filter)
+        if (tr && tr.style.display === 'none') return;
+        row.checked = checked;
+        const chk = document.getElementById(`chk-${idx}`);
+        if (chk) chk.checked = checked;
+        if (tr) tr.classList.toggle('selected', checked);
+    });
+    updateStats();
+    updateTransferBtn();
+}
+
+// =========================================================
+// UPDATE STATS
+// =========================================================
+function updateStats() {
+    const total    = previewRows.length;
+    const newCount = previewRows.filter(r => r.status === 'new').length;
+    const updCount = previewRows.filter(r => r.status === 'update').length;
+    const selected = previewRows.filter(r => r.checked).length;
+
+    document.getElementById('stat-total').textContent    = total;
+    document.getElementById('stat-new').textContent      = newCount;
+    document.getElementById('stat-update').textContent   = updCount;
+    document.getElementById('stat-selected').textContent = selected;
+}
+
+function updateTransferBtn() {
+    const hasSelected = previewRows.some(r => r.checked);
+    document.getElementById('btn-transfer').disabled = !hasSelected;
+}
+
+// =========================================================
+// MODAL
+// =========================================================
+function showModal(title, jsonStr) {
+    let html = '';
+    try {
+        const pretty = JSON.stringify(JSON.parse(jsonStr), null, 2);
+        html = `<pre style="white-space:pre-wrap;word-break:break-word;font-size:13px">${pretty}</pre>`;
+    } catch {
+        html = `<pre style="white-space:pre-wrap;font-size:13px">${jsonStr}</pre>`;
+    }
+    document.getElementById('modal-title').textContent  = title;
+    document.getElementById('modal-content').innerHTML  = html;
+    document.getElementById('modal-overlay').classList.add('open');
+}
+
+function showDetailModal(idx) {
+    const row = previewRows[idx];
+    if (!row || !row.mapped) return;
+    const m = row.mapped;
+
+    const kolom = [
+        { key: 'x_01',  label: 'Kode Peserta',      val: m.x_01 },
+        { key: 'x_02',  label: 'Biodata',            val: m.x_02 },
+        { key: 'x_03',  label: 'Kemampuan',          val: m.x_03 },
+        { key: 'x_04',  label: 'Kepribadian',        val: m.x_04 },
+        { key: 'x_05',  label: 'Sikap Kerja',        val: m.x_05 },
+        { key: 'x_06',  label: 'IQ',                 val: m.x_06 },
+        { key: 'x_07',  label: 'Kekuatan',           val: m.x_07 },
+        { key: 'x_08',  label: 'Kelemahan',          val: m.x_08 },
+        { key: 'x_09',  label: 'Rekomendasi',        val: m.x_09 },
+        { key: 'x_10',  label: 'Arah Minat',         val: m.x_10 },
+        { key: 'x_11',  label: 'Tgl Transfer',       val: m.x_11 },
+        { key: 'x_12',  label: 'Karakter (Angka)',   val: m.x_12 },
+        { key: 'x_13',  label: 'Karakter (Kalimat)', val: m.x_13 },
+        { key: 'x_15',  label: 'Copy Sumber x_05',   val: m.x_15 },
+        { key: 'x_16',  label: 'Copy Sumber x_06',   val: m.x_16 },
+        { key: 'x_17',  label: 'Copy Sumber x_07',   val: m.x_17 },
+        { key: 'x_18',  label: 'VAK & Temperamen',   val: m.x_18 },
+    ];
+
+    let html = `<table style="width:100%;border-collapse:collapse;font-size:13px">`;
+    html += `<tr style="background:#f0eeff">
+        <th style="padding:8px 10px;text-align:left;width:110px;color:#5F4EDA;border-bottom:2px solid #ddd">Kolom</th>
+        <th style="padding:8px 10px;text-align:left;color:#5F4EDA;border-bottom:2px solid #ddd">Label</th>
+        <th style="padding:8px 10px;text-align:left;color:#5F4EDA;border-bottom:2px solid #ddd">Nilai</th>
+    </tr>`;
+
+    kolom.forEach(({ key, label, val }) => {
+        let display = '';
+        if (val === null || val === undefined || val === 'null') {
+            display = `<span style="color:#bbb;font-style:italic">null</span>`;
+        } else {
+            try {
+                const parsed = JSON.parse(val);
+                display = `<pre style="margin:0;white-space:pre-wrap;word-break:break-word;font-size:12px;max-height:120px;overflow-y:auto;background:#f8f8ff;padding:6px;border-radius:4px">${JSON.stringify(parsed, null, 2)}</pre>`;
+            } catch {
+                display = `<span>${val}</span>`;
+            }
+        }
+        html += `<tr style="border-bottom:1px solid #eee;vertical-align:top">
+            <td style="padding:8px 10px;font-weight:700;color:#5F4EDA;white-space:nowrap">${key}</td>
+            <td style="padding:8px 10px;color:#666;white-space:nowrap">${label}</td>
+            <td style="padding:8px 10px">${display}</td>
+        </tr>`;
+    });
+    html += `</table>`;
+
+    document.getElementById('modal-title').innerHTML = `📋 Detail Kolom Tujuan — id_x <b>${row.srcRow.id_x}</b> &nbsp;<span style="font-size:12px;font-weight:normal;color:${row.status==='new'?'#28a745':'#f59e0b'}">[${row.status==='new'?'POST BARU':'UPDATE'}]</span>`;
+    document.getElementById('modal-content').innerHTML = html;
+    document.getElementById('modal-overlay').classList.add('open');
+}
+
+function closeModal(e) {
+    if (e.target === document.getElementById('modal-overlay')) {
+        document.getElementById('modal-overlay').classList.remove('open');
+    }
+}
+
+// =========================================================
+// TRANSFER
+// =========================================================
+async function startTransfer() {
+    const toTransfer = previewRows.filter(r => r.checked && r.status !== 'error' && r.mapped);
+    if (toTransfer.length === 0) return;
+
+    document.getElementById('btn-transfer').disabled = true;
+    document.getElementById('card-progress').style.display = 'block';
+    document.getElementById('card-progress').scrollIntoView({ behavior:'smooth', block:'start' });
+
+    const logBox = document.getElementById('log-box');
+    logBox.innerHTML = '';
+
+    let done = 0, ok = 0, fail = 0;
+    const total = toTransfer.length;
+
+    document.getElementById('prog-total').textContent = total;
+    updateProgress(0, 0, 0, total);
+    log(`🚀 Memulai transfer ${total} data...`, 'info');
+
+    for (const row of toTransfer) {
+        const pesertaId = row.srcRow.id_x;
+
+        // Hitung ulang mapData() FRESH tepat sebelum kirim — jangan pakai cache preview.
+        // Ini penting untuk mode "acak": tiap kali tombol Transfer diklik (termasuk ke
+        // tabel tujuan berbeda), kalimat harus dihitung baru, bukan pakai hasil preview
+        // yang mungkin sudah lama/dari klik sebelumnya. Di mode "konsisten" hasilnya akan
+        // tetap sama persis (seeded by id_x), jadi aman dihitung ulang di kedua mode.
+        try {
+            row.mapped = mapData(row.srcRow);
+        } catch (e) {
+            log(`❌ GAGAL hitung ulang id_x ${pesertaId} — ${e.message}`, 'err');
+            fail++;
+            done++;
+            updateProgress(done, ok, fail, total);
+            continue;
+        }
+
+        const kode = row.mapped.x_01;
+        try {
+            let result;
+            if (row.status === 'update' && row.existingId) {
+                // PUT (update)
+                result = await apiPut(CFG.DST_TABLE, row.existingId, row.mapped);
+                log(`✏️ UPDATE id_x ${pesertaId} (kode: ${kode}) → rekap id_x ${row.existingId} — ${result.message || 'OK'}`, 'ok');
+            } else {
+                // POST (insert baru)
+                result = await apiPost(CFG.DST_TABLE, row.mapped);
+                log(`🆕 INSERT id_x ${pesertaId} (kode: ${kode}) → rekap id_x ${result.id_x || '?'} — ${result.message || 'OK'}`, 'ok');
+            }
+            ok++;
+            // Update badge di tabel preview
+            updateRowBadge(row, 'success');
+        } catch (err) {
+            fail++;
+            log(`❌ GAGAL id_x ${pesertaId} (kode: ${kode}) — ${err.message}`, 'err');
+            updateRowBadge(row, 'error');
+        }
+        done++;
+        updateProgress(done, ok, fail, total);
+
+        // Jeda kecil antar request
+        if (done < total) await sleep(CFG.DELAY_MS);
+    }
+
+    log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`, 'info');
+    log(`✅ Selesai! Berhasil: ${ok} | Gagal: ${fail} | Total: ${total}`, ok === total ? 'ok' : 'warn');
+
+    document.getElementById('btn-transfer').disabled = false;
+}
+
+function updateProgress(done, ok, fail, total) {
+    const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+    document.getElementById('prog-bar').style.width   = pct + '%';
+    document.getElementById('prog-done').textContent  = done;
+    document.getElementById('prog-ok').textContent    = ok;
+    document.getElementById('prog-fail').textContent  = fail;
+    document.getElementById('prog-label').textContent = `${pct}% — ${done} dari ${total} data diproses`;
+}
+
+function updateRowBadge(row, result) {
+    // Cari baris di tabel preview berdasarkan id_x
+    const idx = previewRows.indexOf(row);
+    const tr  = document.getElementById(`row-${idx}`);
+    if (!tr) return;
+    const badgeCell = tr.cells[7];
+    if (result === 'success') {
+        badgeCell.innerHTML = `<span class="badge badge-success">✅ Tersimpan</span>`;
+    } else {
+        badgeCell.innerHTML = `<span class="badge badge-error">❌ Gagal</span>`;
+    }
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// =========================================================
+// RESET
+// =========================================================
+function resetAll() {
+    previewRows = [];
+    document.getElementById('card-preview').style.display  = 'none';
+    document.getElementById('card-progress').style.display = 'none';
+    document.getElementById('preview-tbody').innerHTML = '';
+    document.getElementById('log-box').innerHTML       = '';
+    document.getElementById('chk-all').checked = false;
+    updateStats();
+}
+</script>
+</body>
+</html>

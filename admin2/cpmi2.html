@@ -1,0 +1,2389 @@
+<!-- dsdfsd -->
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monitor Peserta — Tester</title>
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<style>
+:root {
+    --primary: #667eea;
+    --purple:  #764ba2;
+    --success: #28a745;
+    --danger:  #dc3545;
+    --warning: #ffc107;
+    --bg:      #f0f2ff;
+    --card:    #ffffff;
+    --text:    #1e293b;
+    --muted:   #64748b;
+    --border:  #e2e8f0;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--purple) 100%);
+    min-height: 100vh;
+    padding: 0;
+}
+
+/* ── TOP NAV ── */
+.topnav {
+    background: rgba(255,255,255,0.12);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    height: 52px;
+    /* geser/scroll horizontal ketika konten melebihi lebar layar (mis. di HP) */
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+.topnav::-webkit-scrollbar { display: none; height: 0; }
+.topnav-brand {
+    font-size: 15px;
+    font-weight: 700;
+    color: white;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.topnav-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+
+/* ── MAIN ── */
+.main { padding: 20px; max-width: 1400px; margin: 0 auto; }
+
+/* ── CARD ── */
+.card {
+    background: white;
+    border-radius: 14px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.1);
+    padding: 20px;
+}
+.card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+    padding-bottom: 14px;
+    border-bottom: 2px solid var(--bg);
+}
+.card-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* ── INFO BAR ── */
+.info-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+.info-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 99px;
+    font-size: 12px;
+    font-weight: 600;
+}
+.pill-blue   { background: #dbeafe; color: #1d4ed8; }
+.pill-yellow { background: #fef3c7; color: #d97706; }
+.pill-purple { background: #ede9fe; color: #6d28d9; }
+.pulse-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #28a745; flex-shrink: 0;
+    animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+/* ── CONTROLS ── */
+.controls-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 14px;
+}
+.ctrl-input {
+    padding: 8px 14px;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    outline: none;
+    transition: border-color 0.2s;
+    background: white;
+    color: var(--text);
+}
+.ctrl-input:focus { border-color: var(--primary); }
+
+/* ── BUTTONS ── */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 9px 18px;
+    border: none;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: linear-gradient(135deg, var(--primary), var(--purple)); color: white; box-shadow: 0 3px 10px rgba(102,126,234,.3); }
+.btn-primary:hover { opacity: 0.9; }
+.btn-warning { background: linear-gradient(135deg, #f59e0b, #ef4444); color: white; }
+.btn-warning:hover { opacity: 0.9; }
+.btn-outline { background: white; color: var(--muted); border: 2px solid var(--border); }
+.btn-outline:hover { border-color: var(--primary); color: var(--primary); }
+.btn-sm { padding: 6px 12px; font-size: 12px; }
+/* ── MODAL ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center;}
+.modal-overlay.active{display:flex;}
+.modal-box{background:#fff;border-radius:16px;padding:24px;box-shadow:0 8px 40px rgba(0,0,0,.2);position:relative;width:100%;}
+.modal-close{position:absolute;top:12px;right:14px;background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted);line-height:1;padding:0;}
+.modal-close:hover{color:var(--text);}
+
+
+/* ── DATATABLES ── */
+.dataTables_wrapper { overflow-x: auto; width: 100%; }
+table.dataTable {
+    width: 100% !important;
+    border-collapse: collapse;
+    font-size: 13px;
+    min-width: 500px;
+    table-layout: auto;
+}
+table.dataTable thead th {
+    background: linear-gradient(135deg, var(--primary), var(--purple));
+    color: white; padding: 10px 8px; font-weight: 700;
+    border: none; white-space: nowrap; font-size: 13px;
+}
+table.dataTable thead th, table.dataTable tbody td { white-space: nowrap; }
+/* Biodata & Skor boleh wrap */
+table.dataTable tbody td:nth-child(3),
+table.dataTable tbody td:nth-child(4) { white-space: normal; vertical-align: top; }
+table.dataTable tbody td {
+    padding: 9px 8px;
+    border-bottom: 1px solid #eef0f6;
+    vertical-align: middle;
+    font-size: 13px;
+}
+table.dataTable tbody tr:hover { background: #f5f7ff; }
+table.dataTable tbody tr:nth-child(even) { background: #fafbff; }
+.dataTables_wrapper .dataTables_filter input,
+.dataTables_wrapper .dataTables_length select {
+    border: 2px solid var(--border); border-radius: 8px;
+    padding: 6px 10px; font-size: 13px; outline: none;
+}
+.dataTables_wrapper .dataTables_filter input:focus,
+.dataTables_wrapper .dataTables_length select:focus { border-color: var(--primary); }
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+    padding: 6px 12px; margin: 2px; border-radius: 8px;
+    border: 1px solid var(--border); font-size: 12px;
+}
+.dataTables_wrapper .dataTables_paginate .paginate_button.current {
+    background: linear-gradient(135deg, var(--primary), var(--purple));
+    color: white !important; border: none;
+}
+.dataTables_wrapper .dataTables_info { font-size: 12px; }
+
+/* ── STATUS BADGE ── */
+.badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 10px; border-radius: 99px;
+    font-size: 11px; font-weight: 700;
+}
+.badge-active { background: #dbeafe; color: #1d4ed8; animation: pulse 2s infinite; }
+
+/* ── TIMER ── */
+.timer-live {
+    display: inline-block; background: #fff3cd; color: #856404;
+    border: 1.5px solid #ffc107; border-radius: 8px; padding: 3px 10px;
+    font-weight: 700; font-size: 13px; font-family: 'Courier New', monospace;
+    min-width: 72px; text-align: center;
+}
+.timer-live.danger { background: #f8d7da; color: #842029; border-color: #f5c2c7; animation: blink 1s infinite; }
+.timer-live.done   { background: #d1e7dd; color: #0f5132; border-color: #badbcc; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.5} }
+
+/* ── STATUS AKTIF (readonly) ── */
+.status-aktif {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 12px; border-radius: 99px;
+    font-size: 12px; font-weight: 700;
+}
+.status-aktif.ya  { background: #dcfce7; color: #166534; border: 1.5px solid #86efac; }
+.status-aktif.tdk { background: #fee2e2; color: #991b1b; border: 1.5px solid #fca5a5; }
+
+/* ── LOADING ── */
+.loading-block { text-align: center; padding: 50px 20px; color: var(--muted); }
+.spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid var(--primary);
+    border-radius: 50%; width: 40px; height: 40px;
+    animation: spin 1s linear infinite; margin: 0 auto 14px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── EMPTY MSG ── */
+.empty-msg { text-align: center; padding: 40px 20px; color: var(--muted); }
+.em-icon { font-size: 36px; margin-bottom: 10px; }
+
+/* ── TRUNCATE ── */
+.truncate {
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    display: block; cursor: default; max-width: 160px;
+}
+
+/* ── NOTE ── */
+.note-bar {
+    font-size: 12px; color: var(--muted);
+    margin-bottom: 12px;
+}
+
+/* ── TOTAL ROW ── */
+#totalRow td {
+    background: linear-gradient(135deg, #ede9fe, #dbeafe) !important;
+    font-weight: 700 !important;
+    border-top: 2px solid var(--primary) !important;
+}
+.total-val { color: #1d4ed8; font-weight: 800; font-size: 13px; }
+
+/* ── Server Switcher ── */
+.srv-chip {
+    padding: 4px 12px;
+    border: 1.5px solid rgba(255,255,255,.35);
+    border-radius: 99px;
+    background: rgba(255,255,255,.1);
+    color: rgba(255,255,255,.8);
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all .2s;
+    font-family: inherit;
+}
+.srv-chip:hover:not(.active) {
+    background: rgba(255,255,255,.22);
+    color: white;
+    border-color: rgba(255,255,255,.65);
+}
+.srv-chip.active {
+    background: rgba(255,255,255,.28);
+    color: white;
+    border-color: white;
+    box-shadow: 0 0 0 2px rgba(255,255,255,.15);
+}
+
+/* ── MOBILE ── */
+@media (max-width: 768px) {
+    .topnav { padding: 0 12px; height: 48px; gap: 8px; }
+    .topnav-brand { font-size: 13px; }
+    .topnav-right { gap: 6px; }
+    .topnav-right .info-pill { font-size: 11px; padding: 4px 8px; }
+    .topnav-right .btn { font-size: 11px; padding: 5px 10px; }
+    .main { padding: 12px; }
+    .card { padding: 14px; border-radius: 12px; }
+    .card-title { font-size: 14px; flex-wrap: wrap; gap: 6px; }
+    .controls-bar {
+        overflow-x: auto; -webkit-overflow-scrolling: touch;
+        scrollbar-width: none; flex-wrap: nowrap;
+    }
+    .controls-bar::-webkit-scrollbar { display: none; height: 0; }
+    table.dataTable { font-size: 12px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN OVERLAY ══ -->
+<div id="loginOverlay" style="
+    position:fixed;inset:0;z-index:99999;
+    background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);
+    display:flex;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#fff;border-radius:20px;padding:36px 32px;width:100%;max-width:360px;box-shadow:0 20px 60px rgba(0,0,0,.25);text-align:center;">
+    <div style="font-size:2.8em;margin-bottom:10px;">👁</div>
+    <div style="font-size:1.2em;font-weight:700;color:#1e293b;margin-bottom:4px;">Monitor Peserta</div>
+    <div style="font-size:.85em;color:#64748b;margin-bottom:16px;">Masuk sebagai Tester</div>
+
+    <div style="text-align:left;margin-bottom:14px;">
+      <label style="font-size:.8em;font-weight:700;color:#64748b;display:block;margin-bottom:5px;">Username</label>
+      <input id="loginUser" type="text" placeholder="Username" autocomplete="username"
+        style="width:100%;padding:11px 14px;border:2px solid #e2e8f0;border-radius:10px;font-size:.95em;outline:none;font-family:inherit;transition:border .2s;"
+        onfocus="this.style.borderColor='#667eea'" onblur="this.style.borderColor='#e2e8f0'"
+        onkeydown="if(event.key==='Enter')document.getElementById('loginPass').focus()">
+    </div>
+    <div style="text-align:left;margin-bottom:20px;">
+      <label style="font-size:.8em;font-weight:700;color:#64748b;display:block;margin-bottom:5px;">Password</label>
+      <input id="loginPass" type="password" placeholder="Password" autocomplete="current-password"
+        style="width:100%;padding:11px 14px;border:2px solid #e2e8f0;border-radius:10px;font-size:.95em;outline:none;font-family:inherit;transition:border .2s;"
+        onfocus="this.style.borderColor='#667eea'" onblur="this.style.borderColor='#e2e8f0'"
+        onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+
+    <div id="loginErr" style="display:none;background:#fef2f2;border:1.5px solid #fecaca;color:#dc2626;border-radius:8px;padding:9px 12px;font-size:.83em;font-weight:600;margin-bottom:14px;"></div>
+
+    <label style="display:flex;align-items:center;gap:7px;text-align:left;margin-bottom:16px;cursor:pointer;font-size:.82em;color:#475569;font-weight:600;">
+      <input id="loginRemember" type="checkbox" style="width:16px;height:16px;cursor:pointer;accent-color:#667eea;">
+      Ingat saya (tidak perlu login lagi)
+    </label>
+
+    <button onclick="doLogin()" id="loginBtn"
+      style="width:100%;padding:12px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;border-radius:10px;font-size:.95em;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .2s;">
+      Masuk
+    </button>
+  </div>
+</div>
+
+<!-- TOP NAV -->
+<nav class="topnav">
+    <div class="topnav-brand">👁 Monitor Peserta — Tester</div>
+    <div class="topnav-right">
+        <!-- Server chips — sekarang ikut discroll bareng seluruh topnav (bukan scroll sendiri) -->
+        <div id="topnavSrvChips" style="display:flex;gap:5px;flex-shrink:0;"><!-- filled by JS --></div>
+        <div class="info-pill pill-blue" id="autoRefreshPill" style="font-size:12px;">
+            <span class="pulse-dot"></span>
+            Auto-refresh 5 detik
+        </div>
+        <span class="info-pill pill-yellow" id="todayCount">0 peserta</span>
+        <span class="info-pill pill-purple" id="todayLastUpdate">-</span>
+        <span id="batchSelectorWrap" style="display:none;align-items:center;gap:6px;">
+            <select id="batchSelector" onchange="changeBatch(this.value)"
+                style="padding:6px 10px;border:2px solid var(--border);border-radius:8px;font-size:12px;font-weight:700;outline:none;cursor:pointer;">
+            </select>
+        </span>
+        <button class="btn btn-outline btn-sm" onclick="doRefresh()">🔄 Refresh</button>
+        <button class="btn btn-sm" onclick="doLogout()"
+          style="background:#fee2e2;color:#dc2626;border:1.5px solid #fca5a5;font-size:12px;padding:6px 12px;border-radius:8px;cursor:pointer;font-weight:700;">
+          🔒 Logout
+        </button>
+    </div>
+</nav>
+
+<div class="main">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">
+        📅 Peserta Aktif
+        <span style="background:#fef3c7;color:#d97706;border-radius:99px;padding:3px 12px;font-size:12px;font-weight:700;" id="todayBadgeLabel">Hari Ini</span>
+        <span id="detailBadgesWrap" style="display:none;">
+          <span style="background:#dcfce7;color:#166534;border-radius:99px;padding:3px 12px;font-size:12px;font-weight:700;" id="selesaiBadge">✅ 0 selesai</span>
+          <span onclick="bukaPopupBelumSelesai()" style="background:#fee2e2;color:#b91c1c;border-radius:99px;padding:3px 12px;font-size:12px;font-weight:700;cursor:pointer;" id="belumSelesaiBadge" title="Klik untuk lihat daftar nama">⏳ 0 belum selesai</span>
+        </span>
+      </div>
+      <div class="info-bar">
+        <!-- kosong, info sudah di topnav -->
+      </div>
+      <button onclick="openInstruksiModalGlobal()" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--primary);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">📋 Instruksi</button>
+    </div>
+
+    <!-- Filter tanggal — selalu tampil -->
+    <div class="controls-bar" style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+      <label style="font-size:13px;font-weight:700;color:var(--muted);">📅 Tanggal:</label>
+      <input type="date" id="dateInput"
+        style="padding:8px 12px;border:2px solid var(--border);border-radius:10px;font-size:14px;outline:none;font-family:inherit;"
+        onchange="onDateChange(this.value)">
+      <button class="btn btn-outline btn-sm" onclick="setToday()" id="btnHariIni">Hari Ini</button>
+      <button class="btn btn-outline btn-sm" onclick="setAllDates()" id="btnAll">All</button>
+      <!-- hidden tabel input masih ada untuk fungsi loadTable() -->
+      <input type="text" id="tableInput" value="nilai2_json" style="display:none">
+    </div>
+
+    <!-- Box ganti tabel (pola sama seperti finishing.html / index_rekap.html) — dipakai baik dari card custom maupun dari detail view -->
+    <div id="gantiTabelBox" style="display:none; margin-bottom:10px; padding:14px; border:2px solid var(--border); border-radius:10px; background:#fff;">
+      <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px;">GANTI TABEL SUMBER — server aktif: <span id="gantiTabelSrvLabel"></span></div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+        <input type="text" id="inputTabelBaru" placeholder="Nama tabel (contoh: nilai1_json)"
+          style="flex:1; min-width:200px; padding:8px 12px; border:2px solid var(--border); border-radius:8px; font-size:13px; outline:none; font-family:inherit;"
+          onkeydown="if(event.key==='Enter') terapkanTabelBaru()">
+        <button class="btn btn-primary btn-sm" onclick="terapkanTabelBaru()">Terapkan</button>
+        <button class="btn btn-outline btn-sm" onclick="toggleTabelInput()">Batal</button>
+      </div>
+      <div id="tabelList" style="margin-top:10px; display:flex; flex-wrap:wrap; gap:6px;"></div>
+    </div>
+
+    <!-- Filter checkbox tabel mana yang mau ditampilkan sebagai card — hanya berlaku untuk area card, tidak menyentuh server/tanggal -->
+    <div id="cardFilterBar" style="display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;padding:10px 14px;border:2px solid var(--border);border-radius:10px;background:#fafafa;">
+      <span style="font-size:12px;font-weight:700;color:var(--muted);">🗂 Tampilkan tabel:</span>
+      <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" class="cardTableChk" id="chkTable1" value="nilai1_json">1</label>
+      <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" class="cardTableChk" id="chkTable2" value="nilai2_json" checked>2</label>
+      <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" class="cardTableChk" id="chkTable3" value="nilai3_json">3</label>
+      <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" class="cardTableChk" id="chkTable4" value="nilai4_json">4</label>
+      <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" class="cardTableChk" id="chkTable5" value="nilai5_json">5</label>
+      <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" class="cardTableChk" id="chkTable6" value="nilai6_json">6</label>
+      <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" class="cardTableChk" id="chkTable7" value="nilai7_json">7</label>
+      <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" class="cardTableChk" id="chkTable8" value="nilai8_json">8</label>
+      <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" class="cardTableChk" id="chkTable9" value="nilai9_json">9</label>
+      <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" id="chkTableCustom" onchange="toggleCustomTableInput()">Custom</label>
+      <input type="text" id="customTableInput" placeholder="nama tabel, pisahkan koma" style="display:none;padding:6px 10px;border:2px solid var(--border);border-radius:8px;font-size:12px;outline:none;font-family:inherit;min-width:180px;">
+      <button class="btn btn-primary btn-sm" onclick="applyCardFilter()">🔄 Refresh Card</button>
+    </div>
+
+    <!-- ============================================================
+         RINGKASAN TABEL (landing view) — 1 card per nilai1_json..nilai9_json
+         + 1 card custom "Ganti Tabel"
+    ============================================================ -->
+    <div id="tableCardsContainer" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(220px,1fr)); gap:12px;">
+      <div class="loading-block"><div class="spinner"></div><p>Memuat ringkasan tabel...</p></div>
+    </div>
+
+    <!-- ============================================================
+         DETAIL VIEW — tabel penuh untuk satu nama tabel (tampilan lama)
+    ============================================================ -->
+    <div id="detailViewWrap" style="display:none;">
+      <button class="btn btn-outline btn-sm" onclick="showCardsView()" style="margin-bottom:10px;">⬅ Kembali ke ringkasan tabel</button>
+      <button class="btn btn-outline btn-sm" onclick="toggleTabelInput()" id="btnGantiTabel" style="margin-bottom:10px;margin-left:6px;">🗄 Ganti Tabel (<span id="tabelAktifLabel">nilai2_json</span>)</button>
+      <p class="note-bar">
+        💡 Peserta terdeteksi dari tanggal yang otomatis disimpan saat mengisi biodata. Hanya menampilkan peserta yang sudah mengerjakan <strong>Kreplin</strong>.
+      </p>
+      <div id="todayContainer">
+        <div class="loading-block"><div class="spinner"></div><p>Memuat data...</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// SERVER LIST — tambah / kurangi di sini saja
+// ============================================================
+const SERVERS = [
+    { label: '1', domain: 'lidan-co-id.pages.dev' },
+    { label: '2', domain: 'tabi.my.id'             },
+    { label: '3', domain: 'mobeli.my.id'           },
+    { label: '4', domain: 'talentmap.my.id'        },
+    { label: '5', domain: 'ciptapersada.my.id'     },
+    { label: '6', domain: 'mysupplier.my.id'       },
+    { label: '7', domain: 'goblast.my.id'          },
+];
+const API_PATH = '/api/contacts_filter_dinamis7';
+const SRV_STORAGE_KEY = 'cpmi2_activeSrvIdx';
+// Login selalu diwajibkan lewat Server 1 — tidak ada restore dari localStorage di sini
+let activeSrvIdx = 0;
+
+// Getter dinamis — semua fetch pakai ini
+function getApiBase() { return `https://${SERVERS[activeSrvIdx].domain}${API_PATH}`; }
+Object.defineProperty(window, 'API_BASE', { get: getApiBase });
+
+// ============================================================
+// KONFIGURASI
+// ============================================================
+const AUTH_KEY = 'admin';
+
+// ============================================================
+// SERVER SWITCHER — render chips
+// ============================================================
+function renderSrvChips() {
+    // Topnav chips (switcher server hanya tampil di sini, setelah login)
+    const topWrap = document.getElementById('topnavSrvChips');
+    if (topWrap) {
+        topWrap.innerHTML = SERVERS.map((s, i) => `
+            <button class="srv-chip${i === activeSrvIdx ? ' active' : ''}"
+                onclick="switchSrcServer(${i})"
+                title="https://${s.domain}">
+                ${i === activeSrvIdx ? '✓ ' : ''}${s.label}
+            </button>`).join('');
+    }
+}
+
+function switchSrcServer(idx) {
+    if (idx === activeSrvIdx) return;
+    activeSrvIdx = idx;
+    try { localStorage.setItem(SRV_STORAGE_KEY, String(idx)); } catch (e) {}
+    renderSrvChips();
+    // Reset cache & reload data jika sudah login
+    lastHash   = null;
+    rawCache   = [];
+    dataOffset = 0;
+    if (testerTable) { testerTable.destroy(); testerTable = null; }
+    document.getElementById('todayContainer').innerHTML =
+        '<div class="loading-block"><div class="spinner"></div><p>Memuat dari server baru...</p></div>';
+    // Pertahankan tanggal yg dipilih
+    const curDate = document.getElementById('dateInput') ? document.getElementById('dateInput').value : todayString();
+    updateDateBadge(curDate);
+    update();
+}
+
+// Init chips saat halaman load
+renderSrvChips();
+
+// ============================================================
+// STATE
+// ============================================================
+// ╔══════════════════════════════════════════════════════╗
+// ║  KONFIGURASI AUTO-REFRESH                           ║
+// ║  autoRefresh: true  → refresh otomatis tiap 5 detik ║
+// ║  autoRefresh: false → hanya refresh saat klik tombol║
+// ╚══════════════════════════════════════════════════════╝
+const APP_CONFIG = {
+    autoRefresh: false
+};
+// ============================================================
+let testerTable    = null;
+let testerInterval = null;
+let rawCache       = [];
+let lastHash       = null;
+let tableName      = 'nilai2_json';
+let viewMode       = 'cards'; // 'cards' = ringkasan semua tabel, 'detail' = tabel penuh 1 nama tabel
+const CARD_TABLES  = ['nilai1_json','nilai2_json','nilai3_json','nilai4_json','nilai5_json','nilai6_json','nilai7_json','nilai8_json','nilai9_json'];
+let activeCardTables = ['nilai2_json']; // default awal cuma nilai2_json — tabel lain baru muncul setelah dicentang + tekan "Refresh Card"
+
+// ── Batch/offset untuk data > 500 baris ──
+// Backend default LIMIT 500 (ORDER BY id_x DESC) → hanya 500 baris terbaru yang tampil.
+// Berguna terutama saat mode "All" aktif, karena bisa saja total data > 500.
+let dataOffset     = 0;
+let dataTotal      = 0;
+const BATCH_SIZE   = 500;
+
+// ============================================================
+// HELPERS
+// ============================================================
+function todayString() {
+    const d = new Date();
+    return d.getFullYear() + '-' +
+        String(d.getMonth()+1).padStart(2,'0') + '-' +
+        String(d.getDate()).padStart(2,'0');
+}
+
+function nowTimeString() {
+    return new Date().toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+}
+
+function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function getDateFromX02(x02) {
+    if (!x02) return '';
+    try { return (JSON.parse(x02).tgl_tes || '').trim(); } catch(e) { return ''; }
+}
+
+function renderJsonBio(raw) {
+    if (!raw || raw.trim() === '') return '<span style="color:#ccc;font-size:12px">—</span>';
+    try {
+        const obj  = JSON.parse(raw);
+        const nama = obj.nama || obj.bioNama || '';
+        const usia = (obj.usia || obj.bioUsia) ? (obj.usia || obj.bioUsia) + 'th' : '';
+        const pend = obj.pendidikan || obj.bioPend || '';
+        const jk   = obj.jenis_kelamin || obj.bioGender || '';
+        const disp = [nama, usia, pend, jk].filter(Boolean).join(' · ');
+        const tglTes = (obj.tgl_tes || '').trim();
+        const tglTesBadge = tglTes
+            ? `<span style="display:inline-block;margin-left:6px;font-size:11px;color:#1e40af;background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:1px 6px;white-space:nowrap;vertical-align:middle;">📅 ${escHtml(tglTes)}</span>`
+            : '';
+        // Simpan raw ke map, pakai index unik
+        const idx = _biodataStore.push(raw) - 1;
+        return `<button onclick="bukaPopupBiodata(${idx})" style="background:none;border:none;padding:0;cursor:pointer;text-align:left;">
+            <span style="font-weight:700;color:var(--primary);text-decoration:underline dotted;font-size:13px;">${escHtml(nama)}</span>
+            <span style="color:var(--muted);font-size:12px;"> ${escHtml([usia,pend,jk].filter(Boolean).join(' · '))}</span>
+        </button>${tglTesBadge}`;
+    } catch(e) { return escHtml(raw); }
+}
+
+function extractNamaBio(raw) {
+    if (!raw || raw.trim() === '') return '(tanpa nama)';
+    try {
+        const obj = JSON.parse(raw);
+        return obj.nama || obj.bioNama || '(tanpa nama)';
+    } catch(e) { return '(tanpa nama)'; }
+}
+
+function isPesertaSelesai(raw06, raw07) {
+    // Selesai = sudah ada chip 'e' (epps) di kolom Progres, dari x_06 atau x_07
+    const cek = (raw) => {
+        if (!raw || raw.trim() === '') return false;
+        try {
+            const obj = JSON.parse(raw);
+            return Object.prototype.hasOwnProperty.call(obj, 'epps');
+        } catch(e) { return false; }
+    };
+    return cek(raw06) || cek(raw07);
+}
+
+function renderProgresGabung(raw05, raw06, raw07) {
+    let items = [];
+    // x_05 — chip biru — skor numerik
+    if (raw05 && raw05.trim() !== '') {
+        try {
+            const obj = JSON.parse(raw05);
+            Object.entries(obj).forEach(([k, v]) => {
+                const lbl = shortLabel(k);
+                const idx = _progresStore.push({ key: k, value: v, source: 'Skor', raw05, raw06, raw07 }) - 1;
+                items.push(`<button onclick="bukaPopupProgres(${idx})" title="Klik untuk lihat detail ${escHtml(k)}" style="font-size:11px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 6px;white-space:nowrap;box-sizing:border-box;text-align:center;cursor:pointer;font-family:inherit;"><span style="color:#1e40af;font-weight:700">${escHtml(lbl)}</span></button>`);
+            });
+        } catch(e) {}
+    }
+    // x_06 — chip abu — jawaban (epps, kreplin, dll)
+    if (raw06 && raw06.trim() !== '') {
+        try {
+            const obj = JSON.parse(raw06);
+            Object.entries(obj).forEach(([k, v]) => {
+                const lbl = shortLabel(k);
+                const idx = _progresStore.push({ key: k, value: v, source: 'Jawaban', raw05, raw06, raw07 }) - 1;
+                items.push(`<button onclick="bukaPopupProgres(${idx})" title="Klik untuk lihat detail ${escHtml(k)}" style="font-size:11px;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:4px;padding:2px 6px;white-space:nowrap;box-sizing:border-box;text-align:center;cursor:pointer;font-family:inherit;">${escHtml(lbl)}</button>`);
+            });
+        } catch(e) {}
+    }
+    // x_07 — chip hijau
+    if (raw07 && raw07.trim() !== '') {
+        try {
+            const obj = JSON.parse(raw07);
+            Object.entries(obj).forEach(([k, v]) => {
+                const lbl = shortLabel(k);
+                const idx = _progresStore.push({ key: k, value: v, source: 'Jawaban', raw05, raw06, raw07 }) - 1;
+                items.push(`<button onclick="bukaPopupProgres(${idx})" title="Klik untuk lihat detail ${escHtml(k)}" style="font-size:11px;background:#dcfce7;border:1px solid #86efac;border-radius:4px;padding:2px 6px;white-space:nowrap;box-sizing:border-box;text-align:center;cursor:pointer;font-family:inherit;"><span style="color:#166534;font-weight:700">${escHtml(lbl)}</span></button>`);
+            });
+        } catch(e) {}
+    }
+    if (items.length === 0) return '<span style="color:#ccc;font-size:12px">—</span>';
+    return `<div style="display:flex;flex-wrap:wrap;gap:3px;width:240px;">${items.join('')}</div>`;
+}
+
+
+const LABEL_SHORT = {
+    'cfit1':'c1','cfit2':'c2','cfit3':'c3','cfit4':'c4',
+    'tkd3':'t3','tkd6':'t6',
+    'rmib_k1':'r1','rmib_k2':'r2','rmib_k3':'r3','rmib_k4':'r4',
+    'rmib_k5':'r5','rmib_k6':'r6','rmib_k7':'r7','rmib_k8':'r8',
+    'epps':'e',
+    ...Object.fromEntries(Array.from({length:30},(_,i)=>[`who_${i+1}`,`w${i+1}`]))
+};
+function shortLabel(k) { return LABEL_SHORT[k] || k; }
+
+function renderSkorField(raw) {
+    if (!raw || raw.trim() === '') return '<span style="color:#ccc;font-size:12px">—</span>';
+    try {
+        const obj     = JSON.parse(raw);
+        const entries = Object.entries(obj);
+        if (entries.length === 0) return '<span style="color:#ccc;font-size:12px">—</span>';
+        const tooltip = entries.map(([k,v]) => `${k}: ${v}`).join(' | ');
+        const items   = entries.map(([k]) => {
+            const lbl = shortLabel(k);
+            return `<span title="${escHtml(k)}" style="font-size:11px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 6px;white-space:nowrap;flex:0 0 calc(25% - 3px);box-sizing:border-box;text-align:center"><span style="color:#1e40af;font-weight:700">${escHtml(lbl)}</span></span>`;
+        }).join('');
+        return `<div title="${escHtml(tooltip)}" style="display:flex;flex-wrap:wrap;gap:2px;width:240px;cursor:default">${items}</div>`;
+    } catch(e) {
+        return `<span style="font-size:11px;background:#eff6ff;border-radius:4px;padding:1px 6px;cursor:default">${escHtml(raw)}</span>`;
+    }
+}
+
+function renderJsonField(raw) {
+    if (!raw || raw.trim() === '') return '<span style="color:#ccc;font-size:12px">—</span>';
+    try {
+        const obj     = JSON.parse(raw);
+        const entries = Object.entries(obj);
+        if (entries.length === 0) return '<span style="color:#ccc;font-size:12px">—</span>';
+        const items = entries.map(([k]) => {
+            const lbl = shortLabel(k);
+            return `<span title="${escHtml(k)}" style="font-size:11px;background:#f1f5f9;border-radius:4px;padding:2px 6px;white-space:nowrap;flex:0 0 calc(25% - 3px);box-sizing:border-box;text-align:center">${escHtml(lbl)}</span>`;
+        }).join('');
+        const keyOnly = entries.map(([k]) => k).join(', ');
+        return `<div title="${escHtml(keyOnly)}" style="display:flex;flex-wrap:wrap;gap:2px;width:240px;cursor:default">${items}</div>`;
+    } catch(e) {
+        const key = raw.split(':')[0].trim();
+        return `<span title="${escHtml(raw)}" style="font-size:11px;background:#f1f5f9;border-radius:4px;padding:1px 6px;cursor:default">${escHtml(shortLabel(key))}</span>`;
+    }
+}
+
+// ── renderTimer — hitung mundur murni lokal, 0 request D1 ──
+// Format baru : "START:NamaSubtes:ISO:durasi_detik"
+// Format lama : "NamaSubtes|COUNTDOWN:detik" (statis)
+function renderTimer(x04Raw) {
+    if (!x04Raw || x04Raw.trim() === '') return '<span style="color:#ccc;font-size:12px">—</span>';
+
+    // ── Format baru: START:NamaSubtes:ISO:durasi ──
+    if (x04Raw.startsWith('START:')) {
+        const lastColon   = x04Raw.lastIndexOf(':');
+        const durasi      = parseInt(x04Raw.substring(lastColon + 1));
+        const firstColon  = x04Raw.indexOf(':');
+        const secondColon = x04Raw.indexOf(':', firstColon + 1);
+        const namaTest    = x04Raw.substring(firstColon + 1, secondColon);
+        const isoStr      = x04Raw.substring(secondColon + 1, lastColon);
+        const mulai       = new Date(isoStr);
+        if (isNaN(mulai.getTime())) return '<span style="color:#ccc;font-size:12px">—</span>';
+
+        if (!durasi || isNaN(durasi)) {
+            const berlalu = Math.floor((new Date() - mulai) / 1000);
+            return `<span class="timer-live stopwatch" title="${escHtml(namaTest)}">${berlalu}s</span>`;
+        }
+
+        const selesai = new Date(mulai.getTime() + durasi * 1000);
+        const sisa    = Math.floor((selesai - new Date()) / 1000);
+        if (sisa <= 0) return `<span class="timer-live done" title="${escHtml(namaTest)}">Habis</span>`;
+        const cls = sisa <= 60 ? 'timer-live danger' : 'timer-live';
+        return `<span class="${cls}" title="${escHtml(namaTest)} — selesai ${selesai.toLocaleTimeString('id-ID')}">${sisa}s</span>`;
+    }
+
+    // ── Format lama: NamaSubtes|COUNTDOWN:detik (statis) ──
+    if (x04Raw.includes('|')) {
+        const pipe     = x04Raw.indexOf('|');
+        const namaTest = x04Raw.substring(0, pipe);
+        const rest     = x04Raw.substring(pipe + 1);
+        const colon    = rest.indexOf(':');
+        const mode     = rest.substring(0, colon);
+        const val      = parseInt(rest.substring(colon + 1));
+        if (isNaN(val) || mode !== 'COUNTDOWN') return '<span style="color:#ccc;font-size:12px">—</span>';
+        if (val <= 0) return `<span class="timer-live done" title="${escHtml(namaTest)}">Habis</span>`;
+        const cls = val <= 60 ? 'timer-live danger' : 'timer-live';
+        return `<span class="${cls}" title="${escHtml(namaTest)} (nilai statis)">${val}s</span>`;
+    }
+
+    return '<span style="color:#ccc;font-size:12px">—</span>';
+}
+
+// ── Aksi (kolom x_04 — flag token bermasalah) ──
+const MSG_AKSI_TOOLTIP = 'Tekan tombol di baris jika token bermasalah karena gangguan internet.';
+
+function infoAksi() {
+    alert(MSG_AKSI_TOOLTIP);
+}
+
+function renderAksi(x04Raw, idX) {
+    if (!x04Raw || String(x04Raw).trim() === '') {
+        return '<span style="color:#ccc;font-size:12px">—</span>';
+    }
+    return `<button class="btn btn-warning btn-sm" style="padding:4px 10px;font-size:11px"
+                onclick="resetTokenBermasalah('${String(idX).replace(/'/g, "\\'")}')"
+                title="${escHtml(MSG_AKSI_TOOLTIP)}">🔄 Reset Token</button>`;
+}
+
+async function resetTokenBermasalah(idX) {
+    if (!confirm('Kosongkan x_04 untuk baris ini?')) return;
+    const url = `${API_BASE}?table=${encodeURIComponent(tableName)}&id_x=${encodeURIComponent(idX)}`;
+    console.log('[resetTokenBermasalah] URL:', url, '| id_x:', idX);
+    try {
+        const res = await fetch(url, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'X-Custom-Auth': AUTH_KEY },
+            body: JSON.stringify({ x_04: '' })
+        });
+        const text = await res.text();
+        console.log('[resetTokenBermasalah] HTTP status:', res.status, '| response:', text);
+        let json;
+        try { json = JSON.parse(text); } catch(e) { throw new Error('Response bukan JSON: ' + text); }
+        if (!json.success) throw new Error(json.message || json.error || 'Gagal update (lihat console).');
+        lastHash = null;
+        await update();
+    } catch (e) {
+        console.error('[resetTokenBermasalah] Error:', e);
+        alert('Gagal mengosongkan x_04: ' + e.message);
+    }
+}
+
+function renderViolation(x09Raw) {
+    if (!x09Raw || x09Raw.trim() === '') return '<span style="color:#ccc;font-size:12px">—</span>';
+    let entries = [];
+    try {
+        entries = Object.entries(JSON.parse(x09Raw)).filter(([,v]) => v > 0);
+    } catch(e) { return '<span style="color:#ccc;font-size:12px">—</span>'; }
+    if (entries.length === 0) return '<span style="color:#ccc;font-size:12px">—</span>';
+    const total   = entries.reduce((s,[,v]) => s + (parseInt(v)||0), 0);
+    const tooltip = entries.map(([k,v]) => `${k}: ${v}x`).join(' | ');
+    const summary = entries.map(([k,v]) => {
+        const c = parseInt(v) >= 5 ? '#dc2626' : parseInt(v) >= 2 ? '#d97706' : '#16a34a';
+        return `<span title="${escHtml(k)}" style="color:${c};font-weight:600">${escHtml(shortLabel(k))} ${v}x</span>`;
+    }).join('<span style="color:#ccc"> · </span>');
+    return `<div title="Total: ${total}x &#10;${tooltip}" style="cursor:default;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${summary}</div>`;
+}
+
+// ── Selfie (dari x_02.foto_selfie) ──
+const CDN_SELFIE = 'https://assets.indahabadi.my.id/';
+function renderTodaySelfie(x02Raw) {
+    if (!x02Raw) return '<span style="color:#ccc;font-size:12px">—</span>';
+    try {
+        const obj = JSON.parse(x02Raw);
+        const foto = obj.foto_selfie || '';
+        if (!foto) return '<span style="color:#ccc;font-size:12px">—</span>';
+        const url = foto.startsWith('http') ? foto : CDN_SELFIE + foto;
+        return `<img src="${url}" alt="Selfie" onclick="bukaPopupSelfie('${url}')"
+            style="width:36px;height:46px;object-fit:cover;object-position:center top;border-radius:6px;border:1.5px solid #e2e8f0;cursor:pointer;transition:transform .15s;"
+            onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform='scale(1)'"
+            title="Klik untuk perbesar">`;
+    } catch(e) { return '<span style="color:#ccc;font-size:12px">—</span>'; }
+}
+
+function bukaPopupSelfie(url) {
+    let overlay = document.getElementById('selfieFotoModal');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'selfieFotoModal';
+        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:zoom-out;';
+        overlay.onclick = () => overlay.style.display = 'none';
+        overlay.innerHTML = `
+            <button onclick="event.stopPropagation();document.getElementById('selfieFotoModal').style.display='none'"
+                style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:22px;width:38px;height:38px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+            <img id="selfieFotoModalImg" src="" alt="Foto Selfie"
+                style="max-width:88vw;max-height:88vh;border-radius:12px;object-fit:contain;box-shadow:0 10px 40px rgba(0,0,0,.5);">`;
+        document.body.appendChild(overlay);
+    }
+    document.getElementById('selfieFotoModalImg').src = url;
+    overlay.style.display = 'flex';
+}
+
+// Status aktif — readonly badge, tidak bisa diklik
+function renderStatusAktif(x02Raw) {
+    let status = 'nonaktif';
+    try { status = JSON.parse(x02Raw || '{}').status || 'nonaktif'; } catch(e) {}
+    return status === 'aktif'
+        ? `<span class="status-aktif ya">✅ Aktif</span>`
+        : `<span class="status-aktif tdk">⛔ Nonaktif</span>`;
+}
+
+function renderPaket(x02Raw) {
+    if (!x02Raw) return '<span style="color:#ccc;font-size:12px">—</span>';
+    try {
+        const p = JSON.parse(x02Raw).paket_laporan || '';
+        if (!p) return '<span style="color:#ccc;font-size:12px">—</span>';
+        const colorMap = { 'Dasar':'#dbeafe;color:#1d4ed8', 'Lengkap':'#fef3c7;color:#d97706', 'Komprehensif':'#ede9fe;color:#6d28d9' };
+        const style = colorMap[p] || '#f1f5f9;color:#334155';
+        return `<span style="background:${style};padding:3px 10px;border-radius:99px;font-size:11px;font-weight:700;">${escHtml(p)}</span>`;
+    } catch(e) { return '<span style="color:#ccc;font-size:12px">—</span>'; }
+}
+
+function parseHargaNum(x02Raw) {
+    // Ambil angka dari string "Rp 85.000" → 85000
+    if (!x02Raw) return 0;
+    try {
+        const h = JSON.parse(x02Raw).harga_laporan || '';
+        return parseInt(h.replace(/[^0-9]/g, '')) || 0;
+    } catch(e) { return 0; }
+}
+
+function renderStatusBayar(x02Raw) {
+    const sudah = isSudahBayar(x02Raw);
+    return sudah
+        ? `<span style="background:#dcfce7;color:#166534;border:1.5px solid #86efac;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:700;">✅ Sudah Bayar</span>`
+        : `<span style="background:#fee2e2;color:#991b1b;border:1.5px solid #fca5a5;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:700;">⛔ Belum Bayar</span>`;
+}
+
+function isSudahBayar(x02Raw) {
+    // Baca dari field "payment" di x_02 JSON
+    // "done" = sudah bayar, "pending" atau tidak ada = belum bayar
+    if (!x02Raw) return false;
+    try {
+        const obj = JSON.parse(x02Raw);
+        return obj.payment === 'done';
+    } catch(e) { return false; }
+}
+
+function renderInsentif(x02Raw) {
+    if (!isSudahBayar(x02Raw)) return '<span style="color:#ccc;font-size:12px">—</span>';
+    const num = parseHargaNum(x02Raw);
+    if (!num) return '<span style="color:#ccc;font-size:12px">—</span>';
+    const fee = Math.round(num * 0.1);
+    return `<span style="font-weight:700;color:#92400e">Rp ${fee.toLocaleString('id-ID')}</span>`;
+}
+// ============================================================
+async function fetchData() {
+    const url = `${API_BASE}?table=${encodeURIComponent(tableName)}&limit=${BATCH_SIZE}&offset=${dataOffset}`;
+    const res  = await fetch(url, {
+        headers: { 'X-Custom-Auth': AUTH_KEY }
+    });
+    const json = await res.json();
+    dataTotal = (json.success && typeof json.total === 'number') ? json.total : 0;
+    renderBatchSelector();
+    return (json.success && json.data) ? json.data : [];
+}
+
+// ============================================================
+// CARD VIEW — ringkasan per tabel (nilai1_json..nilai9_json)
+// ============================================================
+const CARD_BATCH = 500;
+let _cardLoadedCount = {}; // table -> berapa baris yg SEDANG dimuat (500, 1000, 1500, ...) — bertahan lintas refresh manual, reset hanya kalau halaman dibuka ulang
+let _cardApiTotal    = {}; // table -> total baris di tabel (dari API), null = belum diketahui
+
+// Ambil data utk satu tabel, sebanyak _cardLoadedCount[table] baris (default 500 kalau belum pernah dimuat).
+// Refresh manual akan menarik ULANG sejumlah yg SUDAH dimuat (bukan reset ke 500) — jadi kalau sudah pernah klik "+500 lagi" jadi 1000, refresh berikutnya tetap menarik 1000 baris segar.
+async function fetchTableStats(table) {
+    const dateVal = document.getElementById('dateInput').value || todayString();
+    const wanted  = _cardLoadedCount[table] || CARD_BATCH;
+    let allRows   = [];
+    let apiTotal  = null;
+    try {
+        for (let offset = 0; offset < wanted; offset += CARD_BATCH) {
+            const url  = `${API_BASE}?table=${encodeURIComponent(table)}&limit=${CARD_BATCH}&offset=${offset}`;
+            const res  = await fetch(url, { headers: { 'X-Custom-Auth': AUTH_KEY } });
+            const json = await res.json();
+            const rows = (json.success && json.data) ? json.data : [];
+            allRows = allRows.concat(rows);
+            if (json.success && typeof json.total === 'number') apiTotal = json.total;
+            if (rows.length < CARD_BATCH) break; // data tabel sudah habis, tidak perlu fetch batch berikutnya
+        }
+        _cardLoadedCount[table] = allRows.length || CARD_BATCH;
+        if (apiTotal !== null) _cardApiTotal[table] = apiTotal;
+        const totalDiTabel = _cardApiTotal[table] ?? allRows.length;
+        const filtered = allRows.filter(row => showAllDates || getDateFromX02(row.x_02) === dateVal);
+        const selesai  = filtered.filter(row => isPesertaSelesai(row.x_06, row.x_07)).length;
+        return {
+            table, total: filtered.length, selesai, belum: filtered.length - selesai, error: false,
+            loaded: allRows.length, apiTotal: totalDiTabel, hasMore: allRows.length < totalDiTabel
+        };
+    } catch(e) {
+        return { table, total: 0, selesai: 0, belum: 0, error: true, loaded: 0, apiTotal: 0, hasMore: false };
+    }
+}
+
+// Tombol "+500 lagi" di card — cuma fetch & render ulang card itu saja, tidak menyentuh card lain
+async function muatLebihBanyak(table, ev) {
+    if (ev) ev.stopPropagation();
+    _cardLoadedCount[table] = (_cardLoadedCount[table] || CARD_BATCH) + CARD_BATCH;
+    const el = document.getElementById(`card_${table}`);
+    if (el) {
+        const btn = document.getElementById(`btnMore_${table}`);
+        if (btn) { btn.disabled = true; btn.textContent = '⏳ Memuat...'; }
+    }
+    const r = await fetchTableStats(table);
+    renderCardStats(r);
+}
+
+function hasLinksForTable(table) {
+    return !!(_linkDataCache && _linkDataCache[table] && _linkDataCache[table].length > 0);
+}
+
+function linkIconHtml(table) {
+    const active = hasLinksForTable(table);
+    const style = active
+        ? 'background:#3b82f6;border:1px solid #2563eb;color:#fff;box-shadow:0 0 0 3px rgba(59,130,246,.25);'
+        : 'background:#f1f5f9;border:1px solid var(--border);color:#94a3b8;opacity:.6;';
+    return `<button id="linkIcon_${table}" onclick="event.stopPropagation(); bukaPopupLink('${table}')" title="${active ? 'Ada link tersimpan' : 'Belum ada link — klik untuk tambah'}"
+        style="position:absolute;top:8px;right:8px;${style}border-radius:6px;width:26px;height:26px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;">🔗</button>`;
+}
+
+function refreshCardLinkIconStyle(table) {
+    const el = document.getElementById(`linkIcon_${table}`);
+    if (!el) return;
+    const active = hasLinksForTable(table);
+    el.title = active ? 'Ada link tersimpan' : 'Belum ada link — klik untuk tambah';
+    el.style.cssText = `position:absolute;top:8px;right:8px;border-radius:6px;width:26px;height:26px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;${active
+        ? 'background:#3b82f6;border:1px solid #2563eb;color:#fff;box-shadow:0 0 0 3px rgba(59,130,246,.25);'
+        : 'background:#f1f5f9;border:1px solid var(--border);color:#94a3b8;opacity:.6;'}`;
+}
+
+function cardSkeletonHtml(table) {
+    return `<div class="table-summary-card" id="card_${table}" onclick="showDetailView('${table}')"
+        style="position:relative;cursor:pointer;border:2px solid var(--border);border-radius:12px;padding:16px;background:#fff;transition:all .15s;">
+        ${linkIconHtml(table)}
+        <div style="font-weight:700;color:var(--primary);font-size:14px;margin-bottom:10px;padding-right:26px;">🗂 ${table}</div>
+        <div style="font-size:12px;color:var(--muted);">⏳ Memuat...</div>
+    </div>`;
+}
+
+function customCardHtml() {
+    return `<div class="table-summary-card" onclick="event.stopPropagation(); toggleTabelInput();"
+        style="cursor:pointer;border:2px dashed var(--border);border-radius:12px;padding:16px;background:#fafafa;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;">
+        <div style="font-size:22px;">🗄</div>
+        <div style="font-weight:700;color:var(--muted);font-size:13px;">Ganti / Tabel Lain</div>
+        <div style="font-size:11px;color:var(--muted);text-align:center;">Ketik nama tabel custom di luar nilai1–9</div>
+    </div>`;
+}
+
+function renderCardStats(r) {
+    const el = document.getElementById(`card_${r.table}`);
+    if (!el) return;
+    if (r.error) {
+        el.innerHTML = `${linkIconHtml(r.table)}
+            <div style="font-weight:700;color:var(--primary);font-size:14px;margin-bottom:10px;padding-right:26px;">🗂 ${r.table}</div>
+            <div style="font-size:12px;color:#dc2626;">⚠ Gagal memuat</div>`;
+        return;
+    }
+    const loadInfo = r.apiTotal > CARD_BATCH
+        ? `<div style="font-size:11px;color:var(--muted);margin-top:2px;">📦 Dimuat ${r.loaded} dari ${r.apiTotal} baris di tabel</div>`
+        : '';
+    const moreBtn = r.hasMore
+        ? `<button id="btnMore_${r.table}" class="btn btn-outline btn-sm" style="margin-top:6px;padding:4px 10px;font-size:11px;align-self:flex-start;" onclick="muatLebihBanyak('${r.table}', event)">⬇ Muat 500 lagi</button>`
+        : (r.apiTotal > CARD_BATCH ? `<div style="font-size:11px;color:#16a34a;margin-top:4px;">✅ Semua data sudah dimuat</div>` : '');
+    el.innerHTML = `${linkIconHtml(r.table)}
+        <div style="font-weight:700;color:var(--primary);font-size:14px;margin-bottom:10px;padding-right:26px;">🗂 ${r.table}</div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+            <div style="font-size:12px;color:var(--muted);">👥 Total peserta: <strong style="color:#1e293b;">${r.total}</strong></div>
+            <div style="font-size:12px;"><span style="background:#dcfce7;color:#166534;border-radius:99px;padding:2px 10px;font-weight:700;">✅ ${r.selesai} selesai</span></div>
+            <div style="font-size:12px;"><span style="background:#fee2e2;color:#b91c1c;border-radius:99px;padding:2px 10px;font-weight:700;">⏳ ${r.belum} belum selesai</span></div>
+            ${loadInfo}
+            ${moreBtn}
+        </div>`;
+}
+
+
+async function renderTableCardsView() {
+    const wrap = document.getElementById('tableCardsContainer');
+    if (!activeCardTables.length) {
+        wrap.innerHTML = `<div class="empty-msg" style="grid-column:1/-1;"><div class="em-icon">📭</div><p>Tidak ada tabel yang dipilih. Centang minimal 1 tabel lalu tekan Refresh Card.</p></div>` + customCardHtml();
+        document.getElementById('todayCount').textContent = '0 peserta (semua tabel)';
+        return;
+    }
+    await fetchLinkData(); // supaya status nyala/pudar ikon link akurat sejak render pertama
+    wrap.innerHTML = activeCardTables.map(cardSkeletonHtml).join('') + customCardHtml();
+    document.getElementById('todayLastUpdate').textContent = '🕐 ' + nowTimeString();
+    const results = await Promise.all(activeCardTables.map(fetchTableStats));
+    results.forEach(renderCardStats);
+    const totalAll = results.reduce((sum, r) => sum + r.total, 0);
+    document.getElementById('todayCount').textContent = totalAll + ' peserta (tabel terpilih)';
+}
+
+// ── Filter checkbox tabel (1-9 + custom) — cuma diterapkan saat tombol "Refresh Card" ditekan ──
+function toggleCustomTableInput() {
+    const chk = document.getElementById('chkTableCustom');
+    const inp = document.getElementById('customTableInput');
+    inp.style.display = chk.checked ? 'inline-block' : 'none';
+}
+
+function getSelectedCardTablesFromCheckbox() {
+    const list = [];
+    document.querySelectorAll('.cardTableChk').forEach(cb => {
+        if (cb.checked) list.push(cb.value);
+    });
+    const customChk = document.getElementById('chkTableCustom');
+    if (customChk && customChk.checked) {
+        const raw = (document.getElementById('customTableInput').value || '').trim();
+        raw.split(',').map(s => s.trim()).filter(Boolean).forEach(t => {
+            if (!list.includes(t)) list.push(t);
+        });
+    }
+    return list;
+}
+
+function applyCardFilter() {
+    // Hanya mengubah daftar & isi card — tanggal, server, dan state lain tidak disentuh
+    activeCardTables = getSelectedCardTablesFromCheckbox();
+    renderTableCardsView();
+}
+
+// ============================================================
+// LINK PENGERJAAN TEST — disimpan di tabel kontrol_admin, id_x=4, kolom x_01 (JSON)
+// Struktur x_01: { "nilai1_json": [ {url, label, catatan}, ... ], "nilai2_json": [...], ... }
+// ============================================================
+const LINK_CONTROL_TABLE = 'kontrol_admin';
+const LINK_CONTROL_IDX   = '4';
+let _linkDataCache   = null; // null = belum pernah di-fetch, di-cache di client selama sesi
+let _linkActiveTable = null;
+
+async function fetchLinkData(forceReload) {
+    if (_linkDataCache && !forceReload) return _linkDataCache;
+    try {
+        const url = `${API_BASE}?table=${encodeURIComponent(LINK_CONTROL_TABLE)}&limit=500&offset=0`;
+        const res = await fetch(url, { headers: { 'X-Custom-Auth': AUTH_KEY } });
+        const json = await res.json();
+        const rows = (json.success && json.data) ? json.data : [];
+        const row  = rows.find(r => String(r.id_x) === LINK_CONTROL_IDX);
+        const raw  = row ? (row.x_01 || '') : '';
+        _linkDataCache = raw ? (JSON.parse(raw) || {}) : {};
+    } catch(e) {
+        console.error('[fetchLinkData] error:', e);
+        _linkDataCache = {};
+    }
+    return _linkDataCache;
+}
+
+async function saveLinkData() {
+    const url = `${API_BASE}?table=${encodeURIComponent(LINK_CONTROL_TABLE)}&id_x=${encodeURIComponent(LINK_CONTROL_IDX)}`;
+    const res = await fetch(url, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'X-Custom-Auth': AUTH_KEY },
+        body: JSON.stringify({ x_01: JSON.stringify(_linkDataCache) })
+    });
+    const text = await res.text();
+    let json;
+    try { json = JSON.parse(text); } catch(e) { throw new Error('Response bukan JSON: ' + text); }
+    if (!json.success) throw new Error(json.message || json.error || 'Gagal menyimpan link (lihat console).');
+}
+
+async function bukaPopupLink(table) {
+    _linkActiveTable = table;
+    document.getElementById('popupLinkTitle').textContent = `🔗 Link Pengerjaan Test — ${table}`;
+    document.getElementById('popupLinkBody').innerHTML = '<p style="font-size:12px;color:var(--muted);">⏳ Memuat...</p>';
+    const searchEl = document.getElementById('linkSearchInput');
+    if (searchEl) searchEl.value = '';
+    openModal('modalLink');
+    await fetchLinkData();
+    renderLinkPopupBody();
+}
+
+function renderLinkPopupBody() {
+    const table = _linkActiveTable;
+    const fullList = (_linkDataCache && _linkDataCache[table]) || [];
+    const searchEl = document.getElementById('linkSearchInput');
+    const q = searchEl ? searchEl.value.trim().toLowerCase() : '';
+    // Simpan index asli agar hapus/copy tetap merujuk ke item yang benar di data asli
+    let list = fullList.map((item, idx) => ({ item, idx }));
+    if (q) {
+        list = list.filter(({ item }) => {
+            return (item.label || '').toLowerCase().includes(q)
+                || (item.url || '').toLowerCase().includes(q)
+                || (item.catatan || '').toLowerCase().includes(q);
+        });
+    }
+    const body = document.getElementById('popupLinkBody');
+    if (!fullList.length) {
+        body.innerHTML = '<p style="font-size:12px;color:var(--muted);">Belum ada link untuk tabel ini.</p>';
+        return;
+    }
+    if (!list.length) {
+        body.innerHTML = '<p style="font-size:12px;color:var(--muted);">Tidak ada link yang cocok dengan pencarian.</p>';
+        return;
+    }
+    body.innerHTML = list.map(({ item, idx }) => {
+        const urlEsc = escHtml(item.url || '').replace(/'/g, "\\'");
+        return `<div style="border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;">
+            <div style="font-weight:700;font-size:13px;color:#1e293b;">${escHtml(item.label || '(tanpa label)')}</div>
+            <div style="font-size:12px;color:var(--primary);word-break:break-all;margin:4px 0;">${escHtml(item.url || '')}</div>
+            ${item.catatan ? `<div style="font-size:11px;color:var(--muted);margin-bottom:6px;">${escHtml(item.catatan)}</div>` : ''}
+            <div style="display:flex;gap:6px;">
+                <button class="btn btn-outline btn-sm" style="padding:4px 10px;font-size:11px;" onclick="copyLink('${urlEsc}')">📋 Copy</button>
+                <button class="btn btn-sm" style="padding:4px 10px;font-size:11px;background:#fee2e2;color:#dc2626;border:1.5px solid #fca5a5;border-radius:8px;cursor:pointer;font-family:inherit;" onclick="hapusLink(${idx})">🗑 Hapus</button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function bukaPopupTambahLink() {
+    document.getElementById('linkInputUrl').value     = '';
+    document.getElementById('linkInputLabel').value   = '';
+    document.getElementById('linkInputCatatan').value = '';
+    openModal('modalTambahLink');
+}
+
+async function tambahLink() {
+    const url     = document.getElementById('linkInputUrl').value.trim();
+    const label   = document.getElementById('linkInputLabel').value.trim();
+    const catatan = document.getElementById('linkInputCatatan').value.trim();
+    if (!url) { alert('URL wajib diisi.'); return; }
+    const table = _linkActiveTable;
+    if (!_linkDataCache) await fetchLinkData();
+    if (!_linkDataCache[table]) _linkDataCache[table] = [];
+    _linkDataCache[table].push({ url, label, catatan });
+    try {
+        await saveLinkData();
+        document.getElementById('linkInputUrl').value     = '';
+        document.getElementById('linkInputLabel').value   = '';
+        document.getElementById('linkInputCatatan').value = '';
+        closeModal('modalTambahLink');
+        renderLinkPopupBody();
+        refreshCardLinkIconStyle(table);
+    } catch(e) {
+        _linkDataCache[table].pop(); // rollback kalau gagal simpan
+        alert('Gagal menyimpan link: ' + e.message);
+    }
+}
+
+async function hapusLink(idx) {
+    if (!confirm('Hapus link ini?')) return;
+    const table   = _linkActiveTable;
+    const removed = _linkDataCache[table].splice(idx, 1);
+    try {
+        await saveLinkData();
+        renderLinkPopupBody();
+        refreshCardLinkIconStyle(table);
+    } catch(e) {
+        _linkDataCache[table].splice(idx, 0, removed[0]); // rollback kalau gagal simpan
+        alert('Gagal menghapus link: ' + e.message);
+        renderLinkPopupBody();
+    }
+}
+
+function copyLink(url) {
+    if (!url) return;
+    navigator.clipboard.writeText(url).then(() => {
+        alert('Link disalin ke clipboard.');
+    }).catch(() => {
+        prompt('Salin manual link berikut:', url);
+    });
+}
+
+function showCardsView() {
+    viewMode = 'cards';
+    document.getElementById('tableCardsContainer').style.display = 'grid';
+    document.getElementById('detailViewWrap').style.display = 'none';
+    document.getElementById('detailBadgesWrap').style.display = 'none';
+    renderTableCardsView();
+}
+
+function showDetailView(table) {
+    viewMode   = 'detail';
+    tableName  = table;
+    lastHash   = null;
+    rawCache   = [];
+    dataOffset = 0;
+    document.getElementById('tableInput').value = table;
+    const lbl = document.getElementById('tabelAktifLabel');
+    if (lbl) lbl.textContent = tableName;
+    document.getElementById('tableCardsContainer').style.display = 'none';
+    document.getElementById('detailViewWrap').style.display = 'block';
+    document.getElementById('detailBadgesWrap').style.display = 'inline';
+    if (testerTable) { testerTable.destroy(); testerTable = null; }
+    document.getElementById('todayContainer').innerHTML =
+        '<div class="loading-block"><div class="spinner"></div><p>Memuat data...</p></div>';
+    update();
+}
+
+// ============================================================
+// BATCH SELECTOR — pilih 500 baris mana yang mau ditampilkan
+// ============================================================
+function renderBatchSelector() {
+    const wrap = document.getElementById('batchSelectorWrap');
+    if (!wrap) return;
+
+    if (dataTotal <= BATCH_SIZE) {
+        wrap.style.display = 'none';
+        return;
+    }
+    wrap.style.display = 'inline-flex';
+
+    const numBatches = Math.ceil(dataTotal / BATCH_SIZE);
+    const sel = document.getElementById('batchSelector');
+    if (!sel) return;
+
+    // Hanya rebuild <option> kalau jumlah batch berubah, supaya selection tidak reset tiap polling
+    if (parseInt(sel.dataset.numBatches || '0') !== numBatches) {
+        sel.dataset.numBatches = numBatches;
+        let opts = '';
+        for (let i = 0; i < numBatches; i++) {
+            const off    = i * BATCH_SIZE;
+            const label  = i === 0
+                ? `📥 500 Terbaru`
+                : `⏮ 500 Sebelumnya (batch ${i + 1})`;
+            opts += `<option value="${off}"${off === dataOffset ? ' selected' : ''}>${label}</option>`;
+        }
+        sel.innerHTML = opts;
+    } else {
+        sel.value = String(dataOffset);
+    }
+}
+
+function changeBatch(offsetVal) {
+    const off = parseInt(offsetVal) || 0;
+    if (off === dataOffset) return;
+    dataOffset = off;
+    lastHash   = null;
+    rawCache   = [];
+    if (testerTable) { testerTable.destroy(); testerTable = null; }
+    document.getElementById('todayContainer').innerHTML =
+        '<div class="loading-block"><div class="spinner"></div><p>Memuat batch data...</p></div>';
+    update();
+}
+
+// ============================================================
+// RENDER TABEL
+// ============================================================
+let showAllDates = false;
+
+function buildRows(data) {
+    const dateVal = document.getElementById('dateInput').value || todayString();
+    // Reset store tiap build agar index tetap sinkron
+    _biodataStore = [];
+    _progresStore = [];
+    return data
+        .filter(row => showAllDates || getDateFromX02(row.x_02) === dateVal)
+        .map(row => ({
+            id_x:   String(row.id_x || ''),
+            selfie: renderTodaySelfie(row.x_02),
+            x_01:   String(row.x_01 || ''),
+            x_02:   renderJsonBio(row.x_02),
+            progres: renderProgresGabung(row.x_05, row.x_06, row.x_07),
+            x_09:   renderViolation(row.x_09 || ''),
+            aksi:   renderAksi(row.x_04 || '', row.id_x || ''),
+            tgl:    `<span style="font-size:12px;color:var(--muted)">${getDateFromX02(row.x_02)}</span>`,
+            _selesai: isPesertaSelesai(row.x_06, row.x_07),
+            _nama: extractNamaBio(row.x_02)
+        }));
+}
+
+function initTable(rows) {
+    const heads = `<th>ID</th><th>Selfie</th><th>Token</th><th>Biodata</th><th>Progres</th><th>🔄 Tab</th><th onclick="infoAksi()" title="${escHtml(MSG_AKSI_TOOLTIP)}" style="cursor:help">Aksi ℹ️</th><th>Tgl Tes</th>`;
+    const cols  = [
+        { data: 'id_x',   orderable: true },
+        { data: 'selfie', orderable: false },
+        { data: 'x_01' },
+        { data: 'x_02' },
+        { data: 'progres', orderable: false },
+        { data: 'x_09',   orderable: false, defaultContent: '—' },
+        { data: 'aksi',   orderable: false, defaultContent: '—' },
+        { data: 'tgl',    orderable: false }
+    ];
+    document.getElementById('todayContainer').innerHTML = `
+        <table id="testerTable" class="display nowrap" style="width:100%">
+            <thead><tr>${heads}</tr></thead><tbody></tbody>
+            <tfoot><tr id="totalRow"></tr></tfoot>
+        </table>`;
+    testerTable = $('#testerTable').DataTable({
+        data: rows,
+        columns: cols,
+        pageLength: 25,
+        lengthMenu: [[10,25,50,100,-1],[10,25,50,100,'Semua']],
+        order: [[0,'desc']],
+        language: {
+            search: '🔍', searchPlaceholder: 'Cari...',
+            lengthMenu: 'Tampilkan _MENU_',
+            info: '_START_–_END_ dari _TOTAL_',
+            infoEmpty: '0 data', infoFiltered: '(dari _MAX_)',
+            paginate: { first:'«', last:'»', next:'›', previous:'‹' },
+            zeroRecords: 'Tidak ada data', emptyTable: 'Tidak ada data'
+        },
+        autoWidth: false,
+        drawCallback: function() { updateTotalRow(rows); }
+    });
+    updateTotalRow(rows);
+}
+
+function updateTotalRow(rows) {
+    const tr = document.getElementById('totalRow');
+    if (!tr) return;
+    const totalInsentif = rows.reduce((s, r) => s + (r._sudahBayar ? Math.round((r._hargaNum || 0) * 0.1) : 0), 0);
+    const colCount = 11; // total kolom
+    tr.innerHTML = `
+        <td colspan="${colCount - 1}" style="text-align:right;font-size:12px;font-weight:700;color:var(--muted);padding:10px 8px;">
+            TOTAL INSENTIF (${rows.filter(r => r._sudahBayar).length} sudah bayar)
+        </td>
+        <td style="padding:10px 8px;">
+            <span class="total-val">Rp ${totalInsentif.toLocaleString('id-ID')}</span>
+        </td>`;
+}
+
+// ============================================================
+// UPDATE (dipanggil tiap 5 detik)
+// ============================================================
+async function update() {
+    try {
+        const data = await fetchData();
+        const hash = JSON.stringify(data);
+
+        document.getElementById('todayLastUpdate').textContent = '🕐 ' + nowTimeString();
+
+        rawCache = data;
+        const rows = buildRows(data);
+        document.getElementById('todayCount').textContent = rows.length + ' peserta';
+
+        const jumlahSelesai = rows.filter(r => r._selesai).length;
+        document.getElementById('selesaiBadge').textContent = `✅ ${jumlahSelesai} selesai`;
+
+        _belumSelesaiList = rows.filter(r => !r._selesai).map(r => ({ nama: r._nama, token: r.x_01, id_x: r.id_x }));
+        document.getElementById('belumSelesaiBadge').textContent = `⏳ ${_belumSelesaiList.length} belum selesai`;
+
+        if (hash === lastHash && testerTable) return; // tidak ada perubahan
+        lastHash = hash;
+
+        if (testerTable) {
+            testerTable.clear();
+            testerTable.rows.add(rows);
+            testerTable.draw(false);
+            updateTotalRow(rows);
+        } else {
+            if (rows.length === 0) {
+                const dateVal = document.getElementById('dateInput').value || todayString();
+                document.getElementById('todayContainer').innerHTML = showAllDates
+                    ? `<div class="empty-msg">
+                        <div class="em-icon">📭</div>
+                        <p>Tidak ada peserta sama sekali</p>
+                      </div>`
+                    : `<div class="empty-msg">
+                        <div class="em-icon">📭</div>
+                        <p>Tidak ada peserta pada <strong>${dateVal}</strong></p>
+                      </div>`;
+            } else {
+                initTable(rows);
+            }
+        }
+    } catch(e) {
+        document.getElementById('todayLastUpdate').textContent = '⚠ Error';
+    }
+}
+
+// ============================================================
+// KONTROL
+// ============================================================
+function loadTable() {
+    const val = document.getElementById('tableInput').value.trim() || 'nilai2_json';
+    showDetailView(val);
+}
+
+// ── Ganti tabel (pola sama seperti finishing.html / index_rekap.html) ──
+function toggleTabelInput() {
+    const box = document.getElementById('gantiTabelBox');
+    const isOpen = box.style.display !== 'none';
+    box.style.display = isOpen ? 'none' : 'block';
+    if (!isOpen) {
+        document.getElementById('inputTabelBaru').value = tableName;
+        document.getElementById('gantiTabelSrvLabel').textContent = SERVERS[activeSrvIdx].label + ' — ' + SERVERS[activeSrvIdx].domain;
+        document.getElementById('inputTabelBaru').focus();
+        loadTabelList();
+    }
+}
+
+function terapkanTabelBaru() {
+    const val = document.getElementById('inputTabelBaru').value.trim();
+    if (!val) return;
+    document.getElementById('gantiTabelBox').style.display = 'none';
+    document.getElementById('tableInput').value = val;
+    loadTable();
+}
+
+async function loadTabelList() {
+    try {
+        const res = await fetch(`${API_BASE}?action=list_tables`, {
+            headers: { 'X-Custom-Auth': AUTH_KEY }
+        });
+        const result = await res.json();
+        const container = document.getElementById('tabelList');
+        container.innerHTML = '';
+        (result.tables || []).forEach(t => {
+            const btn = document.createElement('button');
+            btn.textContent = t;
+            btn.style.cssText = `background:${t === tableName ? 'var(--primary)' : '#fff'};
+                color:${t === tableName ? '#fff' : 'var(--muted)'};
+                border:2px solid var(--border); border-radius:8px;
+                padding:5px 12px; font-size:12px; font-family:inherit;
+                cursor:pointer; transition:background .15s;`;
+            btn.onclick = () => {
+                document.getElementById('inputTabelBaru').value = t;
+                document.getElementById('gantiTabelBox').style.display = 'none';
+                document.getElementById('tableInput').value = t;
+                loadTable();
+            };
+            container.appendChild(btn);
+        });
+    } catch (e) { /* silent */ }
+}
+
+async function doRefresh() {
+    lastHash = null;
+    await refreshCurrentView();
+}
+
+// ============================================================
+// COOKIE HELPER — shared login lintas subdomain *.lidan.co.id
+// (localStorage/sessionStorage tidak bisa dipakai krn beda origin per subdomain)
+// ============================================================
+const AUTH_COOKIE_DOMAIN = '.lidan.co.id';
+function setSharedCookie(name, value, maxAgeSec) {
+    // maxAgeSec: undefined/null => session cookie (hilang saat browser ditutup)
+    const ageStr = (maxAgeSec != null) ? `; max-age=${maxAgeSec}` : '';
+    document.cookie = `${name}=${encodeURIComponent(value)}; domain=${AUTH_COOKIE_DOMAIN}; path=/${ageStr}; samesite=lax; secure`;
+}
+function getSharedCookie(name) {
+    const m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+    return m ? decodeURIComponent(m[1]) : null;
+}
+function clearSharedCookie(name) {
+    document.cookie = `${name}=; domain=${AUTH_COOKIE_DOMAIN}; path=/; max-age=0`;
+}
+
+// ============================================================
+// LOGIN / LOGOUT
+// ============================================================
+const SESSION_KEY = 'ct_tester_session';
+
+function showLoginErr(msg) {
+    const el = document.getElementById('loginErr');
+    el.textContent = msg;
+    el.style.display = 'block';
+}
+
+async function doLogin() {
+    const user = document.getElementById('loginUser').value.trim();
+    const pass = document.getElementById('loginPass').value.trim();
+    const btn  = document.getElementById('loginBtn');
+
+    if (!user || !pass) { showLoginErr('Username dan password wajib diisi.'); return; }
+
+    btn.textContent = '⏳ Memeriksa...';
+    btn.disabled    = true;
+    document.getElementById('loginErr').style.display = 'none';
+
+    try {
+        const res  = await fetch(
+            `${API_BASE}?table=admins&x_01_eq=${encodeURIComponent(user)}`,
+            { headers: { 'X-Custom-Auth': AUTH_KEY } }
+        );
+        const json = await res.json();
+
+        if (!json.success || !json.count || !json.data || !json.data.length) {
+            showLoginErr('Username tidak ditemukan.');
+            btn.textContent = 'Masuk'; btn.disabled = false; return;
+        }
+
+        const row   = Array.isArray(json.data) ? json.data[0] : json.data;
+        const dbPwd = (row.x_02 || '').trim();
+
+        if (dbPwd !== pass) {
+            showLoginErr('Password salah.');
+            btn.textContent = 'Masuk'; btn.disabled = false; return;
+        }
+
+        // Simpan sesi via cookie shared (domain=.lidan.co.id) —
+        // "Ingat saya" dicentang: cookie persist 30 hari; tidak dicentang: session cookie (hilang saat browser ditutup)
+        const remember = document.getElementById('loginRemember').checked;
+        const sessionData = JSON.stringify({ user, ts: Date.now() });
+        if (remember) {
+            setSharedCookie(SESSION_KEY, sessionData, 30 * 24 * 60 * 60);
+            localStorage.setItem(SESSION_KEY, sessionData); // fallback lokal (opsional)
+            sessionStorage.removeItem(SESSION_KEY);
+        } else {
+            setSharedCookie(SESSION_KEY, sessionData); // session cookie, tetap shared antar subdomain selama tab masih terbuka
+            sessionStorage.setItem(SESSION_KEY, sessionData);
+            localStorage.removeItem(SESSION_KEY);
+        }
+        document.getElementById('loginOverlay').style.display = 'none';
+        btn.textContent = 'Masuk'; btn.disabled = false;
+
+        // Mulai auto-refresh setelah login
+        startApp();
+
+    } catch(e) {
+        showLoginErr('Gagal terhubung ke server. Coba lagi.');
+        btn.textContent = 'Masuk'; btn.disabled = false;
+    }
+}
+
+function doLogout() {
+    if (!confirm('Keluar dari sesi ini?')) return;
+    sessionStorage.removeItem(SESSION_KEY);
+    localStorage.removeItem(SESSION_KEY);
+    clearSharedCookie(SESSION_KEY);
+    location.reload();
+}
+
+function checkSession() {
+    const raw = getSharedCookie(SESSION_KEY) || localStorage.getItem(SESSION_KEY) || sessionStorage.getItem(SESSION_KEY);
+    if (!raw) return false;
+    try { return !!JSON.parse(raw).user; } catch(e) { return false; }
+}
+
+// ============================================================
+// INIT — tanggal dari localStorage, fallback hari ini
+// ============================================================
+const LS_DATE_KEY = 'ct_filter_date';
+
+function loadSavedDate() {
+    const saved = localStorage.getItem(LS_DATE_KEY);
+    return saved || todayString();
+}
+
+function onDateChange(val) {
+    showAllDates = false;
+    dataOffset   = 0;
+    localStorage.setItem(LS_DATE_KEY, val);
+    updateDateBadge(val);
+    lastHash = null;
+    if (viewMode === 'detail') {
+        if (testerTable) { testerTable.destroy(); testerTable = null; }
+        document.getElementById('todayContainer').innerHTML =
+            '<div class="loading-block"><div class="spinner"></div><p>Memuat...</p></div>';
+    }
+    refreshCurrentView();
+}
+
+function setToday() {
+    showAllDates = false;
+    dataOffset   = 0;
+    const today = todayString();
+    document.getElementById('dateInput').value = today;
+    onDateChange(today);
+}
+
+function setAllDates() {
+    showAllDates = true;
+    dataOffset   = 0;
+    updateDateBadge(null);
+    lastHash = null;
+    if (viewMode === 'detail') {
+        if (testerTable) { testerTable.destroy(); testerTable = null; }
+        document.getElementById('todayContainer').innerHTML =
+            '<div class="loading-block"><div class="spinner"></div><p>Memuat...</p></div>';
+    }
+    refreshCurrentView();
+}
+
+function updateDateBadge(val) {
+    const badge = document.getElementById('todayBadgeLabel');
+    if (!badge) return;
+    if (showAllDates) {
+        badge.textContent = 'Semua Data';
+        badge.style.background = '#dcfce7';
+        badge.style.color      = '#16a34a';
+        return;
+    }
+    const today = todayString();
+    if (val === today) {
+        badge.textContent = 'Hari Ini';
+        badge.style.background = '#fef3c7';
+        badge.style.color      = '#d97706';
+    } else {
+        badge.textContent = val;
+        badge.style.background = '#ede9fe';
+        badge.style.color      = '#6d28d9';
+    }
+}
+
+// Set tanggal awal
+const _initDate = loadSavedDate();
+document.getElementById('dateInput').value = _initDate;
+updateDateBadge(_initDate);
+
+function refreshCurrentView() {
+    if (viewMode === 'cards') { renderTableCardsView(); }
+    else { update(); }
+}
+
+function startApp() {
+    showCardsView();
+    if (testerInterval) clearInterval(testerInterval);
+    if (APP_CONFIG.autoRefresh) {
+        testerInterval = setInterval(refreshCurrentView, 5000);
+    }
+    updateRefreshPill();
+}
+
+function updateRefreshPill() {
+    const pill = document.getElementById('autoRefreshPill');
+    if (!pill) return;
+    if (APP_CONFIG.autoRefresh) {
+        pill.innerHTML = '<span class="pulse-dot"></span> Auto-refresh 5 detik';
+        pill.style.background = '#dbeafe';
+        pill.style.color      = '#1d4ed8';
+    } else {
+        pill.innerHTML = '⏸ Auto-refresh <b>nonaktif</b>';
+        pill.style.background = '#fee2e2';
+        pill.style.color      = '#dc2626';
+    }
+}
+
+// Cek sesi — jika sudah login langsung mulai, jika belum tampilkan overlay login
+if (checkSession()) {
+    document.getElementById('loginOverlay').style.display = 'none';
+    startApp();
+}
+// Jika belum login, overlay tetap tampil dan startApp dipanggil setelah doLogin() berhasil
+
+
+function openModal(id){
+    const m=document.getElementById(id);
+    if(m){m.style.display='flex';}
+}
+function closeModal(id){
+    const m=document.getElementById(id);
+    if(m){m.style.display='none';}
+}
+// Tutup modal saat klik overlay
+document.addEventListener('click',function(e){
+    if(e.target.classList.contains('modal-overlay')) closeModal(e.target.id);
+});
+
+/* ══ INSTRUKSI TES (global) ══ */
+const INSTR_BASE      = 'https://cipta.my.id/psikotest/simpel/';
+const INSTR_WHO_BASE  = 'https://cipta.my.id/who1/';
+// ═══════════════════════════════════════════════════════════════
+// STORE — simpan raw data untuk popup (diisi saat buildRows)
+// ═══════════════════════════════════════════════════════════════
+let _biodataStore = [];
+let _progresStore = [];
+let _belumSelesaiList = [];
+
+function bukaPopupBelumSelesai() {
+    const body = document.getElementById('popupBelumSelesaiBody');
+    if (_belumSelesaiList.length === 0) {
+        body.innerHTML = '<p style="color:#166534;font-weight:700;">🎉 Semua peserta sudah selesai!</p>';
+    } else {
+        body.innerHTML = `
+            <p style="font-size:13px;color:var(--muted);margin-bottom:10px;">Total <strong>${_belumSelesaiList.length}</strong> peserta belum selesai (belum ada progres EPPS):</p>
+            <ol style="padding-left:20px;margin:0;">
+                ${_belumSelesaiList.map(p => `<li style="font-size:13px;padding:4px 0;border-bottom:1px solid #f1f5f9;"><strong>${escHtml(p.nama)}</strong> <span style="color:var(--muted);font-size:12px;">(${escHtml(p.token)} · ID ${escHtml(p.id_x)})</span></li>`).join('')}
+            </ol>`;
+    }
+    openModal('modalBelumSelesai');
+}
+
+// ── Popup Biodata (klik nama di kolom Biodata) ──
+function bukaPopupBiodata(idx) {
+    const raw = _biodataStore[idx];
+    if (!raw) return;
+    let obj;
+    try { obj = JSON.parse(raw); } catch(e) { return; }
+
+    // Label mapping yang lebih ramah
+    const LABEL = {
+        bioNama:'Nama', bioIdCpmi:'ID CPMI', id_cpmi:'ID CPMI (raw)', bioUsia:'Usia', bioPend:'Pendidikan',
+        bioGender:'Jenis Kelamin', bioTelp:'Telepon', bioNIK:'NIK', bioTTLKota:'Kota Lahir', bioTTLTgl:'Tgl Lahir',
+        bioStatusKawin:'Status Kawin', bioSuku:'Suku', bioAgama:'Agama', bioAlamat:'Alamat',
+        bioEmail:'Email', bioHobi:'Hobi', bioCitaCita:'Cita-cita',
+        nama:'Nama', usia:'Usia', pendidikan:'Pendidikan', jenis_kelamin:'Jenis Kelamin',
+        telepon:'Telepon', tgl_tes:'Tgl Tes', status:'Status', foto_selfie:'Foto Selfie',
+        kesediaan_dihubungi:'Kesediaan Dihubungi'
+    };
+
+    // Bangun HTML section per kategori
+    const skipKeys = new Set(['bioSosmed','kursus','pengalamanKerja','organisasi','keterampilan',
+        'olahraga','kesenian','keluarga','riwayatSakit','riwayatKecelakaan','riwayatPsikotest','kuesioner','riwayatPendidikan','foto_selfie']);
+
+    // — Data Pribadi —
+    let rowsHtml = '';
+    const pribadiKeys = ['bioNama','bioIdCpmi','bioUsia','bioGender','bioNIK','bioTTLKota','bioTTLTgl',
+        'bioStatusKawin','bioSuku','bioAgama','bioTelp','bioEmail','bioAlamat','bioHobi','bioCitaCita',
+        'tgl_tes','status'];
+    pribadiKeys.forEach(k => {
+        if (obj[k] === undefined || obj[k] === null || obj[k] === '') return;
+        rowsHtml += `<tr>
+            <td style="padding:6px 10px;font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap;border-bottom:1px solid #f1f5f9;width:140px;">${escHtml(LABEL[k]||k)}</td>
+            <td style="padding:6px 10px;font-size:13px;color:var(--text);border-bottom:1px solid #f1f5f9;">${escHtml(String(obj[k]))}</td>
+        </tr>`;
+    });
+
+    // — Sosmed —
+    let sosmedHtml = '';
+    if (obj.bioSosmed && typeof obj.bioSosmed === 'object') {
+        const filled = Object.entries(obj.bioSosmed).filter(([,v]) => v);
+        if (filled.length) {
+            sosmedHtml = `<div style="margin-top:16px;">
+                <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:8px;">📱 Media Sosial</div>
+                <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                    ${filled.map(([k,v]) => `<span style="background:#f1f5f9;border-radius:6px;padding:4px 10px;font-size:12px;"><b>${escHtml(k)}</b>: ${escHtml(v)}</span>`).join('')}
+                </div>
+            </div>`;
+        }
+    }
+
+    // — Pendidikan —
+    let pendHtml = '';
+    if (Array.isArray(obj.riwayatPendidikan) && obj.riwayatPendidikan.length) {
+        pendHtml = `<div style="margin-top:16px;">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:8px;">🎓 Riwayat Pendidikan</div>
+            ${obj.riwayatPendidikan.map(p => `<div style="background:#f8fafc;border-radius:8px;padding:8px 12px;font-size:12px;margin-bottom:4px;">
+                <b>${escHtml(p.lembaga||'')}</b> — ${escHtml(p.jurusan||'')} · ${escHtml(p.lokasi||'')} · ${escHtml(p.periode||'')} ${p.keterangan?'<span style="background:#dcfce7;color:#166534;border-radius:4px;padding:1px 6px;font-size:11px;">'+escHtml(p.keterangan)+'</span>':''}
+            </div>`).join('')}
+        </div>`;
+    }
+
+    // — Kursus —
+    let kursusHtml = '';
+    if (Array.isArray(obj.kursus) && obj.kursus.length) {
+        kursusHtml = `<div style="margin-top:16px;">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:8px;">📚 Kursus / Pelatihan</div>
+            ${obj.kursus.map(p => `<div style="background:#f8fafc;border-radius:8px;padding:8px 12px;font-size:12px;margin-bottom:4px;">
+                <b>${escHtml(p.nama_pelatihan||'')}</b> — ${escHtml(p.lembaga||'')} · ${escHtml(p.lokasi||'')} · ${escHtml(p.periode||'')}
+            </div>`).join('')}
+        </div>`;
+    }
+
+    // — Pengalaman Kerja —
+    let kerjaHtml = '';
+    if (Array.isArray(obj.pengalamanKerja) && obj.pengalamanKerja.length) {
+        kerjaHtml = `<div style="margin-top:16px;">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:8px;">💼 Pengalaman Kerja</div>
+            ${obj.pengalamanKerja.map(p => `<div style="background:#f8fafc;border-radius:8px;padding:8px 12px;font-size:12px;margin-bottom:4px;">
+                <b>${escHtml(p.jabatan||'')}</b> di ${escHtml(p.instansi||'')} · ${escHtml(p.lokasi||'')} · ${escHtml(p.periode||'')}
+            </div>`).join('')}
+        </div>`;
+    }
+
+    // — Keluarga —
+    let keluargaHtml = '';
+    if (Array.isArray(obj.keluarga) && obj.keluarga.length) {
+        keluargaHtml = `<div style="margin-top:16px;">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:8px;">👨‍👩‍👧 Data Keluarga</div>
+            <table style="width:100%;border-collapse:collapse;font-size:12px;">
+                <thead><tr style="background:#f1f5f9;">
+                    <th style="padding:5px 8px;text-align:left;font-weight:600;color:var(--muted);">Nama</th>
+                    <th style="padding:5px 8px;text-align:left;font-weight:600;color:var(--muted);">Hub.</th>
+                    <th style="padding:5px 8px;text-align:left;font-weight:600;color:var(--muted);">Usia</th>
+                    <th style="padding:5px 8px;text-align:left;font-weight:600;color:var(--muted);">Pekerjaan</th>
+                </tr></thead>
+                <tbody>
+                    ${obj.keluarga.map(k => `<tr style="border-bottom:1px solid #f1f5f9;">
+                        <td style="padding:5px 8px;">${escHtml(k.nama||'')}</td>
+                        <td style="padding:5px 8px;">${escHtml(k.hubungan||'')} ${k.gender?'('+escHtml(k.gender)+')':''}</td>
+                        <td style="padding:5px 8px;">${escHtml(String(k.usia||''))}</td>
+                        <td style="padding:5px 8px;">${escHtml(k.pekerjaan||'')}</td>
+                    </tr>`).join('')}
+                </tbody>
+            </table>
+        </div>`;
+    }
+
+    // — Kuesioner —
+    let kuesHtml = '';
+    if (obj.kuesioner && typeof obj.kuesioner === 'object') {
+        const KUES_LABEL = {
+            sukses:'Pengalaman Sukses', kurangSesuai:'Pengalaman Kurang Sesuai',
+            perubahan:'Pengalaman Perubahan', kerjaTim:'Kerja Tim',
+            kekuatanKelemahan:'Kekuatan & Kelemahan'
+        };
+        const HURUF_LABEL = {
+            a:'Situasi',b:'Konteks',c:'Pihak Terlibat',d:'Pikiran',e:'Perasaan',
+            f:'Tindakan',g:'Hasil',h:'Hasil',i:'Hasil',j:'Hasil'
+        };
+        let kuesItems = '';
+        Object.entries(obj.kuesioner).forEach(([topik, val]) => {
+            const topikLabel = KUES_LABEL[topik] || topik;
+            if (typeof val === 'string') {
+                kuesItems += `<div style="margin-bottom:12px;">
+                    <div style="font-size:12px;font-weight:700;color:var(--primary);margin-bottom:4px;">${escHtml(topikLabel)}</div>
+                    <div style="background:#f8fafc;border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text);line-height:1.7;white-space:pre-line;">${escHtml(val)}</div>
+                </div>`;
+            } else if (typeof val === 'object') {
+                let subItems = Object.entries(val).map(([h, teks]) =>
+                    `<div style="margin-bottom:6px;"><span style="font-size:11px;font-weight:700;color:var(--muted);display:inline-block;min-width:130px;">${escHtml(HURUF_LABEL[h]||h.toUpperCase())}</span><span style="font-size:12px;color:var(--text);">${escHtml(teks)}</span></div>`
+                ).join('');
+                kuesItems += `<div style="margin-bottom:14px;border-left:3px solid var(--primary);padding-left:10px;">
+                    <div style="font-size:12px;font-weight:700;color:var(--primary);margin-bottom:6px;">${escHtml(topikLabel)}</div>
+                    ${subItems}
+                </div>`;
+            }
+        });
+        if (kuesItems) {
+            kuesHtml = `<div style="margin-top:16px;">
+                <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:10px;">📝 Kuesioner</div>
+                ${kuesItems}
+            </div>`;
+        }
+    }
+
+    const nama = obj.bioNama || obj.nama || 'Biodata';
+    const foto = obj.foto_selfie || '';
+    const fotoHtml = foto ? `<img src="${escHtml(foto)}" alt="Selfie" style="width:56px;height:72px;object-fit:cover;object-position:center top;border-radius:8px;border:2px solid var(--border);flex-shrink:0;">` : '';
+
+    document.getElementById('popupBiodataBody').innerHTML = `
+        <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:18px;">
+            ${fotoHtml}
+            <div>
+                <div style="font-size:17px;font-weight:800;color:var(--text);">${escHtml(nama)}</div>
+                <div style="font-size:12px;color:var(--muted);margin-top:2px;">${escHtml([obj.bioUsia?obj.bioUsia+'th':'', obj.bioPend||obj.pendidikan||'', obj.bioGender||obj.jenis_kelamin||''].filter(Boolean).join(' · '))}</div>
+            </div>
+        </div>
+        <table style="width:100%;border-collapse:collapse;">${rowsHtml}</table>
+        ${sosmedHtml}${pendHtml}${kursusHtml}${kerjaHtml}${keluargaHtml}${kuesHtml}
+    `;
+    openModal('modalBiodata');
+}
+
+// ── Popup Progres (klik chip di kolom Progres) ──
+// ── WWQ Scoring Engine (port dari wwq_view.html) ──
+function hitungWWQ(jawabanStr) {
+    const w = jawabanStr.split(';').map(s => s.trim());
+    let satu=0,dua=0,tiga=0,empat=0,lima=0,enam=0,tujuh=0,delapan=0;
+    if(w[0] ==='A'){satu++;empat++;}
+    if(w[1] ==='A') satu++;
+    if(w[2] ==='A') dua++;
+    if(w[3] ==='A') dua++;
+    if(w[4] ==='A') dua++;
+    if(w[5] ==='A') dua++;
+    if(w[6] ==='A') dua++;
+    if(w[7] ==='A') satu++;
+    if(w[8] ==='A'){satu++;enam++;}
+    if(w[9] ==='A'){satu++;enam++;}
+    if(w[10]==='A') satu++;
+    if(w[11]==='A') satu++;
+    if(w[12]==='A') satu++;
+    if(w[13]==='B') tujuh++;
+    if(w[14]==='A') tujuh++;
+    if(w[15]==='A') tujuh++;
+    if(w[16]==='A') tujuh++;
+    if(w[17]==='B') tujuh++;
+    if(w[18]==='A'){satu++;lima++;}
+    if(w[19]==='B'){satu++;delapan++;}
+    if(w[20]==='B') satu++;
+    if(w[21]==='A') lima++;
+    if(w[22]==='A') lima++;
+    if(w[23]==='B') lima++;
+    if(w[24]==='A'){dua++;lima++;}
+    if(w[25]==='A'){dua++;lima++;}
+    if(w[26]==='A'){tiga++;lima++;}
+    if(w[27]==='A') lima++;
+    if(w[28]==='A') lima++;
+    if(w[29]==='A') lima++;
+    if(w[30]==='B'){lima++;enam++;}
+    if(w[31]==='B') dua++;
+    if(w[32]==='A') dua++;
+    if(w[33]==='A'){satu++;dua++;}
+    if(w[34]==='A'){tiga++;empat++;tujuh++;}
+    if(w[35]==='A') enam++;
+    if(w[36]==='A') lima++;
+    if(w[37]==='A') dua++;
+    if(w[38]==='A') dua++;
+    if(w[39]==='A'){satu++;dua++;}
+    if(w[40]==='A') dua++;
+    if(w[41]==='A') dua++;
+    if(w[42]==='B'){tiga++;empat++;}
+    if(w[43]==='A'){tiga++;empat++;}
+    if(w[44]==='B') empat++;
+    if(w[45]==='A'){tiga++;enam++;}
+    if(w[46]==='A') empat++;
+    if(w[47]==='B') tiga++;
+    if(w[48]==='A') tiga++;
+    if(w[49]==='A') tiga++;
+    if(w[50]==='A') tiga++;
+    if(w[51]==='A') tiga++;
+    if(w[52]==='A'){tiga++;empat++;}
+    if(w[53]==='A'){tiga++;lima++;}
+    if(w[54]==='B') empat++;
+    if(w[55]==='A') empat++;
+    if(w[56]==='B') empat++;
+    if(w[57]==='A') empat++;
+    if(w[58]==='A') empat++;
+    if(w[59]==='B') empat++;
+    if(w[60]==='B') empat++;
+    if(w[61]==='A') empat++;
+    if(w[62]==='A') empat++;
+    if(w[63]==='A'){empat++;enam++;}
+    if(w[64]==='A') enam++;
+    if(w[65]==='A') enam++;
+    if(w[66]==='A') enam++;
+    if(w[67]==='A') enam++;
+    if(w[68]==='A') enam++;
+    if(w[69]==='A') delapan++;
+    if(w[70]==='A') delapan++;
+    if(w[71]==='A') delapan++;
+    if(w[72]==='A') delapan++;
+    if(w[73]==='A') delapan++;
+    if(w[74]==='A') delapan++;
+    const skor_akhir = ((satu*28)+(dua*24)+(tiga*30)+(empat*20)+(lima*26)+(enam*36)+(tujuh*52)+(delapan*52))/8;
+    return {satu,dua,tiga,empat,lima,enam,tujuh,delapan,skor_akhir};
+}
+
+function renderPopupWWQ(wwqStr) {
+    const r = hitungWWQ(wwqStr);
+    const DARK = '#1a1a2e';
+    const dims = [
+        {k:'satu',   w:28, label:'Satu'},
+        {k:'dua',    w:24, label:'Dua'},
+        {k:'tiga',   w:30, label:'Tiga'},
+        {k:'empat',  w:20, label:'Empat'},
+        {k:'lima',   w:26, label:'Lima'},
+        {k:'enam',   w:36, label:'Enam'},
+        {k:'tujuh',  w:52, label:'Tujuh'},
+        {k:'delapan',w:52, label:'Delapan'},
+    ];
+    const maxVal = Math.max(...dims.map(d => r[d.k]));
+
+    // Bar chart rows
+    const barRows = dims.map(d => {
+        const val = r[d.k];
+        const pct = maxVal > 0 ? Math.round((val / maxVal) * 100) : 0;
+        const kontrib = val * d.w;
+        return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;">
+            <div style="width:68px;font-size:11px;font-weight:600;color:#64748b;text-align:right;flex-shrink:0;">${d.label}<span style="font-size:10px;color:#a0aec0;"> ×${d.w}</span></div>
+            <div style="flex:1;background:#f1f5f9;border-radius:4px;height:20px;overflow:hidden;">
+                <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,${DARK},#4f46e5);border-radius:4px;transition:width .4s;"></div>
+            </div>
+            <div style="width:28px;font-size:12px;font-weight:800;color:${DARK};text-align:right;flex-shrink:0;">${val}</div>
+            <div style="width:42px;font-size:10px;color:#94a3b8;text-align:right;flex-shrink:0;">(${kontrib})</div>
+        </div>`;
+    }).join('');
+
+    // Jawaban grid — warnai per soal
+    const items = wwqStr.split(';').filter(Boolean);
+    const cellHtml = items.map((v, i) => {
+        const c = v.trim();
+        const bg  = c === 'A' ? '#dbeafe' : c === 'B' ? '#fef9c3' : '#f1f5f9';
+        const col = c === 'A' ? '#1d4ed8' : c === 'B' ? '#92400e' : '#64748b';
+        return `<span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:24px;border-radius:4px;font-size:10px;font-weight:700;background:${bg};color:${col};margin:1px;" title="Soal ${i+1}">${c||'?'}</span>`;
+    }).join('');
+    const cntA = items.filter(v=>v.trim()==='A').length;
+    const cntB = items.filter(v=>v.trim()==='B').length;
+
+    return `
+        <!-- Header dark -->
+        <div style="background:${DARK};border-radius:12px;padding:18px 20px;margin-bottom:16px;color:white;position:relative;overflow:hidden;">
+            <div style="position:absolute;right:-8px;top:-8px;font-size:80px;font-weight:900;color:rgba(255,255,255,.04);line-height:1;pointer-events:none;font-family:serif;">WWQ</div>
+            <div style="font-size:10px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:rgba(255,255,255,.5);margin-bottom:4px;">Work & Wellbeing Questionnaire</div>
+            <div style="font-size:22px;font-weight:800;">Skor Akhir: <span style="font-size:28px;color:#a5f3fc;">${r.skor_akhir % 1 === 0 ? r.skor_akhir : r.skor_akhir.toFixed(2)}</span></div>
+            <div style="font-size:11px;color:rgba(255,255,255,.45);margin-top:2px;">((satu×28)+(dua×24)+…+(delapan×52)) ÷ 8</div>
+        </div>
+
+        <!-- Bar chart dimensi -->
+        <div style="margin-bottom:16px;">
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#a0aec0;margin-bottom:10px;">Skor per Dimensi</div>
+            ${barRows}
+        </div>
+
+        <!-- Tabel ringkas -->
+        <div style="background:#f8fafc;border-radius:10px;padding:12px 14px;margin-bottom:16px;">
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
+                ${dims.map(d => `<div style="text-align:center;background:white;border-radius:8px;padding:8px 4px;box-shadow:0 1px 4px rgba(0,0,0,.06);">
+                    <div style="font-size:18px;font-weight:800;color:${DARK};">${r[d.k]}</div>
+                    <div style="font-size:10px;color:#94a3b8;font-weight:600;">${d.label}</div>
+                </div>`).join('')}
+            </div>
+        </div>
+
+        <!-- Jawaban grid -->
+        <div style="margin-bottom:8px;">
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#a0aec0;margin-bottom:8px;">
+                Urutan Jawaban
+                <span style="margin-left:8px;background:#dbeafe;color:#1d4ed8;border-radius:4px;padding:1px 7px;font-size:10px;">A: ${cntA}</span>
+                <span style="margin-left:4px;background:#fef9c3;color:#92400e;border-radius:4px;padding:1px 7px;font-size:10px;">B: ${cntB}</span>
+            </div>
+            <div style="line-height:1.6;">${cellHtml}</div>
+        </div>`;
+}
+
+function bukaPopupProgres(idx) {
+    const item = _progresStore[idx];
+    if (!item) return;
+    const { key, value } = item;
+    const label = shortLabel(key);
+
+    let contentHtml = '';
+
+    // ── Khusus WWQ ──
+    if (key === 'who_wwq' && typeof value === 'string') {
+        const wwqStr = value;
+        const parts = wwqStr.split(';').filter(Boolean);
+        if (parts.length >= 75) {
+            document.getElementById('popupProgresTitle').textContent = 'WWQ — Work & Wellbeing Questionnaire';
+            document.getElementById('popupProgresBody').innerHTML = renderPopupWWQ(wwqStr);
+            openModal('modalProgres');
+            return;
+        }
+        // Data tidak lengkap
+        contentHtml = `<div style="text-align:center;padding:24px;color:#dc2626;">⚠️ Data WWQ tidak lengkap (${parts.length}/75 soal)</div>`;
+        document.getElementById('popupProgresTitle').textContent = 'WWQ';
+        document.getElementById('popupProgresBody').innerHTML = contentHtml;
+        openModal('modalProgres');
+        return;
+    }
+
+    // Skor numerik (x_05)
+    if (typeof value === 'number') {
+        contentHtml = `<div style="text-align:center;padding:20px 0;">
+            <div style="font-size:13px;color:var(--muted);margin-bottom:6px;">Skor</div>
+            <div style="font-size:48px;font-weight:800;color:var(--primary);">${escHtml(String(value))}</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:4px;">key: <code>${escHtml(key)}</code></div>
+        </div>`;
+    }
+    // String jawaban panjang (epps, dll)
+    else if (typeof value === 'string' && value.includes(';')) {
+        const items = value.split(';').filter(Boolean);
+        const total = items.length;
+        const countA = items.filter(v => v.trim() === 'A').length;
+        const countB = items.filter(v => v.trim() === 'B').length;
+        const cellStyle = (v) => {
+            const c = v.trim();
+            const bg = c === 'A' ? '#dbeafe' : c === 'B' ? '#fef3c7' : '#f1f5f9';
+            const col = c === 'A' ? '#1d4ed8' : c === 'B' ? '#92400e' : '#334155';
+            return `background:${bg};color:${col};`;
+        };
+        const cells = items.map((v,i) =>
+            `<span style="display:inline-block;width:28px;height:26px;line-height:26px;text-align:center;border-radius:4px;font-size:11px;font-weight:700;margin:1px;${cellStyle(v)}">${i+1}</span>`
+        ).join('');
+        contentHtml = `
+            <div style="display:flex;gap:12px;margin-bottom:14px;">
+                <div style="background:#dbeafe;border-radius:8px;padding:8px 16px;text-align:center;flex:1;">
+                    <div style="font-size:20px;font-weight:800;color:#1d4ed8;">${countA}</div>
+                    <div style="font-size:11px;color:#1d4ed8;font-weight:600;">Jawaban A</div>
+                </div>
+                <div style="background:#fef3c7;border-radius:8px;padding:8px 16px;text-align:center;flex:1;">
+                    <div style="font-size:20px;font-weight:800;color:#92400e;">${countB}</div>
+                    <div style="font-size:11px;color:#92400e;font-weight:600;">Jawaban B</div>
+                </div>
+                <div style="background:#f1f5f9;border-radius:8px;padding:8px 16px;text-align:center;flex:1;">
+                    <div style="font-size:20px;font-weight:800;color:var(--text);">${total}</div>
+                    <div style="font-size:11px;color:var(--muted);font-weight:600;">Total Soal</div>
+                </div>
+            </div>
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:6px;">Urutan Jawaban</div>
+            <div style="line-height:1.4;">${cells}</div>`;
+    }
+    // Object (kreplin dll)
+    else if (typeof value === 'object' && value !== null) {
+        const rows = Object.entries(value).map(([k,v]) => {
+            const display = typeof v === 'string' && v.includes('|')
+                ? `<span style="font-size:11px;color:var(--muted);font-family:'Courier New',monospace;">${escHtml(v.split('|').slice(0,5).join(' | '))}${v.split('|').length > 5 ? ' …' : ''}</span>`
+                : `<span style="font-size:13px;">${escHtml(String(v))}</span>`;
+            return `<tr>
+                <td style="padding:6px 10px;font-size:12px;font-weight:600;color:var(--muted);border-bottom:1px solid #f1f5f9;white-space:nowrap;">${escHtml(k)}</td>
+                <td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;">${display}</td>
+            </tr>`;
+        }).join('');
+        contentHtml = `<table style="width:100%;border-collapse:collapse;">${rows}</table>`;
+    }
+    else {
+        contentHtml = `<div style="padding:16px;background:#f8fafc;border-radius:8px;font-size:13px;font-family:'Courier New',monospace;word-break:break-all;">${escHtml(String(value))}</div>`;
+    }
+
+    document.getElementById('popupProgresTitle').textContent = key + ' (' + label + ')';
+    document.getElementById('popupProgresBody').innerHTML = contentHtml;
+    openModal('modalProgres');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// KONFIGURASI SUBTES INSTRUKSI
+// active : true = tampil di popup | false = disembunyikan
+// alias  : label tombol yang muncul (kosong '' = pakai id asli)
+// ═══════════════════════════════════════════════════════════════
+const INSTR_ALL_CONFIG = [
+  {id:'apm0',   alias:'APM0',   active:false,  dataUrl:INSTR_BASE+'apm0.txt'},
+  {id:'apm1',   alias:'APM1',   active:false,  dataUrl:INSTR_BASE+'apm1.txt'},
+  {id:'apm1a',  alias:'APM1a',  active:false,  dataUrl:INSTR_BASE+'apm1a.txt'},
+  {id:'apm1b',  alias:'APM1b',  active:false,  dataUrl:INSTR_BASE+'apm1b.txt'},
+  {id:'apm2',   alias:'APM2',   active:false,  dataUrl:INSTR_BASE+'apm2.txt'},
+  {id:'apm2a',  alias:'APM2a',  active:false,  dataUrl:INSTR_BASE+'apm2a.txt'},
+  {id:'apm2b',  alias:'APM2b',  active:false,  dataUrl:INSTR_BASE+'apm2b.txt'},
+  {id:'apm14',  alias:'APM14',  active:false,  dataUrl:INSTR_BASE+'apm14.txt'},
+  {id:'cfit0',  alias:'c0',     active:false,  dataUrl:INSTR_BASE+'cfit0.txt'},
+  {id:'cfit1',  alias:'c1',     active:true,  dataUrl:INSTR_BASE+'cfit1.txt'},
+  {id:'cfit2',  alias:'c2',     active:true,  dataUrl:INSTR_BASE+'cfit2_a.txt'},
+  {id:'cfit3',  alias:'c3',     active:true,  dataUrl:INSTR_BASE+'cfit3.txt'},
+  {id:'cfit4',  alias:'c4',     active:true,  dataUrl:INSTR_BASE+'cfit4.txt'},
+  {id:'tkd3',   alias:'t3',   active:true,  dataUrl:INSTR_BASE+'tkd3.txt'},
+  {id:'tkd6',   alias:'t6',   active:true,  dataUrl:INSTR_BASE+'tkd6_a.txt'},
+  {id:'vak',   alias:'gb',   active:true,  dataUrl:INSTR_BASE+'1.txt'},
+  {id:'tkar',   alias:'tp',   active:true,  dataUrl:INSTR_BASE+'4.txt'},
+  {id:'epps',   alias:'EPPS',   active:true,  dataUrl:INSTR_BASE+'epps.txt'},
+  {id:'ist0',   alias:'i0',     active:false,  dataUrl:INSTR_BASE+'ist0.txt'},
+  {id:'ist1',   alias:'i1',     active:false,  dataUrl:INSTR_BASE+'ist1.txt'},
+  {id:'ist2',   alias:'i2',     active:false,  dataUrl:INSTR_BASE+'ist2.txt'},
+  {id:'ist3',   alias:'i3',     active:false,  dataUrl:INSTR_BASE+'ist3.txt'},
+  {id:'ist4_a', alias:'i4',     active:false,  dataUrl:INSTR_BASE+'ist4_a.txt'},
+  {id:'ist5_a', alias:'i5',     active:false,  dataUrl:INSTR_BASE+'ist5_a.txt'},
+  {id:'ist6_a', alias:'i6',     active:false,  dataUrl:INSTR_BASE+'ist6_a.txt'},
+  {id:'ist7',   alias:'i7',     active:false,  dataUrl:INSTR_BASE+'ist7.txt'},
+  {id:'ist8',   alias:'i8',     active:false,  dataUrl:INSTR_BASE+'ist8.txt'},
+  {id:'ist9',   alias:'i9',     active:false,  dataUrl:INSTR_BASE+'ist9.txt'},
+  {id:'papi',   alias:'PAPI',   active:false,  dataUrl:INSTR_BASE+'papi.txt'},
+  {id:'rmib',   alias:'RMIB',   active:true,  dataUrl:INSTR_BASE+'rmib.txt'}
+];
+
+let _instrPaketCache = {};
+let _instrDataCache  = {};
+
+// Buka modal instruksi tanpa token (tampilkan semua subtes dari INSTR_ALL_CONFIG)
+function openInstruksiModalGlobal() {
+    document.getElementById('instrTokenLabel').textContent = 'Lihat instruksi per subtes';
+    document.getElementById('instrSubtesLoading').style.display = 'none';
+    document.getElementById('instrDetail').style.display       = 'none';
+    document.getElementById('instrDetailLoading').style.display = 'none';
+    document.getElementById('instrDetailError').style.display   = 'none';
+    document.getElementById('instrDetailError').textContent     = '';
+
+    const btnWrap = document.getElementById('instrSubtesBtns');
+    btnWrap.innerHTML = '';
+    btnWrap.style.display = 'flex';
+
+    INSTR_ALL_CONFIG.filter(cfg => cfg.active !== false).forEach(cfg => {
+        const key   = cfg.id;
+        const label = cfg.alias || key.toUpperCase();
+        const btn = document.createElement('button');
+        btn.style.cssText = 'padding:6px 14px;border:2px solid var(--border);border-radius:8px;background:#f8fafc;cursor:pointer;font-size:12px;font-weight:700;font-family:\'Courier New\',monospace;color:var(--text);transition:all .15s;';
+        btn.textContent = label;
+        btn.dataset.key = key;
+        btn.onclick = () => {
+            btnWrap.querySelectorAll('button').forEach(b => {
+                b.style.background  = '#f8fafc';
+                b.style.borderColor = 'var(--border)';
+                b.style.color       = 'var(--text)';
+            });
+            btn.style.background  = 'var(--primary)';
+            btn.style.borderColor = 'var(--primary)';
+            btn.style.color       = '#fff';
+            loadInstruksiSubtes(key, false);
+        };
+        btnWrap.appendChild(btn);
+    });
+
+    // Auto-klik pertama
+    const first = btnWrap.querySelector('button');
+    if (first) first.click();
+
+    openModal('modalInstruksi');
+}
+
+async function loadInstruksiSubtes(key, isWho) {
+    const detailEl  = document.getElementById('instrDetail');
+    const loadingEl = document.getElementById('instrDetailLoading');
+    const errorEl   = document.getElementById('instrDetailError');
+    detailEl.style.display  = 'none';
+    errorEl.style.display   = 'none';
+    errorEl.textContent     = '';
+    loadingEl.style.display = 'block';
+    try {
+        const cacheKey = (isWho ? 'who:' : '') + key;
+        let data = _instrDataCache[cacheKey] || null;
+        if (!data) {
+            const cfgEntry = INSTR_ALL_CONFIG.find(c => c.id === key);
+            const url = isWho ? INSTR_WHO_BASE + key + '.txt' : (cfgEntry?.dataUrl || INSTR_BASE + key + '.txt');
+            const raw = await (await fetch(url + '?v=' + Date.now())).json();
+            if (raw && !Array.isArray(raw) && raw.meta)      data = raw.meta;
+            else if (raw && !Array.isArray(raw))              data = raw;
+            else                                              data = {};
+            _instrDataCache[cacheKey] = data;
+        }
+        loadingEl.style.display = 'none';
+        renderInstruksiDetail(data, key);
+    } catch(e) {
+        loadingEl.style.display = 'none';
+        errorEl.textContent = '⚠ Gagal memuat instruksi untuk "' + key + '": ' + e.message;
+        errorEl.style.display = 'block';
+    }
+}
+
+function renderInstruksiDetail(data, key) {
+    const detailEl = document.getElementById('instrDetail');
+    const titleEl  = document.getElementById('instrDetailTitle');
+    const instrBox = document.getElementById('instrDetailInstrBox');
+    const instrEl  = document.getElementById('instrDetailInstr');
+    const exBlock  = document.getElementById('instrDetailExBlock');
+    const imgTop   = document.getElementById('instrDetailImgTop');
+    const imgBot   = document.getElementById('instrDetailImgBot');
+    const exNoteEl = document.getElementById('instrDetailExNote');
+    const noneEl   = document.getElementById('instrDetailNone');
+    instrBox.style.display = 'none'; exBlock.style.display = 'none';
+    imgTop.style.display = 'none';   imgBot.style.display = 'none';
+    exNoteEl.style.display = 'none'; noneEl.style.display = 'none';
+    const rawTitle = data.title || key.toUpperCase();
+    titleEl.textContent = rawTitle.replace(/\s*[—–-].*$/, '').trim();
+    const instrText = data.instructions || data.desc || data.description || '';
+    if (instrText.trim()) { instrEl.textContent = instrText; instrBox.style.display = 'block'; }
+    const hasImgTop = !!(data.exImgTop || data.exImgTop1);
+    const hasImgBot = !!(data.exImgBottom || data.exImgBot);
+    const hasExNote = !!(data.exNote && data.exNote.trim());
+    if (hasImgTop || hasImgBot || hasExNote) {
+        exBlock.style.display = 'block';
+        if (hasImgTop) { imgTop.src = data.exImgTop || data.exImgTop1; imgTop.style.display = 'block'; }
+        if (hasImgBot) { imgBot.src = data.exImgBottom || data.exImgBot; imgBot.style.display = 'block'; }
+        if (hasExNote) { exNoteEl.textContent = data.exNote; exNoteEl.style.display = 'block'; }
+    }
+    if (!instrText.trim() && !hasImgTop && !hasImgBot && !hasExNote) noneEl.style.display = 'block';
+    detailEl.style.display = 'block';
+}
+
+</script>
+
+<!-- ══ MODAL INSTRUKSI TES ══ -->
+<div class="modal-overlay" id="modalInstruksi" style="z-index:10300;">
+  <div class="modal-box" style="max-width:640px;width:96%;max-height:90vh;overflow-y:auto;">
+    <button class="modal-close" onclick="closeModal('modalInstruksi')">×</button>
+    <h2 style="font-size:16px;margin-bottom:4px;">📋 Instruksi Tes</h2>
+    <div id="instrTokenLabel" style="font-size:11px;font-family:'Courier New',monospace;color:var(--muted);margin-bottom:14px;"></div>
+    <div id="instrSubtesLoading" style="font-size:13px;color:var(--muted);padding:10px 0;">⏳ Memuat daftar subtes...</div>
+    <div id="instrSubtesBtns" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px;"></div>
+    <div id="instrDetail" style="display:none;">
+      <div style="border-top:2px solid var(--border);padding-top:16px;">
+        <div id="instrDetailTitle" style="font-size:15px;font-weight:700;color:var(--primary);margin-bottom:12px;"></div>
+        <div id="instrDetailInstrBox" style="background:#eff6ff;border-left:4px solid var(--primary);border-radius:8px;padding:14px 18px;margin-bottom:16px;display:none;">
+          <div style="font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--primary);margin-bottom:8px;">📋 Instruksi Pengerjaan</div>
+          <p id="instrDetailInstr" style="font-size:.92em;line-height:1.75;color:var(--text);white-space:pre-line;"></p>
+        </div>
+        <div id="instrDetailExBlock" style="margin-bottom:16px;display:none;">
+          <div style="font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:10px;">📖 Contoh Soal &amp; Jawaban</div>
+          <div style="display:flex;flex-direction:column;gap:10px;align-items:center;">
+            <img id="instrDetailImgTop" src="" alt="Contoh Atas" style="max-width:100%;border-radius:10px;border:2px solid var(--border);display:none;">
+            <img id="instrDetailImgBot" src="" alt="Contoh Bawah" style="max-width:100%;border-radius:10px;border:2px solid var(--border);display:none;">
+          </div>
+          <div id="instrDetailExNote" style="margin-top:12px;padding:12px 16px;background:#f8fafc;border-radius:8px;font-size:.87em;line-height:1.75;color:var(--muted);white-space:pre-line;display:none;"></div>
+        </div>
+        <div id="instrDetailNone" style="text-align:center;padding:20px;color:var(--muted);font-size:.88em;display:none;">
+          Subtes ini tidak memiliki instruksi awal (langsung tes).
+        </div>
+      </div>
+    </div>
+    <div id="instrDetailLoading" style="text-align:center;padding:20px;color:var(--muted);font-size:.88em;display:none;">⏳ Memuat instruksi...</div>
+    <div id="instrDetailError" style="text-align:center;padding:16px;color:#dc2626;font-size:.88em;display:none;"></div>
+    <div style="margin-top:16px;display:flex;justify-content:flex-end;">
+      <button class="btn btn-outline" onclick="closeModal('modalInstruksi')" style="width:auto;padding:8px 20px;">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL BIODATA ══ -->
+<div class="modal-overlay" id="modalBiodata" style="z-index:10400;">
+  <div class="modal-box" style="max-width:640px;width:96%;max-height:90vh;overflow-y:auto;">
+    <button class="modal-close" onclick="closeModal('modalBiodata')">×</button>
+    <h2 style="font-size:16px;margin-bottom:16px;">👤 Detail Biodata</h2>
+    <div id="popupBiodataBody"></div>
+    <div style="margin-top:16px;display:flex;justify-content:flex-end;">
+      <button class="btn btn-outline" onclick="closeModal('modalBiodata')" style="width:auto;padding:8px 20px;">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL PROGRES ══ -->
+<div class="modal-overlay" id="modalProgres" style="z-index:10400;">
+  <div class="modal-box" style="max-width:480px;width:96%;max-height:90vh;overflow-y:auto;">
+    <button class="modal-close" onclick="closeModal('modalProgres')">×</button>
+    <h2 id="popupProgresTitle" style="font-size:16px;margin-bottom:16px;font-family:'Courier New',monospace;color:var(--primary);"></h2>
+    <div id="popupProgresBody"></div>
+    <div style="margin-top:16px;display:flex;justify-content:flex-end;">
+      <button class="btn btn-outline" onclick="closeModal('modalProgres')" style="width:auto;padding:8px 20px;">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL BELUM SELESAI ══ -->
+<div class="modal-overlay" id="modalBelumSelesai" style="z-index:10400;">
+  <div class="modal-box" style="max-width:480px;width:96%;max-height:90vh;overflow-y:auto;">
+    <button class="modal-close" onclick="closeModal('modalBelumSelesai')">×</button>
+    <h2 style="font-size:16px;margin-bottom:16px;color:#b91c1c;">⏳ Peserta Belum Selesai</h2>
+    <div id="popupBelumSelesaiBody"></div>
+    <div style="margin-top:16px;display:flex;justify-content:flex-end;">
+      <button class="btn btn-outline" onclick="closeModal('modalBelumSelesai')" style="width:auto;padding:8px 20px;">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL LINK PENGERJAAN TEST ══ -->
+<div class="modal-overlay" id="modalLink" style="z-index:10400;">
+  <div class="modal-box" style="max-width:560px;width:96%;max-height:90vh;overflow-y:auto;">
+    <button class="modal-close" onclick="closeModal('modalLink')">×</button>
+    <button onclick="bukaPopupTambahLink()" title="Tambah Link Baru"
+      style="position:absolute;top:8px;right:44px;width:28px;height:28px;border-radius:8px;border:1.5px solid var(--border);background:#fff;color:var(--primary);font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;line-height:1;">+</button>
+    <h2 id="popupLinkTitle" style="font-size:16px;margin-bottom:4px;">🔗 Link Pengerjaan Test</h2>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">Data disimpan di tabel <code>kontrol_admin</code> (id_x=4, kolom x_01).</p>
+    <input type="text" id="linkSearchInput" placeholder="🔍 Cari link (label / URL / catatan)..." oninput="renderLinkPopupBody()"
+      style="width:100%;box-sizing:border-box;padding:8px 12px;border:2px solid var(--border);border-radius:8px;font-size:13px;outline:none;font-family:inherit;margin-bottom:12px;">
+    <div id="popupLinkBody"></div>
+    <div style="margin-top:16px;display:flex;justify-content:flex-end;">
+      <button class="btn btn-outline" onclick="closeModal('modalLink')" style="width:auto;padding:8px 20px;">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL TAMBAH LINK (form terpisah, muncul di atas modalLink) ══ -->
+<div class="modal-overlay" id="modalTambahLink" style="z-index:10500;">
+  <div class="modal-box" style="max-width:420px;width:92%;">
+    <button class="modal-close" onclick="closeModal('modalTambahLink')">×</button>
+    <h2 style="font-size:15px;margin-bottom:14px;">➕ Tambah Link Baru</h2>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <input type="text" id="linkInputUrl" placeholder="URL (https://...)"
+        style="padding:8px 12px;border:2px solid var(--border);border-radius:8px;font-size:13px;outline:none;font-family:inherit;">
+      <input type="text" id="linkInputLabel" placeholder="Label singkat (contoh: Server Utama)"
+        style="padding:8px 12px;border:2px solid var(--border);border-radius:8px;font-size:13px;outline:none;font-family:inherit;">
+      <input type="text" id="linkInputCatatan" placeholder="Catatan / keterangan (opsional)"
+        style="padding:8px 12px;border:2px solid var(--border);border-radius:8px;font-size:13px;outline:none;font-family:inherit;">
+    </div>
+    <div style="margin-top:16px;display:flex;justify-content:flex-end;gap:8px;">
+      <button class="btn btn-outline" onclick="closeModal('modalTambahLink')" style="width:auto;padding:8px 20px;">Batal</button>
+      <button class="btn btn-primary" onclick="tambahLink()" style="width:auto;padding:8px 20px;">➕ Tambah</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
